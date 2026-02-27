@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import * as d3 from "d3";
+import { useAuth } from '../hooks/useAuth'
+import { useNavigate } from 'react-router-dom'
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');`;
 
@@ -388,6 +390,11 @@ function WorldMap({ filter, onRegionClick }) {
 // ─── APP ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
+  const handleSignOut = async () => {
+  await signOut()
+  navigate('/login')}
   const [nav, setNav] = useState("feed");
   const [tab, setTab] = useState("intel");
   const [story, setStory] = useState(STORIES[0]);
@@ -451,11 +458,19 @@ export default function App() {
           </div>
           <div className="sidebar-bottom">
             <div className="user-card">
-              <div className="avatar">JD</div>
+              <div className="avatar">
+                {user?.email?.[0].toUpperCase() || 'U'}
+              </div>
               <div>
-                <div className="user-name">John Doe</div>
+                <div className="user-name">{user?.email || 'User'}</div>
                 <div className="user-role">PUBLIC_USER</div>
               </div>
+            </div>
+            <div
+              onClick={handleSignOut}
+              style={{ marginTop: 10, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', cursor: 'pointer', letterSpacing: 1 }}
+            >
+              ⊗ SIGN OUT
             </div>
           </div>
         </div>
