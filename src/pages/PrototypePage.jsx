@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import * as d3 from "d3";
 import { useAuth } from '../hooks/useAuth'
+import GeneralFeed from '../components/feed/GeneralFeed'
 import { useNavigate } from 'react-router-dom'
+import { useStories } from '../hooks/useStories'
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');`;
 
@@ -395,6 +397,7 @@ export default function App() {
   const handleSignOut = async () => {
   await signOut()
   navigate('/login')}
+  const { stories: dbStories, loading: storiesLoading } = useStories()
   const [nav, setNav] = useState("feed");
   const [tab, setTab] = useState("intel");
   const [story, setStory] = useState(STORIES[0]);
@@ -592,50 +595,33 @@ export default function App() {
                     <span className="section-label">⬡ Multi-Source Stories</span>
                     <span className="count-badge">{STORIES.length} threads</span>
                   </div>
-                  {STORIES.map(s => (
-                    <div key={s.id} className={`story-card ${s.breaking?"breaking":""} ${story?.id===s.id?"active":""}`} onClick={()=>setStory(s)}>
+                  {(dbStories.length > 0 ? dbStories : STORIES).map(s => (
+                    <div
+                      key={s.id}
+                      className={`story-card ${(s.breaking || s.is_breaking) ? "breaking" : ""} ${story?.id === s.id ? "active" : ""}`}
+                      onClick={() => setStory(s)}
+                    >
                       <div className="story-meta">
-                        {s.breaking && <span className="breaking-tag">BREAKING</span>}
+                        {(s.breaking || s.is_breaking) && <span className="breaking-tag">BREAKING</span>}
                         <span className="story-tag">{s.tag}</span>
-                        <span className="story-time">{s.time}</span>
+                        <span className="story-time">{s.time || 'recent'}</span>
                       </div>
                       <div className="story-headline">{s.headline}</div>
                       <div className="story-sources">
-                        {s.sources.map((src,i)=>(
-                          <div key={i} className="source-chip"><div className="vdot"/>{src.name}</div>
+                        {(s.sources || s.story_sources || []).map((src, i) => (
+                          <div key={i} className="source-chip">
+                            <div className="vdot" />
+                            {src.name || src.posts?.users?.username || 'Source'}
+                          </div>
                         ))}
-                        <span style={{fontSize:9,color:s.sources.length===1?"var(--warn)":"var(--muted)",fontFamily:"var(--mono)"}}>
-                          {s.sources.length===1?"⚠ 1 source":`${s.sources.length} sources`}
+                        <span style={{ fontSize: 9, color: (s.sources || s.story_sources || []).length === 1 ? "var(--warn)" : "var(--muted)", fontFamily: "var(--mono)" }}>
+                          {(s.sources || s.story_sources || []).length === 1 ? "⚠ 1 source" : `${(s.sources || s.story_sources || []).length} sources`}
                         </span>
                       </div>
                     </div>
                   ))}
                 </>}
-
-                {tab==="general" && <>
-                  <div className="section-header"><span className="section-label">Public Discussion</span></div>
-                  <div style={{padding:"10px 16px 6px",borderBottom:"1px solid var(--border)"}}>
-                    <textarea placeholder="Share your thoughts, analysis, or open-source finds..." style={{width:"100%",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:4,padding:"10px 12px",color:"var(--text)",fontFamily:"'IBM Plex Sans',sans-serif",fontSize:12,resize:"none",height:66,outline:"none"}} />
-                    <div style={{display:"flex",justifyContent:"flex-end",marginTop:6}}>
-                      <button className="topbar-btn primary" style={{fontSize:10,padding:"4px 12px"}}>Post</button>
-                    </div>
-                  </div>
-                  {GENERAL.map(p => (
-                    <div key={p.id} className="post-card">
-                      <div className="post-header">
-                        <div className="post-avatar" style={{background:p.color}}>{p.ini}</div>
-                        <div><div className="post-author">{p.author}</div><div className="post-handle">@{p.author}</div></div>
-                        <div className="post-time">{p.time}</div>
-                      </div>
-                      <div className="post-body">{p.body}</div>
-                      <div className="post-actions">
-                        <span className="post-action">↩ {p.replies}</span>
-                        <span className="post-action">♡ {p.likes}</span>
-                        <span className="post-action">↗ Share</span>
-                      </div>
-                    </div>
-                  ))}
-                </>}
+                {tab === "general" && <GeneralFeed />}
               </div>
 
               {/* Right detail */}

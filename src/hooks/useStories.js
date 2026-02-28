@@ -7,22 +7,33 @@ export function useStories() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    async function fetchStories() {
-      const { data, error } = await supabase
-        .from('stories')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        setError(error.message)
-      } else {
-        setStories(data)
-      }
-      setLoading(false)
-    }
-
     fetchStories()
   }, [])
 
-  return { stories, loading, error }
+  async function fetchStories() {
+    const { data, error } = await supabase
+      .from('stories')
+      .select(`
+        *,
+        story_sources (
+          post_id,
+          posts (
+            id,
+            body,
+            created_at,
+            users ( username, score, role )
+          )
+        )
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      setError(error.message)
+    } else {
+      setStories(data)
+    }
+    setLoading(false)
+  }
+
+  return { stories, loading, error, refetch: fetchStories }
 }
