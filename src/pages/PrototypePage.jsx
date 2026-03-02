@@ -42,6 +42,7 @@ const styles = `
   .live-indicator { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--accent2); white-space: nowrap; }
   .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); animation: blink 1.4s ease-in-out infinite; }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
   @keyframes flashTag { 0%,100%{opacity:1} 50%{opacity:0.6} }
   .ml-auto { margin-left: auto; }
   .topbar-btn { padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: var(--mono); letter-spacing: 0.5px; border: 1px solid var(--accent); color: var(--accent); background: transparent; transition: all 0.15s; white-space: nowrap; }
@@ -448,6 +449,7 @@ export default function App() {
     {id:"__sep2"},
     {id:"profile", label:"My Profile",     icon:"○", section:"Account"},
     {id:"settings",label:"Settings",       icon:"≡"},
+    {id:"admin", label:"Admin Dashboard", icon:"⬡", section:"Admin"},
   ];
 
   return (
@@ -473,6 +475,7 @@ export default function App() {
                   <div
                     className={`nav-item ${nav===n.id?"active":""}`}
                     onClick={() => {
+                      if(n.id==="admin") { navigate('/admin'); return; }
                       setNav(n.id);
                       if (n.id === "apply") setShowApply(true);
                     }}
@@ -620,7 +623,20 @@ export default function App() {
                     <span className="section-label">⬡ Multi-Source Stories</span>
                     <span className="count-badge">{STORIES.length} threads</span>
                   </div>
-                  {(dbStories.length > 0 ? dbStories : STORIES).map(s => (
+                  {storiesLoading ? (
+                      <>
+                        {[1,2,3].map(i => (
+                          <div key={i} style={{ padding:"14px 16px", borderBottom:"1px solid var(--border)" }}>
+                            <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+                              <div style={{ width:60, height:14, background:"var(--surface2)", borderRadius:3, animation:"pulse 1.5s ease-in-out infinite" }} />
+                              <div style={{ width:80, height:14, background:"var(--surface2)", borderRadius:3, animation:"pulse 1.5s ease-in-out infinite" }} />
+                            </div>
+                            <div style={{ width:"90%", height:16, background:"var(--surface2)", borderRadius:3, marginBottom:6, animation:"pulse 1.5s ease-in-out infinite" }} />
+                            <div style={{ width:"70%", height:16, background:"var(--surface2)", borderRadius:3, animation:"pulse 1.5s ease-in-out infinite" }} />
+                          </div>
+                        ))}
+                      </>
+                    ) : (dbStories.length > 0 ? dbStories : STORIES).map(s => (
                     <div
                       key={s.id}
                       className={`story-card ${(s.breaking || s.is_breaking) ? "breaking" : ""} ${story?.id === s.id ? "active" : ""}`}
