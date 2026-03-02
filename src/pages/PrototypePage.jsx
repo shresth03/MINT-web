@@ -1,6 +1,8 @@
+import { useRegions } from '../hooks/useRegions'
 import { useState, useEffect, useRef } from "react";
 import * as d3 from "d3";
 import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../api/supabase'
 import GeneralFeed from '../components/feed/GeneralFeed'
 import { useNavigate } from 'react-router-dom'
 import { useStories } from '../hooks/useStories'
@@ -193,14 +195,15 @@ const ALL_FILTERS = ["ALL","CONFLICT","MARITIME","CYBER","MILITARY","GEOPOLITICS
 
 // ─── WORLD MAP ───────────────────────────────────────────────────────────────
 
-function WorldMap({ filter, onRegionClick }) {
+  function WorldMap({ filter, onRegionClick, regions: propRegions }) {
   const svgRef = useRef(null);
   const wrapRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const [topoData, setTopoData] = useState(null);
   const [dims, setDims] = useState({w:900, h:520});
 
-  const regions = filter === "ALL" ? REGIONS : REGIONS.filter(r => r.tags.includes(filter));
+  const allRegions = propRegions || REGIONS
+  const regions = filter === "ALL" ? allRegions : allRegions.filter(r => r.tags.includes(filter))
 
   // Resize observer
   useEffect(() => {
@@ -398,6 +401,7 @@ export default function App() {
   await signOut()
   navigate('/login')}
   const { stories: dbStories, loading: storiesLoading } = useStories()
+  const { regions: dbRegions } = useRegions()
   const [nav, setNav] = useState("feed");
   const [tab, setTab] = useState("intel");
   const [story, setStory] = useState(STORIES[0]);
@@ -406,8 +410,29 @@ export default function App() {
   const [mf, setMf] = useState("ALL");
   const [selRegion, setSelRegion] = useState(null);
   const [form, setForm] = useState({channel:"",handle:"",portfolio:"",why:""});
-
-  const doApply = () => { setApplied(true); setTimeout(() => { setShowApply(false); setApplied(false); }, 2000); };
+  const doApply = async () => {
+  if (!form.channel || !form.handle) return
+  setApplied(true)
+  const { error } = await supabase.from('osint_applications').insert({
+    user_id: user.id,
+    channel_name: form.channel,
+    handle: form.handle,
+    portfolio: form.portfolio,
+    why: form.why,
+    status: 'pending'
+  })
+  if (error) {
+    console.error('Application error:', error.message)
+    alert('Error: ' + error.message)
+    setApplied(false)
+    return
+  }
+  setTimeout(() => {
+    setShowApply(false)
+    setApplied(false)
+    setForm({channel:"",handle:"",portfolio:"",why:""})
+  }, 2000)
+}
   const totalEv = REGIONS.reduce((a,r) => a+r.count, 0);
   const breakZones = REGIONS.filter(r => r.breaking).length;
   const hottest = REGIONS.reduce((a,b) => a.count > b.count ? a : b);
@@ -515,7 +540,7 @@ export default function App() {
               </div>
 
               <div style={{position:"relative",flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-                <WorldMap filter={mf} onRegionClick={r => setSelRegion(prev => prev?.id===r.id ? null : r)} />
+                <WorldMap filter={mf} regions={dbRegions} onRegionClick={r => setSelRegion(prev => prev?.id===r.id ? null : r)} />
 
                 {/* Stat cards */}
                 <div className="map-stats-box">
@@ -628,7 +653,7 @@ export default function App() {
               {story ? (
                 <div className="detail-panel">
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,flexWrap:"wrap"}}>
-                    {story.breaking && <span className="breaking-tag">BREAKING</span>}
+                    {(story.breaking || story.is_breaking) && <span className="breaking-tag">BREAKING</span>}
                     <span className="story-tag">{story.tag}</span>
                     <span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--muted)"}}>First reported {story.time}</span>
                     <button
@@ -643,11 +668,12 @@ export default function App() {
                     <span className="conf-val">{story.confidence}%</span>
                   </div>
                   <div className="tl-bar">
-                    {story.sources.map((s,i) => (
+                    {(story.sources || story.story_sources || []).map((s,i) => (
                       <span key={i} style={{display:"contents"}}>
                         {i>0 && <span className="tl-arrow">→</span>}
                         <div className={`tl-event ${i===0?"first":""}`}>
-                          {i===0?"⚑ FIRST: ":`+${s.t.replace("T+","")}: `}{s.name}
+                          {i===0?"⚑ FIRST: ":`+${(s.t||'').replace("T+","")}: `}
+                          {s.name || s.posts?.users?.username || 'Source'}
                         </div>
                       </span>
                     ))}
@@ -656,21 +682,29 @@ export default function App() {
                     <div className="detail-summary-label">◈ AI-SYNTHESISED SUMMARY</div>
                     {story.summary}
                   </div>
-                  <div className="src-title">{story.sources.length} Verified Source{story.sources.length!==1?"s":""}</div>
-                  {story.sources.map((s,i) => (
-                    <div key={i} className="source-post">
-                      <div className="source-post-hd">
-                        <div className="post-avatar" style={{background:s.av,width:36,height:36,fontSize:12}}>{s.ini}</div>
-                        <div><div className="source-name">{s.name}</div><div className="source-handle">{s.handle}</div></div>
-                        <div className="score-badge">◆ {s.score} / 100</div>
-                      </div>
-                      <div className="source-post-body">{s.body}</div>
-                      <div className="source-post-time">
-                        {s.first && <span className="first-report">⚑ First to report</span>}
-                        <span>{s.t==="T+0"?"First post":`Posted ${s.t} after breaking`}</span>
-                      </div>
+                  <div className="src-title">
+                      {(story.sources || story.story_sources || []).length} Verified Source
+                      {(story.sources || story.story_sources || []).length!==1?"s":""}
                     </div>
-                  ))}
+                    {(story.sources || story.story_sources || []).map((s,i) => (
+                      <div key={i} className="source-post">
+                        <div className="source-post-hd">
+                          <div className="post-avatar" style={{background: s.av || '#1a3a5c', width:36, height:36, fontSize:12}}>
+                            {s.ini || (s.posts?.users?.username?.[0]?.toUpperCase()) || 'S'}
+                          </div>
+                          <div>
+                            <div className="source-name">{s.name || s.posts?.users?.username || 'Source'}</div>
+                            <div className="source-handle">{s.handle || `@${s.posts?.users?.username || 'unknown'}`}</div>
+                          </div>
+                          <div className="score-badge">◆ {s.score || s.posts?.users?.score || '??'} / 100</div>
+                        </div>
+                        <div className="source-post-body">{s.body || s.posts?.body || ''}</div>
+                        <div className="source-post-time">
+                          {(s.first) && <span className="first-report">⚑ First to report</span>}
+                          <span>{s.t==="T+0" ? "First post" : s.t ? `Posted ${s.t} after breaking` : ''}</span>
+                        </div>
+                      </div>
+                    ))}
                   <div style={{height:32}} />
                 </div>
               ) : (
