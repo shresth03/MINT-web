@@ -7,6 +7,7 @@ import { supabase } from '../api/supabase'
 import GeneralFeed from '../components/feed/GeneralFeed'
 import { useNavigate } from 'react-router-dom'
 import { useStories } from '../hooks/useStories'
+import StoryList from '../components/feed/StoryList'
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');`;
 
@@ -404,8 +405,22 @@ export default function App() {
   navigate('/login')}
   const { stories: dbStories, loading: storiesLoading } = useStories()
   const { profile } = useUser()
+  const [hasApplied, setHasApplied] = useState(false)
   const { regions: dbRegions } = useRegions()
-  const [nav, setNav] = useState("feed");
+  useEffect(() => {
+    if (!user?.id) return
+    supabase
+      .from('osint_applications')
+      .select('id')
+      .eq('user_id', user.id)
+      .then(({ data }) => {
+        if (data && data.length > 0) setHasApplied(true)
+      })
+  }, [user])
+  const [nav, setNav] = useState(() => {
+    const saved = localStorage.getItem('sigint_nav')
+    return saved || "feed"
+  });
   const [tab, setTab] = useState("intel");
   const [story, setStory] = useState(STORIES[0]);
   const [showApply, setShowApply] = useState(false);
@@ -430,6 +445,7 @@ export default function App() {
     setApplied(false)
     return
   }
+  setHasApplied(true)
   setTimeout(() => {
     setShowApply(false)
     setApplied(false)
@@ -446,9 +462,10 @@ export default function App() {
     {id:"map",     label:"Event Map",         icon:"◉"},
     {id:"verified",label:"Verified Sources",  icon:"◆", badge:"47", bc:"green", section:"OSINT Channels"},
     {id:"pending", label:"Under Review",      icon:"◇"},
-    ...(profile?.role === 'public' ? [{id:"apply", label:"Apply to Join", icon:"⊕"}] : []),
-    {id:"profile", label:"My Profile",        icon:"○", section:"Account"},
-    {id:"settings",label:"Settings",          icon:"≡"},
+    ...(profile?.role === 'public' && !hasApplied ? [{id:"apply", label:"Apply to Join", icon:"⊕"}] : []),
+    ...(profile?.role === 'public' && hasApplied ? [{id:"status", label:"Application Pending", icon:"◌"}] : []),
+    {id:"profile", label:"My Profile", icon:"○", section:"Account"},
+    {id:"settings",label:"Settings",   icon:"≡"},
     ...(profile?.role === 'admin' ? [{id:"admin", label:"Admin Dashboard", icon:"⬡", section:"Admin"}] : []),
   ]
 
@@ -478,6 +495,7 @@ export default function App() {
                       if(n.id==="admin") { navigate('/admin'); return; }
                       if(n.id==="profile") { navigate('/profile'); return; }
                       setNav(n.id);
+                      localStorage.setItem('sigint_nav', n.id);
                       if (n.id === "apply") setShowApply(true);
                     }}
                   >
@@ -544,8 +562,18 @@ export default function App() {
               </div>
 
               <div style={{position:"relative",flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-                <WorldMap filter={mf} regions={dbRegions} onRegionClick={r => setSelRegion(prev => prev?.id===r.id ? null : r)} />
-
+              {dbRegions.length === 0 ? (
+                <div style={{
+                  flex:1, display:"flex", alignItems:"center", justifyContent:"center",
+                  flexDirection:"column", gap:12,
+                  fontFamily:"var(--mono)", fontSize:11, color:"var(--muted)"
+                }}>
+                  <div style={{fontSize:24, animation:"pulse 1.5s ease-in-out infinite"}}>◉</div>
+                  <div style={{letterSpacing:2}}>LOADING MAP DATA...</div>
+                </div>
+              ) : (
+                <WorldMap filter={mf} regions={dbRegions} onRegionClick={r => setSelR(r)} />
+              )}
                 {/* Stat cards */}
                 <div className="map-stats-box">
                   <div className="stat-card">
@@ -736,47 +764,12 @@ export default function App() {
                     <span className="section-label">⬡ Multi-Source Stories</span>
                     <span className="count-badge">{STORIES.length} threads</span>
                   </div>
-                  {storiesLoading ? (
-                      <>
-                        {[1,2,3].map(i => (
-                          <div key={i} style={{ padding:"14px 16px", borderBottom:"1px solid var(--border)" }}>
-                            <div style={{ display:"flex", gap:8, marginBottom:8 }}>
-                              <div style={{ width:60, height:14, background:"var(--surface2)", borderRadius:3, animation:"pulse 1.5s ease-in-out infinite" }} />
-                              <div style={{ width:80, height:14, background:"var(--surface2)", borderRadius:3, animation:"pulse 1.5s ease-in-out infinite" }} />
-                            </div>
-                            <div style={{ width:"90%", height:16, background:"var(--surface2)", borderRadius:3, marginBottom:6, animation:"pulse 1.5s ease-in-out infinite" }} />
-                            <div style={{ width:"70%", height:16, background:"var(--surface2)", borderRadius:3, animation:"pulse 1.5s ease-in-out infinite" }} />
-                          </div>
-                        ))}
-                      </>
-                    ) : (dbStories.length > 0 ? dbStories : STORIES).map(s => (
-                    <div
-                      key={s.id}
-                      className={`story-card ${(s.breaking || s.is_breaking) ? "breaking" : ""} ${story?.id === s.id ? "active" : ""}`}
-                      onClick={() => setStory(s)}
-                    >
-                      <div className="story-meta">
-                        {(s.breaking || s.is_breaking) && <span className="breaking-tag">BREAKING</span>}
-                        <span className="story-tag">{s.tag}</span>
-                        <span className="story-time">{s.time || 'recent'}</span>
-                      </div>
-                      <div className="story-headline">{s.headline}</div>
-                      <div className="story-sources">
-                        {(s.sources || s.story_sources || []).map((src, i) => (
-                          <div key={i} className="source-chip">
-                          <div className="vdot" />
-                          {src.name || src.posts?.users?.username || 'Source'}
-                          {(src.posts?.users?.role === 'osint' || src.score) &&
-                            <span style={{color:'var(--verified)',fontSize:8,marginLeft:2}}>◆</span>
-                          }
-                        </div>
-                        ))}
-                        <span style={{ fontSize: 9, color: (s.sources || s.story_sources || []).length === 1 ? "var(--warn)" : "var(--muted)", fontFamily: "var(--mono)" }}>
-                          {(s.sources || s.story_sources || []).length === 1 ? "⚠ 1 source" : `${(s.sources || s.story_sources || []).length} sources`}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                  <StoryList
+                    stories={dbStories.length > 0 ? dbStories : STORIES}
+                    activeStory={story}
+                    onSelect={setStory}
+                    loading={storiesLoading}
+                  />
                 </>}
                 {tab === "general" && <GeneralFeed />}
               </div>
