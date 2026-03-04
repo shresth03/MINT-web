@@ -3,6 +3,7 @@ import { useUser } from '../hooks/useUser'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../api/supabase'
+import { usePosts } from '../hooks/usePosts'
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
@@ -52,6 +53,9 @@ const styles = `
 export default function ProfilePage() {
   const { user } = useAuth()
   const { profile, loading, updateProfile } = useUser()
+  const { fetchSavedPosts } = usePosts()
+  const [savedPosts, setSavedPosts] = useState([])
+  const [savesLoading, setSavesLoading] = useState(true)
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [saving, setSaving] = useState(false)
@@ -68,6 +72,15 @@ export default function ProfilePage() {
         .then(({ count }) => setPostCount(count || 0))
     }
   }, [profile])
+
+  useEffect(() => {
+    async function loadSaved() {
+      const { data } = await fetchSavedPosts()
+      setSavedPosts(data)
+      setSavesLoading(false)
+    }
+    loadSaved()
+  }, [])
 
   const handleSave = async () => {
     setSaving(true)
@@ -157,6 +170,37 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          {/* Saved Posts */}
+          <div className="profile-card">
+            <div className="section-label">Saved Posts</div>
+            {savesLoading ? (
+              <div style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--muted)' }}>
+                LOADING...
+              </div>
+            ) : savedPosts.length === 0 ? (
+              <div style={{ fontFamily:'var(--mono)', fontSize:11, color:'var(--muted)', padding:'8px 0' }}>
+                No saved posts yet. Bookmark posts to see them here.
+              </div>
+            ) : (
+              savedPosts.map(s => (
+                <div key={s.id} style={{
+                  borderBottom:'1px solid var(--border)',
+                  padding:'12px 0'
+                }}>
+                  <div style={{
+                    fontFamily:'var(--mono)', fontSize:11,
+                    color:'var(--muted)', marginBottom:4
+                  }}>
+                    {s.posts?.users?.username || 'Unknown'} · ◈ saved
+                  </div>
+                  <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.5 }}>
+                    {s.posts?.body || ''}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          
           {/* Edit Profile */}
           <div className="profile-card">
             <div className="section-label">Edit Profile</div>

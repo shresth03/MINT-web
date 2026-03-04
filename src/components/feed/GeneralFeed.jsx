@@ -172,7 +172,9 @@ function ReplyThread({ postId, onClose, createReply, fetchReplies }) {
 
 export default function GeneralFeed() {
   const { user } = useAuth()
-  const { posts, loading, createPost, likePost, createReply, fetchReplies } = usePosts()
+  const { posts, loading, createPost, likePost, savePost, repost, createReply, fetchReplies } = usePosts()
+  const [repostModal, setRepostModal] = useState(null) // holds post being reposted
+  const [quoteBody, setQuoteBody] = useState('')
   const [body, setBody] = useState('')
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState('')
@@ -199,6 +201,98 @@ export default function GeneralFeed() {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+      {/* Repost Modal */}
+      {repostModal && (
+        <div style={{
+          position:'fixed', inset:0, background:'rgba(0,0,0,0.7)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          zIndex:1000
+        }} onClick={() => setRepostModal(null)}>
+          <div style={{
+            background:'var(--surface)', border:'1px solid var(--border)',
+            borderRadius:10, padding:24, width:480, maxWidth:'90vw'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{
+              fontFamily:'var(--mono)', fontSize:11, letterSpacing:2,
+              color:'var(--accent)', marginBottom:16
+            }}>
+              {repostModal.reposted ? '⟳ UNDO REPOST' : '⟳ REPOST'}
+            </div>
+
+            {/* Original post preview */}
+            <div style={{
+              background:'var(--bg)', border:'1px solid var(--border)',
+              borderRadius:6, padding:12, marginBottom:16
+            }}>
+              <div style={{
+                fontFamily:'var(--mono)', fontSize:11,
+                color:'var(--muted)', marginBottom:6
+              }}>
+                {repostModal.users?.username || 'Unknown'}
+              </div>
+              <div style={{ fontSize:12, color:'var(--text)', lineHeight:1.5 }}>
+                {repostModal.body}
+              </div>
+            </div>
+
+            {!repostModal.reposted && (
+              <>
+                <textarea
+                  value={quoteBody}
+                  onChange={e => setQuoteBody(e.target.value)}
+                  placeholder="Add a comment (optional)..."
+                  maxLength={500}
+                  rows={3}
+                  style={{
+                    width:'100%', background:'var(--bg)',
+                    border:'1px solid var(--border)', borderRadius:6,
+                    padding:'10px 12px', color:'var(--text)',
+                    fontFamily:'IBM Plex Sans, sans-serif', fontSize:13,
+                    resize:'none', outline:'none', marginBottom:12,
+                    boxSizing:'border-box'
+                  }}
+                />
+                <div style={{
+                  fontFamily:'var(--mono)', fontSize:9,
+                  color:'var(--muted)', marginBottom:16
+                }}>
+                  {quoteBody.length}/500
+                </div>
+              </>
+            )}
+
+            <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+              <button
+                onClick={() => setRepostModal(null)}
+                style={{
+                  padding:'8px 16px', background:'transparent',
+                  border:'1px solid var(--border)', color:'var(--muted)',
+                  borderRadius:4, fontFamily:'var(--mono)',
+                  fontSize:10, cursor:'pointer'
+                }}
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={async () => {
+                  await repost(repostModal.id, quoteBody || null)
+                  setRepostModal(null)
+                  setQuoteBody('')
+                }}
+                style={{
+                  padding:'8px 16px',
+                  background: repostModal.reposted ? 'var(--accent2)' : 'var(--verified)',
+                  color:'#000', border:'none', borderRadius:4,
+                  fontFamily:'var(--mono)', fontSize:10,
+                  fontWeight:700, cursor:'pointer'
+                }}
+              >
+                {repostModal.reposted ? 'UNDO REPOST' : '⟳ REPOST'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Composer */}
       <div style={{
         padding:'16px', borderBottom:'1px solid var(--border)',
@@ -322,20 +416,19 @@ export default function GeneralFeed() {
                     <div style={{ fontSize:13, lineHeight:1.6, marginBottom:10 }}>
                       {post.body}
                     </div>
-                    {/* Actions */}
+                {/* Actions */}
                     <div style={{ display:'flex', gap:16, alignItems:'center' }}>
                       <button
-                        onClick={() => likePost(post.id, post.likes || 0)}
+                        onClick={() => likePost(post.id)}
                         style={{
                           background:'none', border:'none', cursor:'pointer',
                           display:'flex', alignItems:'center', gap:5,
-                          fontFamily:'var(--mono)', fontSize:11, color:'var(--muted)',
+                          fontFamily:'var(--mono)', fontSize:11,
+                          color: post.liked ? '#e05577' : 'var(--muted)',
                           padding:0, transition:'color 0.15s'
                         }}
-                        onMouseOver={e => e.currentTarget.style.color='#e05'}
-                        onMouseOut={e => e.currentTarget.style.color='var(--muted)'}
                       >
-                        ♡ {post.likes || 0}
+                        {post.liked ? '♥' : '♡'} {post.likes || 0}
                       </button>
                       <button
                         onClick={() => toggleThread(post.id)}
@@ -349,6 +442,34 @@ export default function GeneralFeed() {
                       >
                         ↩ {post.reply_count || 0}
                         {openThreads.has(post.id) ? ' ▲' : ' ▼'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setRepostModal(post)
+                          setQuoteBody('')
+                        }}
+                        style={{
+                          background:'none', border:'none', cursor:'pointer',
+                          display:'flex', alignItems:'center', gap:5,
+                          fontFamily:'var(--mono)', fontSize:11,
+                          color: post.reposted ? 'var(--verified)' : 'var(--muted)',
+                          padding:0, transition:'color 0.15s'
+                        }}
+                      >
+                        ⟳ {post.repost_count || 0}
+                      </button>
+                      <button
+                        onClick={() => savePost(post.id)}
+                        style={{
+                          background:'none', border:'none', cursor:'pointer',
+                          display:'flex', alignItems:'center', gap:5,
+                          fontFamily:'var(--mono)', fontSize:11,
+                          color: post.saved ? '#ffcc00' : 'var(--muted)',
+                          padding:0, transition:'color 0.15s',
+                          marginLeft:'auto'
+                        }}
+                      >
+                        {post.saved ? 'bookmarked ◈' : '◇'}
                       </button>
                     </div>
                   </div>
