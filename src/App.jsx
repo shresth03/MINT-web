@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import AdminDashboard from './pages/AdminDashboard'
 import ProtectedRoute from './components/layout/ProtectedRoute'
+import NotFound from './pages/NotFound'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
           <PrototypePage />
         </ProtectedRoute>
       } />
+      <Route path="/404" element={<NotFound />} />
     </Routes>
   )
 }

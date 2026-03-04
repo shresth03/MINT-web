@@ -517,7 +517,7 @@ export default function App() {
             <span style={{fontSize:10,color:"var(--muted)",fontFamily:"var(--mono)"}}>
               {nav==="map"
                 ? `${REGIONS.length} regions · ${totalEv} tracked events`
-                : `${STORIES.length} stories · ${STORIES.reduce((a,s)=>a+s.sources.length,0)} verified posts`}
+                : `${(dbStories.length > 0 ? dbStories : STORIES).length} stories · ${(dbStories.length > 0 ? dbStories : STORIES).reduce((a,s) => a + (s.sources || s.story_sources || []).length, 0)} verified posts`}
             </span>
             <div className="ml-auto">
               <button className="topbar-btn" onClick={() => setShowApply(true)}>Apply as OSINT Channel</button>
@@ -601,7 +601,14 @@ export default function App() {
                         ))}
                       </>
                     ) : (
-                      <div style={{fontSize:10,color:"var(--muted)",fontFamily:"var(--mono)"}}>No linked intel stories yet for this region.</div>
+                      <div style={{fontSize:10,color:"var(--muted)",fontFamily:"var(--mono)"}}>
+                        <div style={{fontSize:10, color:"var(--muted)", fontFamily:"var(--mono)", padding:"8px 0"}}>
+                          No linked intel stories for this region yet.
+                          <div style={{marginTop:6, fontSize:9, color:"#2a3d54"}}>
+                          Stories will appear here as OSINT channels report events.
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
