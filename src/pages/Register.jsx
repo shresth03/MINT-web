@@ -120,7 +120,7 @@ export default function Register() {
         <div className="auth-card">
           <div className="auth-logo">
             <div className="auth-logo-icon">⬡</div>
-            <div className="auth-logo-text">SIGINT</div>
+            <div className="auth-logo-text">MINT</div>
           </div>
           <div className="auth-title">Create your account</div>
 

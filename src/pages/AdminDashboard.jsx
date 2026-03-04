@@ -244,7 +244,7 @@ export default function AdminDashboard() {
       <div className="admin-page">
         <div className="admin-topbar">
           <span style={{ fontSize: 20, color: '#00d4ff' }}>⬡</span>
-          <span className="admin-title">SIGINT — ADMIN DASHBOARD</span>
+          <span className="admin-title">MINT — ADMIN DASHBOARD</span>
           <button className="back-btn" onClick={() => navigate('/feed')}>
             ← Back to Feed
           </button>

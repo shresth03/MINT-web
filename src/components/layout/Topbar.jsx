@@ -13,7 +13,7 @@ export default function Topbar({ navItem, totalEvents, regions, stories, setShow
   
     return (
       <div className="topbar">
-        <span className="topbar-title">{titles[navItem] || "SIGINT"}</span>
+        <span className="topbar-title">{titles[navItem] || "MINT"}</span>
   
         <div className="live-indicator">
           <div className="live-dot" />

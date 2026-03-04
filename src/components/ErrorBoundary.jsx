@@ -29,7 +29,7 @@ export default class ErrorBoundary extends Component {
         }}>
           <div style={{ fontSize: 40, marginBottom: 16, color: '#1e2d3d' }}>⬡</div>
           <div style={{ fontSize: 12, letterSpacing: 2, color: '#00d4ff', marginBottom: 8 }}>
-            SIGINT — SYSTEM ERROR
+            MINT — SYSTEM ERROR
           </div>
           <div style={{ fontSize: 11, marginBottom: 24, color: '#4a6080' }}>
             {this.state.error?.message || 'An unexpected error occurred'}

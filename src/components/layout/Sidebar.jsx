@@ -25,7 +25,7 @@ const NAV_ITEMS = [
         <div className="logo">
             <div className="logo-icon">⬡</div>
                 <div>
-                    <div className="logo-text">SIGINT</div>
+                    <div className="logo-text">MINT</div>
                     <div className="logo-sub">OPEN SOURCE INTEL NETWORK</div>
                 </div>
             </div>
