@@ -7,6 +7,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import NotFound from './pages/NotFound'
 import SearchPage from './pages/SearchPage'
+import ChannelPage from './pages/ChannelPage'
 
 export default function App() {
   return (
@@ -26,6 +27,11 @@ export default function App() {
       <Route path="/search" element={
         <ProtectedRoute>
           <SearchPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/channel/:username" element={
+        <ProtectedRoute>
+          <ChannelPage />
         </ProtectedRoute>
       } />
       <Route path="/*" element={

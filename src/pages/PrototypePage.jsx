@@ -721,6 +721,7 @@ export default function App() {
                   }}
                     onMouseOver={e => e.currentTarget.style.borderColor="#2a3d54"}
                     onMouseOut={e => e.currentTarget.style.borderColor="var(--border)"}
+                    onClick={() => navigate(`/channel/${ch.name}`)}
                   >
                     <div style={{display:"flex", alignItems:"center", gap:12, marginBottom:10}}>
                       <div style={{

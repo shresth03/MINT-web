@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { usePosts } from '../../hooks/usePosts'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../api/supabase'
+import { useNavigate } from 'react-router-dom'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -179,6 +180,7 @@ export default function GeneralFeed() {
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState('')
   const [openThreads, setOpenThreads] = useState(new Set())
+  const navigate = useNavigate()
 
   async function handlePost() {
     if (!body.trim()) return
@@ -404,7 +406,14 @@ export default function GeneralFeed() {
                         color: post.users?.role === 'osint' ? 'var(--verified)' :
                                post.users?.role === 'admin' ? 'var(--accent)' : 'var(--text)'
                       }}>
-                        {post.users?.username || 'Unknown'}
+                        <span
+                          onClick={() => navigate(`/channel/${post.users?.username}`)}
+                          style={{ cursor:'pointer' }}
+                          onMouseOver={e => e.currentTarget.style.textDecoration='underline'}
+                          onMouseOut={e => e.currentTarget.style.textDecoration='none'}
+                        >
+                          {post.users?.username || 'Unknown'}
+                        </span>
                         {post.users?.role === 'osint' && (
                           <span style={{color:'var(--verified)',marginLeft:4,fontSize:10}}>◆</span>
                         )}
