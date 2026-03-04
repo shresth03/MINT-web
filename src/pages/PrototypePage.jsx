@@ -421,6 +421,16 @@ export default function App() {
     const saved = localStorage.getItem('sigint_nav')
     return saved || "feed"
   });
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        navigate('/search')
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
   const [tab, setTab] = useState("intel");
   const [story, setStory] = useState(STORIES[0]);
   const [showApply, setShowApply] = useState(false);
@@ -458,6 +468,7 @@ export default function App() {
 
   const navItems = [
     {id:"feed",    label:"Intel Feed",        icon:"◈", section:"Feed"},
+    {id:"search", label:"Search", icon:"◎", section:"Feed"},
     {id:"trending",label:"Trending",          icon:"↑", badge:"12"},
     {id:"map",     label:"Event Map",         icon:"◉"},
     {id:"verified",label:"Verified Sources",  icon:"◆", badge:"47", bc:"green", section:"OSINT Channels"},
@@ -494,6 +505,7 @@ export default function App() {
                     onClick={() => {
                       if(n.id==="admin") { navigate('/admin'); return; }
                       if(n.id==="profile") { navigate('/profile'); return; }
+                      if(n.id==="search") { navigate('/search'); return; }
                       setNav(n.id);
                       localStorage.setItem('sigint_nav', n.id);
                       if (n.id === "apply") setShowApply(true);

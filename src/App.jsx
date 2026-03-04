@@ -6,6 +6,7 @@ import Register from './pages/Register'
 import AdminDashboard from './pages/AdminDashboard'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import NotFound from './pages/NotFound'
+import SearchPage from './pages/SearchPage'
 
 export default function App() {
   return (
@@ -20,6 +21,11 @@ export default function App() {
       } />
       <Route path="/profile" element={<ProtectedRoute>
           <ProfilePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/search" element={
+        <ProtectedRoute>
+          <SearchPage />
         </ProtectedRoute>
       } />
       <Route path="/*" element={
