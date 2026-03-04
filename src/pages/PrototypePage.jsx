@@ -617,7 +617,112 @@ export default function App() {
           )}
 
           {/* ══ FEED VIEW ══ */}
-          {nav !== "map" && (
+          {nav === "trending" && (
+            <div style={{flex:1, overflow:"hidden", display:"flex", flexDirection:"column"}}>
+              <div className="section-header">
+                <span className="section-label">↑ Trending Now</span>
+                <span className="count-badge">Last 24 hours</span>
+              </div>
+              <div style={{overflow:"auto", flex:1}}>
+                {(dbStories.length > 0 ? dbStories : STORIES)
+                  .slice()
+                  .sort((a,b) => (b.sources||b.story_sources||[]).length - (a.sources||a.story_sources||[]).length)
+                  .map((s, i) => (
+                    <div key={s.id} className="story-card" onClick={() => { setStory(s); setNav("feed"); }}
+                      style={{display:"flex", alignItems:"flex-start", gap:12}}>
+                      <div style={{
+                        fontFamily:"var(--mono)", fontSize:20, fontWeight:700,
+                        color: i===0?"var(--accent2)": i===1?"var(--muted)": i===2?"#8a6a2a":"var(--border)",
+                        minWidth:28, paddingTop:2
+                      }}>
+                        {i+1}
+                      </div>
+                      <div style={{flex:1}}>
+                        <div className="story-meta">
+                          {(s.breaking||s.is_breaking) && <span className="breaking-tag">BREAKING</span>}
+                          <span className="story-tag">{s.tag}</span>
+                          <span className="story-time">{s.time || 'recent'}</span>
+                        </div>
+                        <div className="story-headline">{s.headline}</div>
+                        <div style={{display:"flex", alignItems:"center", gap:8, marginTop:6}}>
+                          <span style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--accent)"}}>
+                            ◆ {(s.sources||s.story_sources||[]).length} sources
+                          </span>
+                          <span style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--muted)"}}>
+                            {s.confidence || s.confidence === 0 ? `${s.confidence}% confidence` : ''}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          )}
+          {nav === "verified" && (
+            <div style={{flex:1, overflow:"hidden", display:"flex", flexDirection:"column"}}>
+              <div className="section-header">
+                <span className="section-label">◆ Verified OSINT Channels</span>
+                <span className="count-badge">6 active</span>
+              </div>
+              <div style={{overflow:"auto", flex:1, padding:"12px 16px"}}>
+                {[
+                  {name:"StratSentinel", handle:"@StratSentinel", score:94, tag:"MARITIME · CONFLICT", posts:142},
+                  {name:"MaritimeWatch", handle:"@MW_Intel", score:89, tag:"MARITIME · NAVAL", posts:98},
+                  {name:"GulfWatcher", handle:"@GulfWatcher_OS", score:78, tag:"GULF · ENERGY", posts:67},
+                  {name:"CyberSentinel_EU", handle:"@CyberSentinel_EU", score:91, tag:"CYBER · INFRASTRUCTURE", posts:203},
+                  {name:"OT_Threat_Intel", handle:"@OTThreatIntel", score:86, tag:"CYBER · ICS", posts:115},
+                  {name:"GeoIntelysis", handle:"@GeoIntelysis", score:88, tag:"GEOPOLITICS · SATELLITE", posts:89},
+                ].map((ch, i) => (
+                  <div key={i} style={{
+                    background:"var(--surface)", border:"1px solid var(--border)",
+                    borderRadius:8, padding:"16px", marginBottom:10,
+                    transition:"border-color 0.15s", cursor:"pointer"
+                  }}
+                    onMouseOver={e => e.currentTarget.style.borderColor="#2a3d54"}
+                    onMouseOut={e => e.currentTarget.style.borderColor="var(--border)"}
+                  >
+                    <div style={{display:"flex", alignItems:"center", gap:12, marginBottom:10}}>
+                      <div style={{
+                        width:40, height:40, borderRadius:"50%",
+                        background:"linear-gradient(135deg,#1e3a5f,#0d6efd)",
+                        display:"flex", alignItems:"center", justifyContent:"center",
+                        fontSize:15, fontWeight:700, color:"white", flexShrink:0
+                      }}>
+                        {ch.name[0]}
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{display:"flex", alignItems:"center", gap:6}}>
+                          <span style={{fontSize:13, fontWeight:600}}>{ch.name}</span>
+                          <span style={{color:"var(--verified)", fontSize:10}}>◆</span>
+                        </div>
+                        <div style={{fontFamily:"var(--mono)", fontSize:10, color:"var(--muted)"}}>{ch.handle}</div>
+                      </div>
+                      <div style={{
+                        fontFamily:"var(--mono)", fontSize:11, fontWeight:700,
+                        color:"var(--verified)", padding:"4px 10px",
+                        border:"1px solid var(--verified)", borderRadius:4
+                      }}>
+                        {ch.score}/100
+                      </div>
+                    </div>
+                    <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
+                      {ch.tag.split(" · ").map(t => (
+                        <span key={t} className="story-tag">{t}</span>
+                      ))}
+                      <span style={{
+                        marginLeft:"auto", fontFamily:"var(--mono)",
+                        fontSize:9, color:"var(--muted)"
+                      }}>
+                        {ch.posts} verified posts
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {nav !== "map" && nav !== "trending" && nav !== "verified" && (
             <div className="feed-layout">
               {/* Left panel */}
               <div className="intel-feed">
