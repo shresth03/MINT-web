@@ -1,3 +1,4 @@
+import { useUser } from '../hooks/useUser'
 import { useRegions } from '../hooks/useRegions'
 import { useState, useEffect, useRef } from "react";
 import * as d3 from "d3";
@@ -402,6 +403,7 @@ export default function App() {
   await signOut()
   navigate('/login')}
   const { stories: dbStories, loading: storiesLoading } = useStories()
+  const { profile } = useUser()
   const { regions: dbRegions } = useRegions()
   const [nav, setNav] = useState("feed");
   const [tab, setTab] = useState("intel");
@@ -439,18 +441,16 @@ export default function App() {
   const hottest = REGIONS.reduce((a,b) => a.count > b.count ? a : b);
 
   const navItems = [
-    {id:"feed",  label:"Intel Feed",       icon:"◈", section:"Feed"},
-    {id:"trending",label:"Trending",       icon:"↑", badge:"12"},
-    {id:"map",   label:"Event Map",        icon:"◉"},
-    {id:"__sep"},
-    {id:"verified",label:"Verified Sources",icon:"◆",badge:"47",bc:"green",section:"OSINT Channels"},
-    {id:"pending", label:"Under Review",   icon:"◇"},
-    {id:"apply",   label:"Apply to Join",  icon:"⊕"},
-    {id:"__sep2"},
-    {id:"profile", label:"My Profile",     icon:"○", section:"Account"},
-    {id:"settings",label:"Settings",       icon:"≡"},
-    {id:"admin", label:"Admin Dashboard", icon:"⬡", section:"Admin"},
-  ];
+    {id:"feed",    label:"Intel Feed",        icon:"◈", section:"Feed"},
+    {id:"trending",label:"Trending",          icon:"↑", badge:"12"},
+    {id:"map",     label:"Event Map",         icon:"◉"},
+    {id:"verified",label:"Verified Sources",  icon:"◆", badge:"47", bc:"green", section:"OSINT Channels"},
+    {id:"pending", label:"Under Review",      icon:"◇"},
+    ...(profile?.role === 'public' ? [{id:"apply", label:"Apply to Join", icon:"⊕"}] : []),
+    {id:"profile", label:"My Profile",        icon:"○", section:"Account"},
+    {id:"settings",label:"Settings",          icon:"≡"},
+    ...(profile?.role === 'admin' ? [{id:"admin", label:"Admin Dashboard", icon:"⬡", section:"Admin"}] : []),
+  ]
 
   return (
     <>
@@ -476,6 +476,7 @@ export default function App() {
                     className={`nav-item ${nav===n.id?"active":""}`}
                     onClick={() => {
                       if(n.id==="admin") { navigate('/admin'); return; }
+                      if(n.id==="profile") { navigate('/profile'); return; }
                       setNav(n.id);
                       if (n.id === "apply") setShowApply(true);
                     }}
@@ -651,9 +652,12 @@ export default function App() {
                       <div className="story-sources">
                         {(s.sources || s.story_sources || []).map((src, i) => (
                           <div key={i} className="source-chip">
-                            <div className="vdot" />
-                            {src.name || src.posts?.users?.username || 'Source'}
-                          </div>
+                          <div className="vdot" />
+                          {src.name || src.posts?.users?.username || 'Source'}
+                          {(src.posts?.users?.role === 'osint' || src.score) &&
+                            <span style={{color:'var(--verified)',fontSize:8,marginLeft:2}}>◆</span>
+                          }
+                        </div>
                         ))}
                         <span style={{ fontSize: 9, color: (s.sources || s.story_sources || []).length === 1 ? "var(--warn)" : "var(--muted)", fontFamily: "var(--mono)" }}>
                           {(s.sources || s.story_sources || []).length === 1 ? "⚠ 1 source" : `${(s.sources || s.story_sources || []).length} sources`}

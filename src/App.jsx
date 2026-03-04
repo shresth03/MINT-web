@@ -1,3 +1,4 @@
+import ProfilePage from './pages/ProfilePage'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import PrototypePage from './pages/PrototypePage'
 import Login from './pages/Login'
@@ -14,6 +15,10 @@ export default function App() {
       <Route path="/admin" element={
         <ProtectedRoute>
           <AdminDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/profile" element={<ProtectedRoute>
+          <ProfilePage />
         </ProtectedRoute>
       } />
       <Route path="/*" element={
