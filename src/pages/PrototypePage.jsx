@@ -8,6 +8,7 @@ import GeneralFeed from '../components/feed/GeneralFeed'
 import { useNavigate } from 'react-router-dom'
 import { useStories } from '../hooks/useStories'
 import StoryList from '../components/feed/StoryList'
+import { useFollow } from '../hooks/useFollow'
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');`;
 
@@ -405,8 +406,28 @@ export default function App() {
   navigate('/login')}
   const { stories: dbStories, loading: storiesLoading } = useStories()
   const { profile } = useUser()
+  const { getFollowedUserIds } = useFollow()
+  const [followedIds, setFollowedIds] = useState([])
+  const [feedTab, setFeedTab] = useState('all') // 'all' | 'following'
   const [hasApplied, setHasApplied] = useState(false)
   const { regions: dbRegions } = useRegions()
+
+  useEffect(() => {
+    getFollowedUserIds().then(ids => setFollowedIds(ids))
+  }, [user])
+
+  const [suggestions, setSuggestions] = useState([])
+
+useEffect(() => {
+  supabase
+    .from('users')
+    .select('id, username, role, score')
+    .eq('role', 'osint')
+    .order('score', { ascending: false })
+    .limit(3)
+    .then(({ data }) => setSuggestions(data || []))
+}, [])
+
   useEffect(() => {
     if (!user?.id) return
     supabase
@@ -519,6 +540,52 @@ export default function App() {
             })}
           </div>
           <div className="sidebar-bottom">
+            {/* Follow suggestions */}
+            {suggestions.length > 0 && (
+              <div style={{
+                padding:'12px 16px',
+                borderTop:'1px solid var(--border)',
+              }}>
+                <div style={{
+                  fontFamily:'var(--mono)', fontSize:9, letterSpacing:2,
+                  color:'var(--muted)', marginBottom:10
+                }}>
+                  SUGGESTED
+                </div>
+                {suggestions.map(s => (
+                  <div
+                    key={s.id}
+                    onClick={() => navigate(`/channel/${s.username}`)}
+                    style={{
+                      display:'flex', alignItems:'center', gap:8,
+                      padding:'6px 0', cursor:'pointer',
+                      borderBottom:'1px solid var(--border)'
+                    }}
+                  >
+                    <div style={{
+                      width:24, height:24, borderRadius:'50%',
+                      background:'linear-gradient(135deg,#1e3a5f,#0d6efd)',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      fontSize:10, fontWeight:700, color:'white', flexShrink:0
+                    }}>
+                      {s.username?.[0]?.toUpperCase()}
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{
+                        fontFamily:'var(--mono)', fontSize:10,
+                        color:'var(--verified)', overflow:'hidden',
+                        textOverflow:'ellipsis', whiteSpace:'nowrap'
+                      }}>
+                        {s.username} ◆
+                      </div>
+                      <div style={{ fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)' }}>
+                        Score: {s.score || 0}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="user-card">
               <div className="avatar">
                 {user?.email?.[0].toUpperCase() || 'U'}
@@ -777,8 +844,38 @@ export default function App() {
                     <span className="section-label">⬡ Multi-Source Stories</span>
                     <span className="count-badge">{STORIES.length} threads</span>
                   </div>
+                  {/* Feed tabs */}
+                  <div style={{
+                    display:'flex', borderBottom:'1px solid var(--border)',
+                    background:'var(--surface)'
+                  }}>
+                    {['all','following'].map(t => (
+                      <button
+                        key={t}
+                        onClick={() => setFeedTab(t)}
+                        style={{
+                          flex:1, padding:'10px 0',
+                          background:'none', border:'none',
+                          borderBottom: feedTab===t ? '2px solid var(--accent)' : '2px solid transparent',
+                          fontFamily:'var(--mono)', fontSize:10, letterSpacing:1,
+                          color: feedTab===t ? 'var(--accent)' : 'var(--muted)',
+                          cursor:'pointer', transition:'all 0.15s',
+                          textTransform:'uppercase'
+                        }}
+                      >
+                        {t === 'all' ? 'All Intel' : 'Following'}
+                      </button>
+                    ))}
+                  </div>
                   <StoryList
-                    stories={dbStories.length > 0 ? dbStories : STORIES}
+                    stories={(dbStories.length > 0 ? dbStories : STORIES).filter(s => {
+                      if (feedTab === 'all') return true
+                      if (followedIds.length === 0) return false
+                      const sources = s.sources || s.story_sources || []
+                      return sources.some(src =>
+                        followedIds.includes(src.posts?.users?.id || src.posts?.author_id)
+                      )
+                    })}
                     activeStory={story}
                     onSelect={setStory}
                     loading={storiesLoading}

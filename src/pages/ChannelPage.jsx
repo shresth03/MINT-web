@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useChannel } from '../hooks/useChannel'
 import { useAuth } from '../hooks/useAuth'
+import { useFollow } from '../hooks/useFollow'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -69,7 +70,7 @@ export default function ChannelPage() {
   const { user } = useAuth()
   const { channel, posts, stories, loading } = useChannel(username)
   const [tab, setTab] = useState('posts')
-  const [following, setFollowing] = useState(false)
+  const { following, followerCount, followingCount, loading: followLoading, toggleFollow } = useFollow(channel?.id)
 
   if (loading) return (
     <>
@@ -153,7 +154,7 @@ export default function ChannelPage() {
               {!isOwnProfile && (
                 <button
                   className={`follow-btn ${following ? 'following' : ''}`}
-                  onClick={() => setFollowing(!following)}
+                  onClick={toggleFollow}
                 >
                   {following ? '✓ FOLLOWING' : '+ FOLLOW'}
                 </button>
@@ -169,25 +170,35 @@ export default function ChannelPage() {
             </div>
 
             {/* Stats */}
-            <div className="stats-row">
-              <div className="stat-box">
-                <div className="stat-num">{posts.length}</div>
-                <div className="stat-lbl">Posts</div>
-              </div>
-              <div className="stat-box">
-                <div className="stat-num">{stories.length}</div>
-                <div className="stat-lbl">Stories</div>
-              </div>
-              <div className="stat-box">
+            <div className="stats-row" style={{ gridTemplateColumns:'repeat(3,1fr)' }}>
+            <div className="stat-box">
+                <div className="stat-num">{followerCount}</div>
+                <div className="stat-lbl">Followers</div>
+            </div>
+            <div className="stat-box">
+                <div className="stat-num">{followingCount}</div>
+                <div className="stat-lbl">Following</div>
+            </div>
+            <div className="stat-box">
                 <div className="stat-num">{score}</div>
                 <div className="stat-lbl">Score</div>
-              </div>
-              <div className="stat-box">
+            </div>
+            </div>
+            <div className="stats-row" style={{ gridTemplateColumns:'repeat(3,1fr)', marginTop:12 }}>
+            <div className="stat-box">
+                <div className="stat-num">{posts.length}</div>
+                <div className="stat-lbl">Posts</div>
+            </div>
+            <div className="stat-box">
+                <div className="stat-num">{stories.length}</div>
+                <div className="stat-lbl">Stories</div>
+            </div>
+            <div className="stat-box">
                 <div className="stat-num">
-                  {posts.reduce((a, p) => a + (p.likes || 0), 0)}
+                {posts.reduce((a, p) => a + (p.likes || 0), 0)}
                 </div>
                 <div className="stat-lbl">Total Likes</div>
-              </div>
+            </div>
             </div>
 
             {/* Score breakdown — only for osint/admin */}
