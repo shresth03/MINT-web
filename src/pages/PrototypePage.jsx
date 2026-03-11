@@ -9,6 +9,8 @@ import { useNavigate } from 'react-router-dom'
 import { useStories } from '../hooks/useStories'
 import StoryList from '../components/feed/StoryList'
 import { useFollow } from '../hooks/useFollow'
+import { useNotifications } from '../hooks/useNotifications'
+import NotificationPanel from '../components/NotificationPanel'
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');`;
 
@@ -406,6 +408,8 @@ export default function App() {
   navigate('/login')}
   const { stories: dbStories, loading: storiesLoading } = useStories()
   const { profile } = useUser()
+  const { notifications, unreadCount, markAllRead, markRead, createNotification } = useNotifications()
+  const [showNotifs, setShowNotifs] = useState(false)
   const { getFollowedUserIds } = useFollow()
   const [followedIds, setFollowedIds] = useState([])
   const [feedTab, setFeedTab] = useState('all') // 'all' | 'following'
@@ -496,6 +500,7 @@ useEffect(() => {
     {id:"pending", label:"Under Review",      icon:"◇"},
     ...(profile?.role === 'public' && !hasApplied ? [{id:"apply", label:"Apply to Join", icon:"⊕"}] : []),
     ...(profile?.role === 'public' && hasApplied ? [{id:"status", label:"Application Pending", icon:"◌"}] : []),
+    {id:"notifications", label:"Notifications", icon:"◎", section:"Account", badge: unreadCount > 0 ? String(unreadCount) : null, bc:"orange"},
     {id:"profile", label:"My Profile", icon:"○", section:"Account"},
     {id:"settings",label:"Settings",   icon:"≡"},
     ...(profile?.role === 'admin' ? [{id:"admin", label:"Admin Dashboard", icon:"⬡", section:"Admin"}] : []),
@@ -527,9 +532,10 @@ useEffect(() => {
                       if(n.id==="admin") { navigate('/admin'); return; }
                       if(n.id==="profile") { navigate('/profile'); return; }
                       if(n.id==="search") { navigate('/search'); return; }
+                      if(n.id==="notifications") { setShowNotifs(v => !v); return; }
+                      if(n.id==="apply") { setShowApply(true); return; }
                       setNav(n.id);
                       localStorage.setItem('sigint_nav', n.id);
-                      if (n.id === "apply") setShowApply(true);
                     }}
                   >
                     <span style={{fontSize:12}}>{n.icon}</span> {n.label}
@@ -617,7 +623,56 @@ useEffect(() => {
                 : `${(dbStories.length > 0 ? dbStories : STORIES).length} stories · ${(dbStories.length > 0 ? dbStories : STORIES).reduce((a,s) => a + (s.sources || s.story_sources || []).length, 0)} verified posts`}
             </span>
             <div className="ml-auto">
-              <button className="topbar-btn" onClick={() => setShowApply(true)}>Apply as OSINT Channel</button>
+              {profile?.role === 'public' && !hasApplied && (
+                <button
+                  onClick={() => setShowApply(true)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:6,
+                    padding:'6px 14px',
+                    background:'transparent',
+                    border:'1px solid var(--verified)',
+                    borderRadius:6,
+                    fontFamily:'var(--mono)', fontSize:10,
+                    color:'var(--verified)',
+                    cursor:'pointer', letterSpacing:1,
+                    transition:'all 0.2s'
+                  }}
+                  onMouseOver={e => {
+                    e.currentTarget.style.background = 'rgba(0,255,136,0.1)'
+                  }}
+                  onMouseOut={e => {
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  <span style={{ fontSize:12 }}>◆</span> APPLY AS ANALYST
+                </button>
+              )}
+              {profile?.role === 'public' && hasApplied && (
+                <div style={{
+                  display:'flex', alignItems:'center', gap:6,
+                  padding:'6px 14px',
+                  background:'rgba(74,96,128,0.15)',
+                  border:'1px solid var(--border)',
+                  borderRadius:6,
+                  fontFamily:'var(--mono)', fontSize:10,
+                  color:'var(--muted)', letterSpacing:1
+                }}>
+                  <span>◌</span> APPLICATION PENDING
+                </div>
+              )}
+              {profile?.role === 'osint' && (
+                <div style={{
+                  display:'flex', alignItems:'center', gap:6,
+                  padding:'6px 14px',
+                  background:'rgba(0,255,136,0.08)',
+                  border:'1px solid rgba(0,255,136,0.3)',
+                  borderRadius:6,
+                  fontFamily:'var(--mono)', fontSize:10,
+                  color:'var(--verified)', letterSpacing:1
+                }}>
+                  <span>◆</span> VERIFIED ANALYST
+                </div>
+              )}
             </div>
           </div>
 
@@ -993,8 +1048,25 @@ useEffect(() => {
               </div>
             </>}
           </div>
+          
         </div>
       )}
+      {showNotifs && (
+          <div style={{
+            position:'fixed', top:0, left:220, bottom:0, width:320,
+            background:'var(--surface)', borderLeft:'1px solid var(--border)',
+            borderRight:'1px solid var(--border)',
+            zIndex:9999, boxShadow:'4px 0 24px rgba(0,0,0,0.5)'
+          }}>
+            <NotificationPanel
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onMarkAllRead={markAllRead}
+              onMarkRead={markRead}
+              onClose={() => setShowNotifs(false)}
+            />
+          </div>
+        )}
     </>
   );
 }

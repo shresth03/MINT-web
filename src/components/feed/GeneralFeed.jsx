@@ -3,6 +3,7 @@ import { usePosts } from '../../hooks/usePosts'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../api/supabase'
 import { useNavigate } from 'react-router-dom'
+import { useNotifications } from '../../hooks/useNotifications'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -12,7 +13,7 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff/86400)}d ago`
 }
 
-function ReplyThread({ postId, onClose, createReply, fetchReplies }) {
+function ReplyThread({ postId, onClose, createReply, fetchReplies, createNotification }) {
   const { user } = useAuth()
   const [replies, setReplies] = useState([])
   const [body, setBody] = useState('')
@@ -60,7 +61,14 @@ function ReplyThread({ postId, onClose, createReply, fetchReplies }) {
     if (!body.trim()) return
     setSending(true)
     const { error } = await createReply(postId, body.trim())
-    if (!error) setBody('')
+    if (!error) {
+      setBody('')
+      const { data } = await fetchReplies(postId)
+      setReplies(data)
+      if (authorId && createNotification) {
+        createNotification(authorId, 'reply', postId)
+      }
+    }
     setSending(false)
   }
 
@@ -181,6 +189,7 @@ export default function GeneralFeed() {
   const [error, setError] = useState('')
   const [openThreads, setOpenThreads] = useState(new Set())
   const navigate = useNavigate()
+  const { createNotification } = useNotifications()
 
   async function handlePost() {
     if (!body.trim()) return
@@ -428,7 +437,7 @@ export default function GeneralFeed() {
                 {/* Actions */}
                     <div style={{ display:'flex', gap:16, alignItems:'center' }}>
                       <button
-                        onClick={() => likePost(post.id)}
+                        onClick={() => likePost(post.id, createNotification)}
                         style={{
                           background:'none', border:'none', cursor:'pointer',
                           display:'flex', alignItems:'center', gap:5,
@@ -488,11 +497,13 @@ export default function GeneralFeed() {
               {/* Reply Thread */}
               {openThreads.has(post.id) && (
                 <ReplyThread
-                  postId={post.id}
-                  onClose={() => toggleThread(post.id)}
-                  createReply={createReply}
-                  fetchReplies={fetchReplies}
-                />
+                postId={post.id}
+                authorId={post.users?.id}
+                onClose={() => toggleThread(post.id)}
+                createReply={createReply}
+                fetchReplies={fetchReplies}
+                createNotification={createNotification}
+              />
               )}
             </div>
           ))

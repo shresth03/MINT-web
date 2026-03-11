@@ -207,6 +207,14 @@ export default function AdminDashboard() {
       .update({ status: 'approved' })
       .eq('id', app.id)
 
+      // Notify the user their application was approved
+    await supabase
+      .from('notifications')
+      .insert({ to_user_id: app.user_id,
+                from_user_id: user.id,
+                type: 'application_approved',
+                post_id: null
+              })
     // Upgrade user role to osint
     await supabase
       .from('users')

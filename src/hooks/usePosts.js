@@ -82,7 +82,7 @@ export function usePosts() {
     return { error }
   }
 
-  async function likePost(id) {
+  async function likePost(id, createNotification = null) {
     const existing = posts.find(p => p.id === id)?.liked
     if (existing) {
       await supabase.from('likes').delete()
@@ -95,6 +95,11 @@ export function usePosts() {
       ))
     } else {
       await supabase.from('likes').insert({ user_id: user.id, post_id: id })
+      // Notify post author
+      const post = posts.find(p => p.id === id)
+      if (!existing && createNotification && post?.users?.id) {
+        createNotification(post.users.id, 'like', id)
+      }
       await supabase.from('posts')
         .update({ likes: (posts.find(p=>p.id===id)?.likes||0)+1 })
         .eq('id', id)

@@ -54,10 +54,17 @@ export function useFollow(targetUserId) {
       setFollowing(false)
       setFollowerCount(c => Math.max(0, c - 1))
     } else {
-      await supabase.from('follows').insert({
+        await supabase.from('follows').insert({
         follower_id: user.id,
         following_id: targetUserId
       })
+        // Notify the followed user
+        await supabase.from('notifications').insert({
+            to_user_id: targetUserId,
+            from_user_id: user.id,
+            type: 'follow',
+            post_id: null
+        })
       setFollowing(true)
       setFollowerCount(c => c + 1)
     }
