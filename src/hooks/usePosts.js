@@ -68,7 +68,7 @@ export function usePosts() {
     if (data) setPosts(prev => [data, ...prev])
   }
 
-  async function createPost(body, region = null, tag = null) {
+  async function createPost(body, mediaUrl = null, region = null, tag = null) {
     const { error } = await supabase.from('posts').insert({
       author_id: user.id,
       body,
@@ -77,7 +77,8 @@ export function usePosts() {
       is_osint: false,
       likes: 0,
       reply_count: 0,
-      repost_count: 0
+      repost_count: 0,
+      ...(mediaUrl ? { media_url: mediaUrl } : {})
     })
     return { error }
   }
@@ -95,9 +96,8 @@ export function usePosts() {
       ))
     } else {
       await supabase.from('likes').insert({ user_id: user.id, post_id: id })
-      // Notify post author
       const post = posts.find(p => p.id === id)
-      if (!existing && createNotification && post?.users?.id) {
+      if (createNotification && post?.users?.id) {
         createNotification(post.users.id, 'like', id)
       }
       await supabase.from('posts')

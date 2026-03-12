@@ -13,7 +13,7 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff/86400)}d ago`
 }
 
-function ReplyThread({ postId, onClose, createReply, fetchReplies, createNotification }) {
+function ReplyThread({ postId, authorId, onClose, createReply, fetchReplies, createNotification }) {
   const { user } = useAuth()
   const [replies, setReplies] = useState([])
   const [body, setBody] = useState('')
@@ -23,7 +23,6 @@ function ReplyThread({ postId, onClose, createReply, fetchReplies, createNotific
 
   useEffect(() => {
     loadReplies()
-    // Realtime subscription for this post's replies
     const sub = supabase
       .channel(`replies:${postId}`)
       .on('postgres_changes', {
@@ -78,7 +77,6 @@ function ReplyThread({ postId, onClose, createReply, fetchReplies, createNotific
       background: 'var(--bg)',
       padding: '12px 16px',
     }}>
-      {/* Reply list */}
       {loading ? (
         <div style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--muted)', padding:'8px 0' }}>
           LOADING REPLIES...
@@ -91,18 +89,12 @@ function ReplyThread({ postId, onClose, createReply, fetchReplies, createNotific
         <div style={{ marginBottom: 12 }}>
           {replies.map(r => (
             <div key={r.id} style={{
-              display: 'flex',
-              gap: 10,
-              padding: '8px 0',
+              display: 'flex', gap: 10, padding: '8px 0',
               borderBottom: '1px solid var(--border)',
             }}>
-              {/* Thread line */}
               <div style={{
-                width: 2,
-                background: 'var(--border)',
-                borderRadius: 2,
-                flexShrink: 0,
-                marginLeft: 6
+                width: 2, background: 'var(--border)', borderRadius: 2,
+                flexShrink: 0, marginLeft: 6
               }} />
               <div style={{ flex: 1 }}>
                 <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:4 }}>
@@ -129,7 +121,6 @@ function ReplyThread({ postId, onClose, createReply, fetchReplies, createNotific
         </div>
       )}
 
-      {/* Reply composer */}
       <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
         <div style={{
           width:28, height:28, borderRadius:'50%',
@@ -182,12 +173,16 @@ function ReplyThread({ postId, onClose, createReply, fetchReplies, createNotific
 export default function GeneralFeed() {
   const { user } = useAuth()
   const { posts, loading, createPost, likePost, savePost, repost, createReply, fetchReplies } = usePosts()
-  const [repostModal, setRepostModal] = useState(null) // holds post being reposted
+  const [repostModal, setRepostModal] = useState(null)
   const [quoteBody, setQuoteBody] = useState('')
   const [body, setBody] = useState('')
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState('')
   const [openThreads, setOpenThreads] = useState(new Set())
+  const [mediaFile, setMediaFile] = useState(null)
+  const [mediaPreview, setMediaPreview] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef(null)
   const navigate = useNavigate()
   const { createNotification } = useNotifications()
 
@@ -196,9 +191,35 @@ export default function GeneralFeed() {
     if (body.length > 500) { setError('Max 500 characters'); return }
     setPosting(true)
     setError('')
-    const { error } = await createPost(body.trim())
+
+    let mediaUrl = null
+    if (mediaFile) {
+      setUploading(true)
+      const ext = mediaFile.name.split('.').pop()
+      const path = `${user.id}/${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('mint-media')
+        .upload(path, mediaFile)
+      if (uploadError) {
+        setError('Image upload failed: ' + uploadError.message)
+        setUploading(false)
+        setPosting(false)
+        return
+      }
+      const { data: urlData } = supabase.storage
+        .from('mint-media')
+        .getPublicUrl(path)
+      mediaUrl = urlData.publicUrl
+      setUploading(false)
+    }
+
+    const { error } = await createPost(body.trim(), mediaUrl)
     if (error) setError(error.message)
-    else setBody('')
+    else {
+      setBody('')
+      setMediaFile(null)
+      setMediaPreview(null)
+    }
     setPosting(false)
   }
 
@@ -210,8 +231,33 @@ export default function GeneralFeed() {
     })
   }
 
+  function handleFileSelect(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError('Only image files are supported')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be under 5MB')
+      return
+    }
+    setMediaFile(file)
+    setMediaPreview(URL.createObjectURL(file))
+    setError('')
+    // Reset input so same file can be re-selected
+    e.target.value = ''
+  }
+
+  function removeMedia() {
+    if (mediaPreview) URL.revokeObjectURL(mediaPreview)
+    setMediaFile(null)
+    setMediaPreview(null)
+  }
+
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+
       {/* Repost Modal */}
       {repostModal && (
         <div style={{
@@ -229,23 +275,17 @@ export default function GeneralFeed() {
             }}>
               {repostModal.reposted ? '⟳ UNDO REPOST' : '⟳ REPOST'}
             </div>
-
-            {/* Original post preview */}
             <div style={{
               background:'var(--bg)', border:'1px solid var(--border)',
               borderRadius:6, padding:12, marginBottom:16
             }}>
-              <div style={{
-                fontFamily:'var(--mono)', fontSize:11,
-                color:'var(--muted)', marginBottom:6
-              }}>
+              <div style={{ fontFamily:'var(--mono)', fontSize:11, color:'var(--muted)', marginBottom:6 }}>
                 {repostModal.users?.username || 'Unknown'}
               </div>
               <div style={{ fontSize:12, color:'var(--text)', lineHeight:1.5 }}>
                 {repostModal.body}
               </div>
             </div>
-
             {!repostModal.reposted && (
               <>
                 <textarea
@@ -263,23 +303,18 @@ export default function GeneralFeed() {
                     boxSizing:'border-box'
                   }}
                 />
-                <div style={{
-                  fontFamily:'var(--mono)', fontSize:9,
-                  color:'var(--muted)', marginBottom:16
-                }}>
+                <div style={{ fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)', marginBottom:16 }}>
                   {quoteBody.length}/500
                 </div>
               </>
             )}
-
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
               <button
                 onClick={() => setRepostModal(null)}
                 style={{
                   padding:'8px 16px', background:'transparent',
                   border:'1px solid var(--border)', color:'var(--muted)',
-                  borderRadius:4, fontFamily:'var(--mono)',
-                  fontSize:10, cursor:'pointer'
+                  borderRadius:4, fontFamily:'var(--mono)', fontSize:10, cursor:'pointer'
                 }}
               >
                 CANCEL
@@ -294,8 +329,7 @@ export default function GeneralFeed() {
                   padding:'8px 16px',
                   background: repostModal.reposted ? 'var(--accent2)' : 'var(--verified)',
                   color:'#000', border:'none', borderRadius:4,
-                  fontFamily:'var(--mono)', fontSize:10,
-                  fontWeight:700, cursor:'pointer'
+                  fontFamily:'var(--mono)', fontSize:10, fontWeight:700, cursor:'pointer'
                 }}
               >
                 {repostModal.reposted ? 'UNDO REPOST' : '⟳ REPOST'}
@@ -304,6 +338,7 @@ export default function GeneralFeed() {
           </div>
         </div>
       )}
+
       {/* Composer */}
       <div style={{
         padding:'16px', borderBottom:'1px solid var(--border)',
@@ -339,6 +374,50 @@ export default function GeneralFeed() {
                 if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handlePost()
               }}
             />
+
+            {/* Image preview */}
+            {mediaPreview && (
+              <div style={{ position:'relative', marginTop:8 }}>
+                <img
+                  src={mediaPreview}
+                  alt="preview"
+                  style={{
+                    width:'100%', maxHeight:200, objectFit:'cover',
+                    borderRadius:6, border:'1px solid var(--border)',
+                    display:'block'
+                  }}
+                />
+                <button
+                  onClick={removeMedia}
+                  style={{
+                    position:'absolute', top:6, right:6,
+                    background:'rgba(0,0,0,0.75)', border:'none',
+                    borderRadius:'50%', width:22, height:22,
+                    color:'white', cursor:'pointer', fontSize:11,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    lineHeight:1
+                  }}
+                >✕</button>
+                <div style={{
+                  position:'absolute', bottom:6, left:8,
+                  fontFamily:'var(--mono)', fontSize:9,
+                  color:'rgba(255,255,255,0.7)',
+                  background:'rgba(0,0,0,0.5)', padding:'2px 6px', borderRadius:3
+                }}>
+                  {(mediaFile.size / 1024).toFixed(0)}KB
+                </div>
+              </div>
+            )}
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display:'none' }}
+              onChange={handleFileSelect}
+            />
+
             <div style={{
               display:'flex', justifyContent:'space-between',
               alignItems:'center', marginTop:8
@@ -356,20 +435,37 @@ export default function GeneralFeed() {
                   </span>
                 )}
               </div>
-              <button
-                onClick={handlePost}
-                disabled={!body.trim() || posting}
-                style={{
-                  padding:'7px 18px', background:'var(--accent)', color:'#000',
-                  border:'none', borderRadius:4, fontFamily:'var(--mono)',
-                  fontSize:10, fontWeight:700, letterSpacing:1,
-                  cursor: (!body.trim() || posting) ? 'not-allowed' : 'pointer',
-                  opacity: (!body.trim() || posting) ? 0.5 : 1,
-                  transition:'all 0.15s'
-                }}
-              >
-                {posting ? 'POSTING...' : 'POST'}
-              </button>
+              <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                {/* Image attach button */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Attach image (max 5MB)"
+                  style={{
+                    padding:'5px 10px',
+                    background: mediaFile ? 'rgba(0,255,180,0.1)' : 'transparent',
+                    border:`1px solid ${mediaFile ? 'var(--accent)' : 'var(--border)'}`,
+                    borderRadius:4, fontFamily:'var(--mono)', fontSize:10,
+                    color: mediaFile ? 'var(--accent)' : 'var(--muted)',
+                    cursor:'pointer', letterSpacing:0.5
+                  }}
+                >
+                  {mediaFile ? '📎 ATTACHED' : '📎 IMAGE'}
+                </button>
+                <button
+                  onClick={handlePost}
+                  disabled={!body.trim() || posting}
+                  style={{
+                    padding:'7px 18px', background:'var(--accent)', color:'#000',
+                    border:'none', borderRadius:4, fontFamily:'var(--mono)',
+                    fontSize:10, fontWeight:700, letterSpacing:1,
+                    cursor: (!body.trim() || posting) ? 'not-allowed' : 'pointer',
+                    opacity: (!body.trim() || posting) ? 0.5 : 1,
+                    transition:'all 0.15s'
+                  }}
+                >
+                  {uploading ? 'UPLOADING...' : posting ? 'POSTING...' : 'POST'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -397,7 +493,6 @@ export default function GeneralFeed() {
               borderBottom:'1px solid var(--border)',
               background:'var(--surface)'
             }}>
-              {/* Post */}
               <div style={{ padding:'14px 16px' }}>
                 <div style={{ display:'flex', gap:10 }}>
                   <div style={{
@@ -431,10 +526,29 @@ export default function GeneralFeed() {
                         {timeAgo(post.created_at)}
                       </span>
                     </div>
-                    <div style={{ fontSize:13, lineHeight:1.6, marginBottom:10 }}>
+
+                    {/* Post body */}
+                    <div style={{ fontSize:13, lineHeight:1.6, marginBottom: post.media_url ? 8 : 10 }}>
                       {post.body}
                     </div>
-                {/* Actions */}
+
+                    {/* Media attachment */}
+                    {post.media_url && (
+                      <div style={{ marginBottom:10 }}>
+                        <img
+                          src={post.media_url}
+                          alt="attachment"
+                          style={{
+                            width:'100%', maxHeight:300, objectFit:'cover',
+                            borderRadius:6, border:'1px solid var(--border)',
+                            display:'block', cursor:'pointer'
+                          }}
+                          onClick={() => window.open(post.media_url, '_blank')}
+                        />
+                      </div>
+                    )}
+
+                    {/* Actions */}
                     <div style={{ display:'flex', gap:16, alignItems:'center' }}>
                       <button
                         onClick={() => likePost(post.id, createNotification)}
@@ -462,10 +576,7 @@ export default function GeneralFeed() {
                         {openThreads.has(post.id) ? ' ▲' : ' ▼'}
                       </button>
                       <button
-                        onClick={() => {
-                          setRepostModal(post)
-                          setQuoteBody('')
-                        }}
+                        onClick={() => { setRepostModal(post); setQuoteBody('') }}
                         style={{
                           background:'none', border:'none', cursor:'pointer',
                           display:'flex', alignItems:'center', gap:5,
@@ -497,13 +608,13 @@ export default function GeneralFeed() {
               {/* Reply Thread */}
               {openThreads.has(post.id) && (
                 <ReplyThread
-                postId={post.id}
-                authorId={post.users?.id}
-                onClose={() => toggleThread(post.id)}
-                createReply={createReply}
-                fetchReplies={fetchReplies}
-                createNotification={createNotification}
-              />
+                  postId={post.id}
+                  authorId={post.users?.id}
+                  onClose={() => toggleThread(post.id)}
+                  createReply={createReply}
+                  fetchReplies={fetchReplies}
+                  createNotification={createNotification}
+                />
               )}
             </div>
           ))
