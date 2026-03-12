@@ -12,6 +12,7 @@ import { useFollow } from '../hooks/useFollow'
 import { useNotifications } from '../hooks/useNotifications'
 import NotificationPanel from '../components/NotificationPanel'
 import { useMessages } from '../hooks/useMessages'
+import StoryComposer from '../components/StoryComposer'
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');`;
 
@@ -416,6 +417,7 @@ export default function App() {
   const [followedIds, setFollowedIds] = useState([])
   const [feedTab, setFeedTab] = useState('all') // 'all' | 'following'
   const [hasApplied, setHasApplied] = useState(false)
+  const [showComposer, setShowComposer] = useState(false)
   const { regions: dbRegions } = useRegions()
 
   useEffect(() => {
@@ -495,19 +497,16 @@ useEffect(() => {
 
   const navItems = [
     {id:"feed",    label:"Intel Feed",        icon:"◈", section:"Feed"},
-    {id:"search", label:"Search", icon:"◎", section:"Feed"},
+    {id:"search",  label:"Search",            icon:"◎"},
     {id:"trending",label:"Trending",          icon:"↑", badge:"12"},
     {id:"map",     label:"Event Map",         icon:"◉"},
     {id:"verified",label:"Verified Sources",  icon:"◆", badge:"47", bc:"green", section:"OSINT Channels"},
-    {id:"pending", label:"Under Review",      icon:"◇"},
-    ...(profile?.role === 'public' && hasApplied ? [{id:"pending", label:"Under Review", icon:"◇"}] : []),
-    ...(profile?.role === 'public' && !hasApplied ? [{id:"apply", label:"Apply to Join", icon:"⊕"}] : []),
-    ...(profile?.role === 'public' && hasApplied ? [{id:"status", label:"Application Pending", icon:"◌"}] : []),
-    {id:"messages", label:"Messages", icon:"◻", section:"Account"},
-    {id:"notifications", label:"Notifications", icon:"◎", section:"Account", badge: unreadCount > 0 ? String(unreadCount) : null, bc:"orange"},
-    {id:"profile", label:"My Profile", icon:"○", section:"Account"},
-    {id:"messages", label:"Messages", icon:"◻",badge: msgUnreadCount > 0 ? String(msgUnreadCount) : null, bc:"orange"},
-    {id:"settings",label:"Settings",   icon:"≡"},
+    ...(profile?.role === 'public' && !hasApplied ? [{id:"apply",   label:"Apply to Join",       icon:"⊕"}] : []),
+    ...(profile?.role === 'public' && hasApplied  ? [{id:"status",  label:"Application Pending", icon:"◌"}] : []),
+    {id:"messages",      label:"Messages",      icon:"◻", section:"Account", badge: msgUnreadCount > 0 ? String(msgUnreadCount) : null, bc:"orange"},
+    {id:"notifications", label:"Notifications", icon:"◎", badge: unreadCount > 0 ? String(unreadCount) : null, bc:"orange"},
+    {id:"profile",       label:"My Profile",    icon:"○"},
+    {id:"settings",      label:"Settings",      icon:"≡"},
     ...(profile?.role === 'admin' ? [{id:"admin", label:"Admin Dashboard", icon:"⬡", section:"Admin"}] : []),
   ]
 
@@ -904,6 +903,21 @@ useEffect(() => {
                   <div className="section-header">
                     <span className="section-label">⬡ Multi-Source Stories</span>
                     <span className="count-badge">{STORIES.length} threads</span>
+                    {(profile?.role === 'osint' || profile?.role === 'admin') && (
+                      <button
+                        onClick={() => setShowComposer(true)}
+                        style={{
+                          marginLeft:8, padding:'4px 10px',
+                          background:'rgba(0,255,136,0.1)',
+                          border:'1px solid rgba(0,255,136,0.3)',
+                          borderRadius:4, fontFamily:'var(--mono)',
+                          fontSize:9, color:'var(--verified)',
+                          cursor:'pointer', letterSpacing:1
+                        }}
+                      >
+                        ◆ NEW
+                      </button>
+                    )}
                   </div>
                   {/* Feed tabs */}
                   <div style={{
@@ -1056,6 +1070,12 @@ useEffect(() => {
           </div>
           
         </div>
+      )}
+      {showComposer && (
+        <StoryComposer
+          onClose={() => setShowComposer(false)}
+          onPublished={() => setShowComposer(false)}
+        />
       )}
       {showNotifs && (
           <div style={{
