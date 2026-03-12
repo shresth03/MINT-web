@@ -10,27 +10,29 @@ function timeAgo(dateStr) {
 }
 
 function notifIcon(type) {
-  switch(type) {
-    case 'like':                 return { icon: '♥', color: '#e05577' }
-    case 'reply':                return { icon: '↩', color: '#00d4ff' }
-    case 'repost':               return { icon: '⟳', color: '#00ff88' }
-    case 'follow':               return { icon: '+', color: '#ffcc00' }
-    case 'application_approved': return { icon: '◆', color: '#00ff88' }
-    default:                     return { icon: '●', color: '#4a6080' }
+    switch(type) {
+      case 'like':                 return { icon: '♥', color: '#e05577' }
+      case 'reply':                return { icon: '↩', color: '#00d4ff' }
+      case 'repost':               return { icon: '⟳', color: '#00ff88' }
+      case 'follow':               return { icon: '+', color: '#ffcc00' }
+      case 'message':              return { icon: '✉', color: '#a78bfa' }
+      case 'application_approved': return { icon: '◆', color: '#00ff88' }
+      default:                     return { icon: '●', color: '#4a6080' }
+    }
   }
-}
 
-function notifText(n) {
-  const name = n.from_user?.username || 'Someone'
-  switch(n.type) {
-    case 'like':    return `${name} liked your post`
-    case 'reply':   return `${name} replied to your post`
-    case 'repost':  return `${name} reposted your post`
-    case 'follow':  return `${name} started following you`
-    case 'application_approved': return `Your OSINT application was approved`
-    default: return `New notification from ${name}`
+  function notifText(n) {
+    const name = n.from_user?.username || 'Someone'
+    switch(n.type) {
+      case 'like':    return `${name} liked your post`
+      case 'reply':   return `${name} replied to your post`
+      case 'repost':  return `${name} reposted your post`
+      case 'follow':  return `${name} started following you`
+      case 'message': return `${name} sent you a message`
+      case 'application_approved': return `Your OSINT application was approved`
+      default: return `New notification from ${name}`
+    }
   }
-}
 
 export default function NotificationPanel({ notifications, unreadCount, onMarkAllRead, onMarkRead, onClose }) {
   const panelRef = useRef(null)
@@ -50,10 +52,12 @@ export default function NotificationPanel({ notifications, unreadCount, onMarkAl
   function handleNotifClick(n) {
     onMarkRead(n.id)
     if (n.type === 'follow') {
-      navigate(`/channel/${n.from_user?.username}`)
-    } else if (n.post_id) {
-      navigate('/feed')
-    }
+        navigate(`/channel/${n.from_user?.username}`)
+      } else if (n.type === 'message') {
+        navigate(`/messages?user=${n.from_user_id}`)
+      } else if (n.post_id) {
+        navigate('/feed')
+      }
     onClose()
   }
 

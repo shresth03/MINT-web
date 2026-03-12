@@ -8,6 +8,7 @@ import ProtectedRoute from './components/layout/ProtectedRoute'
 import NotFound from './pages/NotFound'
 import SearchPage from './pages/SearchPage'
 import ChannelPage from './pages/ChannelPage'
+import MessagesPage from './pages/MessagesPage'
 
 export default function App() {
   return (
@@ -32,6 +33,11 @@ export default function App() {
       <Route path="/channel/:username" element={
         <ProtectedRoute>
           <ChannelPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/messages" element={
+        <ProtectedRoute>
+          <MessagesPage />
         </ProtectedRoute>
       } />
       <Route path="/*" element={

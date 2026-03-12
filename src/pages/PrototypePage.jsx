@@ -11,6 +11,7 @@ import StoryList from '../components/feed/StoryList'
 import { useFollow } from '../hooks/useFollow'
 import { useNotifications } from '../hooks/useNotifications'
 import NotificationPanel from '../components/NotificationPanel'
+import { useMessages } from '../hooks/useMessages'
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');`;
 
@@ -411,6 +412,7 @@ export default function App() {
   const { notifications, unreadCount, markAllRead, markRead, createNotification } = useNotifications()
   const [showNotifs, setShowNotifs] = useState(false)
   const { getFollowedUserIds } = useFollow()
+  const { unreadCount: msgUnreadCount } = useMessages()
   const [followedIds, setFollowedIds] = useState([])
   const [feedTab, setFeedTab] = useState('all') // 'all' | 'following'
   const [hasApplied, setHasApplied] = useState(false)
@@ -498,10 +500,13 @@ useEffect(() => {
     {id:"map",     label:"Event Map",         icon:"◉"},
     {id:"verified",label:"Verified Sources",  icon:"◆", badge:"47", bc:"green", section:"OSINT Channels"},
     {id:"pending", label:"Under Review",      icon:"◇"},
+    ...(profile?.role === 'public' && hasApplied ? [{id:"pending", label:"Under Review", icon:"◇"}] : []),
     ...(profile?.role === 'public' && !hasApplied ? [{id:"apply", label:"Apply to Join", icon:"⊕"}] : []),
     ...(profile?.role === 'public' && hasApplied ? [{id:"status", label:"Application Pending", icon:"◌"}] : []),
+    {id:"messages", label:"Messages", icon:"◻", section:"Account"},
     {id:"notifications", label:"Notifications", icon:"◎", section:"Account", badge: unreadCount > 0 ? String(unreadCount) : null, bc:"orange"},
     {id:"profile", label:"My Profile", icon:"○", section:"Account"},
+    {id:"messages", label:"Messages", icon:"◻",badge: msgUnreadCount > 0 ? String(msgUnreadCount) : null, bc:"orange"},
     {id:"settings",label:"Settings",   icon:"≡"},
     ...(profile?.role === 'admin' ? [{id:"admin", label:"Admin Dashboard", icon:"⬡", section:"Admin"}] : []),
   ]
@@ -532,6 +537,7 @@ useEffect(() => {
                       if(n.id==="admin") { navigate('/admin'); return; }
                       if(n.id==="profile") { navigate('/profile'); return; }
                       if(n.id==="search") { navigate('/search'); return; }
+                      if(n.id==="messages") { navigate('/messages'); return; }
                       if(n.id==="notifications") { setShowNotifs(v => !v); return; }
                       if(n.id==="apply") { setShowApply(true); return; }
                       setNav(n.id);

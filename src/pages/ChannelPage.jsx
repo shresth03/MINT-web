@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useChannel } from '../hooks/useChannel'
 import { useAuth } from '../hooks/useAuth'
 import { useFollow } from '../hooks/useFollow'
+import { useMessages } from '../hooks/useMessages'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -71,6 +72,7 @@ export default function ChannelPage() {
   const { channel, posts, stories, loading } = useChannel(username)
   const [tab, setTab] = useState('posts')
   const { following, followerCount, followingCount, loading: followLoading, toggleFollow } = useFollow(channel?.id)
+  const { getOrCreateConversation } = useMessages()
 
   if (loading) return (
     <>
@@ -152,13 +154,25 @@ export default function ChannelPage() {
                 </span>
               </div>
               {!isOwnProfile && (
-                <button
-                  className={`follow-btn ${following ? 'following' : ''}`}
-                  onClick={toggleFollow}
-                >
-                  {following ? '✓ FOLLOWING' : '+ FOLLOW'}
-                </button>
-              )}
+                <div style={{ display:'flex', gap:8 }}>
+                    <button
+                    className={`follow-btn ${following ? 'following' : ''}`}
+                    onClick={toggleFollow}
+                    >
+                    {following ? '✓ FOLLOWING' : '+ FOLLOW'}
+                    </button>
+                    <button
+                    className="follow-btn"
+                    style={{ borderColor:'var(--muted)', color:'var(--muted)' }}
+                    onClick={async () => {
+                        const conv = await getOrCreateConversation(channel.id)
+                        if (conv) navigate(`/messages?user=${channel.id}`)
+                    }}
+                    >
+                    ✉ MESSAGE
+                    </button>
+                </div>
+                )}
               {isOwnProfile && (
                 <button
                   className="follow-btn"

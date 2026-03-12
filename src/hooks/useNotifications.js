@@ -13,7 +13,7 @@ export function useNotifications() {
     fetchNotifications()
 
     const sub = supabase
-      .channel(`notifications:${user.id}`)
+      .channel(`notifs:${user.id}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -27,27 +27,52 @@ export function useNotifications() {
     return () => supabase.removeChannel(sub)
   }, [user])
 
+  async function enrichNotification(n) {
+    const { data: fromUser } = await supabase
+      .from('users')
+      .select('id, username, role')
+      .eq('id', n.from_user_id)
+      .single()
+
+    let postBody = null
+    if (n.post_id) {
+      const { data: post } = await supabase
+        .from('posts')
+        .select('body')
+        .eq('id', n.post_id)
+        .single()
+      postBody = post?.body || null
+    }
+
+    return { ...n, from_user: fromUser, posts: postBody ? { body: postBody } : null }
+  }
+
   async function fetchNotifications() {
     const { data } = await supabase
       .from('notifications')
-      .select('*, from_user:from_user_id(username, role), posts(body)')
+      .select('*')
       .eq('to_user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(30)
 
-    setNotifications(data || [])
-    setUnreadCount((data || []).filter(n => !n.read).length)
+    if (!data) { setLoading(false); return }
+
+    const enriched = await Promise.all(data.map(enrichNotification))
+    setNotifications(enriched)
+    setUnreadCount(enriched.filter(n => !n.read).length)
     setLoading(false)
   }
 
   async function fetchSingleNotification(id) {
     const { data } = await supabase
       .from('notifications')
-      .select('*, from_user:from_user_id(username, role), posts(body)')
+      .select('*')
       .eq('id', id)
       .single()
+
     if (data) {
-      setNotifications(prev => [data, ...prev])
+      const enriched = await enrichNotification(data)
+      setNotifications(prev => [enriched, ...prev])
       setUnreadCount(c => c + 1)
     }
   }
