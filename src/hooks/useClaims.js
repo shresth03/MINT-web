@@ -83,6 +83,31 @@ export function useClaims(postId = null) {
     return { data, error }
   }
 
+  async function updateNote(noteId, body, stance) {
+    const { data, error } = await supabase
+      .from('community_notes')
+      .update({ body, stance })
+      .eq('id', noteId)
+      .select()
+      .single()
+  
+    if (!error) await fetchPostClaims()
+    return { data, error }
+  }
+  
+  async function deleteNote(noteId) {
+    const { error } = await supabase
+      .from('community_notes')
+      .delete()
+      .eq('id', noteId)
+  
+    if (!error) {
+      setUserNote(null)
+      await fetchPostClaims()
+    }
+    return { error }
+  }
+
   // Admin: resolve a claim
   async function resolveClaim(claimId, status, resolutionNote) {
     const { error } = await supabase
@@ -150,6 +175,8 @@ export function useClaims(postId = null) {
     supportWeight,
     claimVisible,
     submitNote,
+    updateNote,
+    deleteNote,
     resolveClaim,
     rateNote,
     overrideScore,

@@ -4,10 +4,18 @@ import { useStoryComposer } from '../hooks/useStoryComposer'
 const TAGS = ['MILITARY', 'CYBER', 'MARITIME', 'GEOPOLITICAL', 'HUMANITARIAN', 'ECONOMIC', 'ENERGY', 'OTHER']
 const REGIONS = ['Global', 'Middle East', 'Europe', 'Asia Pacific', 'North America', 'South America', 'Africa', 'Arctic']
 
-export default function StoryComposer({ onClose, onPublished }) {
-  const { publishStory, searchPosts, getRecentOsintPosts } = useStoryComposer()
+function scoreColor(score) {
+  if (score === null || score === undefined) return '#4a6080'
+  if (score >= 75) return '#00ff88'
+  if (score >= 50) return '#00d4ff'
+  if (score >= 0)  return '#ffcc00'
+  return '#ff4757'
+}
 
-  const [step, setStep] = useState(1) // 1=details, 2=sources, 3=preview
+export default function StoryComposer({ onClose, onPublished }) {
+  const { publishStory, searchPosts, getRecentOsintPosts, getSuggestedPosts } = useStoryComposer()
+
+  const [step, setStep] = useState(1)
   const [headline, setHeadline] = useState('')
   const [summary, setSummary] = useState('')
   const [tag, setTag] = useState('GEOPOLITICAL')
@@ -17,13 +25,28 @@ export default function StoryComposer({ onClose, onPublished }) {
   const [sourcePostIds, setSourcePostIds] = useState([])
   const [sourcePosts, setSourcePosts] = useState([])
   const [availablePosts, setAvailablePosts] = useState([])
+  const [suggestedPosts, setSuggestedPosts] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState('')
+  const [sourceTab, setSourceTab] = useState('suggested') // 'suggested' | 'search' | 'recent'
 
+  // Load recent posts on mount
   useEffect(() => {
     getRecentOsintPosts().then(setAvailablePosts)
   }, [])
+
+  // When entering step 2, load smart suggestions
+  useEffect(() => {
+    if (step === 2 && headline.trim().length > 3) {
+      setLoadingSuggestions(true)
+      getSuggestedPosts(headline, region).then(results => {
+        setSuggestedPosts(results)
+        setLoadingSuggestions(false)
+      })
+    }
+  }, [step])
 
   async function handleSearch(q) {
     setSearchQuery(q)
@@ -82,7 +105,7 @@ export default function StoryComposer({ onClose, onPublished }) {
     width: '100%', background: '#080c10', border: '1px solid #1e2d3d',
     borderRadius: 6, padding: '10px 14px', color: '#c8d6e5',
     fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 13,
-    outline: 'none', transition: 'border-color 0.15s'
+    outline: 'none', transition: 'border-color 0.15s', boxSizing: 'border-box'
   }
   const labelStyle = {
     fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
@@ -98,6 +121,11 @@ export default function StoryComposer({ onClose, onPublished }) {
     border: '1px solid #1e2d3d', borderRadius: 6, fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 11, cursor: 'pointer', letterSpacing: 1
   }
+
+  // Which list to show in step 2
+  const displayPosts = sourceTab === 'suggested' ? suggestedPosts
+    : sourceTab === 'search' ? availablePosts
+    : availablePosts
 
   return (
     <div style={overlayStyle} onClick={e => e.target === e.currentTarget && onClose()}>
@@ -139,10 +167,9 @@ export default function StoryComposer({ onClose, onPublished }) {
         {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
 
-          {/* Step 1 — Details */}
+          {/* ── STEP 1 — Details ── */}
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
               <div>
                 <label style={labelStyle}>HEADLINE *</label>
                 <input
@@ -174,21 +201,13 @@ export default function StoryComposer({ onClose, onPublished }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div>
                   <label style={labelStyle}>TAG</label>
-                  <select
-                    style={{ ...inputStyle, cursor: 'pointer' }}
-                    value={tag}
-                    onChange={e => setTag(e.target.value)}
-                  >
+                  <select style={{ ...inputStyle, cursor: 'pointer' }} value={tag} onChange={e => setTag(e.target.value)}>
                     {TAGS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={labelStyle}>REGION</label>
-                  <select
-                    style={{ ...inputStyle, cursor: 'pointer' }}
-                    value={region}
-                    onChange={e => setRegion(e.target.value)}
-                  >
+                  <select style={{ ...inputStyle, cursor: 'pointer' }} value={region} onChange={e => setRegion(e.target.value)}>
                     {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
@@ -236,11 +255,10 @@ export default function StoryComposer({ onClose, onPublished }) {
                   </div>
                 </div>
               </div>
-
             </div>
           )}
 
-          {/* Step 2 — Sources */}
+          {/* ── STEP 2 — Sources ── */}
           {step === 2 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -256,41 +274,81 @@ export default function StoryComposer({ onClose, onPublished }) {
                         display: 'flex', gap: 10, alignItems: 'flex-start'
                       }}>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#00d4ff', marginBottom: 4 }}>
-                            @{post.users?.username}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#00ff88' }}>
+                              @{post.users?.username} ◆
+                            </span>
+                            {post.users?.score != null && (
+                              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: scoreColor(post.users.score), padding: '1px 5px', border: `1px solid ${scoreColor(post.users.score)}44`, borderRadius: 3 }}>
+                                ◈ {post.users.score}
+                              </span>
+                            )}
                           </div>
                           <div style={{ fontSize: 12, color: '#c8d6e5', lineHeight: 1.4 }}>
                             {post.body?.substring(0, 120)}{post.body?.length > 120 ? '...' : ''}
                           </div>
                         </div>
-                        <button
-                          onClick={() => toggleSource(post)}
-                          style={{ background: 'none', border: 'none', color: '#ff6b35', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}
-                        >✕</button>
+                        <button onClick={() => toggleSource(post)} style={{ background: 'none', border: 'none', color: '#ff6b35', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}>✕</button>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Search */}
-              <div>
-                <label style={labelStyle}>SEARCH OSINT POSTS</label>
-                <input
-                  style={inputStyle}
-                  value={searchQuery}
-                  onChange={e => handleSearch(e.target.value)}
-                  placeholder="Search by keyword..."
-                />
+              {/* Source tabs */}
+              <div style={{ display: 'flex', borderBottom: '1px solid #1e2d3d', gap: 0 }}>
+                {[
+                  { id: 'suggested', label: `◈ MATCHES (${suggestedPosts.length})` },
+                  { id: 'search',    label: '⌕ SEARCH' },
+                  { id: 'recent',    label: '◎ RECENT' },
+                ].map(t => (
+                  <button key={t.id} onClick={() => setSourceTab(t.id)} style={{
+                    padding: '8px 16px', background: 'none',
+                    border: 'none', borderBottom: sourceTab === t.id ? '2px solid #00d4ff' : '2px solid transparent',
+                    fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, letterSpacing: 1,
+                    color: sourceTab === t.id ? '#00d4ff' : '#4a6080',
+                    cursor: 'pointer', transition: 'all 0.15s'
+                  }}>{t.label}</button>
+                ))}
               </div>
 
-              {/* Available posts */}
+              {/* Search input — only on search tab */}
+              {sourceTab === 'search' && (
+                <div>
+                  <input
+                    style={inputStyle}
+                    value={searchQuery}
+                    onChange={e => handleSearch(e.target.value)}
+                    placeholder="Search by keyword..."
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              {/* Smart suggestion banner */}
+              {sourceTab === 'suggested' && (
+                <div style={{
+                  padding: '8px 12px', borderRadius: 6,
+                  background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)',
+                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#4a6080', lineHeight: 1.6
+                }}>
+                  ◈ Showing posts matching your headline keywords
+                  {region !== 'Global' && ` and region "${region}"`}.
+                  {loadingSuggestions && ' Searching...'}
+                </div>
+              )}
+
+              {/* Posts list */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {availablePosts.length === 0 ? (
+                {loadingSuggestions && sourceTab === 'suggested' ? (
                   <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: '#4a6080', padding: 20, textAlign: 'center' }}>
-                    No OSINT posts found
+                    SEARCHING...
                   </div>
-                ) : availablePosts.map(post => {
+                ) : displayPosts.length === 0 ? (
+                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: '#4a6080', padding: 20, textAlign: 'center' }}>
+                    {sourceTab === 'suggested' ? 'No matching posts found — try Search or Recent' : 'No OSINT posts found'}
+                  </div>
+                ) : displayPosts.map(post => {
                   const selected = sourcePostIds.includes(post.id)
                   return (
                     <div
@@ -314,8 +372,25 @@ export default function StoryComposer({ onClose, onPublished }) {
                         {selected ? '✓' : ''}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#00ff88', marginBottom: 4 }}>
-                          @{post.users?.username} ◆
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#00ff88' }}>
+                            @{post.users?.username} ◆
+                          </span>
+                          {post.users?.score != null && (
+                            <span style={{
+                              fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
+                              color: scoreColor(post.users.score),
+                              padding: '1px 5px', borderRadius: 3,
+                              border: `1px solid ${scoreColor(post.users.score)}44`
+                            }}>
+                              ◈ {post.users.score}
+                            </span>
+                          )}
+                          {post.region && (
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 8, color: '#4a6080', marginLeft: 'auto' }}>
+                              {post.region}
+                            </span>
+                          )}
                         </div>
                         <div style={{ fontSize: 12, color: '#c8d6e5', lineHeight: 1.4 }}>
                           {post.body?.substring(0, 140)}{post.body?.length > 140 ? '...' : ''}
@@ -328,11 +403,9 @@ export default function StoryComposer({ onClose, onPublished }) {
             </div>
           )}
 
-          {/* Step 3 — Preview */}
+          {/* ── STEP 3 — Preview ── */}
           {step === 3 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-              {/* Story card preview */}
               <div style={{
                 border: `1px solid ${isBreaking ? '#ff6b35' : '#1e2d3d'}`,
                 borderRadius: 10, overflow: 'hidden',
@@ -349,16 +422,8 @@ export default function StoryComposer({ onClose, onPublished }) {
                 )}
                 <div style={{ padding: 20 }}>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                    <span style={{
-                      fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
-                      padding: '3px 8px', borderRadius: 4,
-                      border: '1px solid #1e2d3d', color: '#00d4ff', letterSpacing: 1
-                    }}>{tag}</span>
-                    <span style={{
-                      fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
-                      padding: '3px 8px', borderRadius: 4,
-                      border: '1px solid #1e2d3d', color: '#4a6080', letterSpacing: 1
-                    }}>{region}</span>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, padding: '3px 8px', borderRadius: 4, border: '1px solid #1e2d3d', color: '#00d4ff', letterSpacing: 1 }}>{tag}</span>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, padding: '3px 8px', borderRadius: 4, border: '1px solid #1e2d3d', color: '#4a6080', letterSpacing: 1 }}>{region}</span>
                   </div>
                   <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 10, lineHeight: 1.4, color: '#c8d6e5' }}>
                     {headline || 'Your headline will appear here'}
@@ -368,37 +433,28 @@ export default function StoryComposer({ onClose, onPublished }) {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ flex: 1, height: 4, background: '#1e2d3d', borderRadius: 2 }}>
-                      <div style={{
-                        height: '100%', borderRadius: 2,
-                        width: `${confidence}%`,
-                        background: confidenceColor(confidence)
-                      }} />
+                      <div style={{ height: '100%', borderRadius: 2, width: `${confidence}%`, background: confidenceColor(confidence) }} />
                     </div>
-                    <span style={{
-                      fontFamily: "'IBM Plex Mono', monospace", fontSize: 10,
-                      color: confidenceColor(confidence)
-                    }}>{confidence}% CONFIDENCE</span>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: confidenceColor(confidence) }}>{confidence}% CONFIDENCE</span>
                   </div>
                   {sourcePosts.length > 0 && (
                     <div style={{ marginTop: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {sourcePosts.map(p => (
-                        <span key={p.id} style={{
-                          fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
-                          padding: '3px 8px', borderRadius: 4,
-                          border: '1px solid #00ff8844', color: '#00ff88'
-                        }}>◆ @{p.users?.username}</span>
+                        <span key={p.id} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, padding: '3px 8px', borderRadius: 4, border: '1px solid #00ff8844', color: '#00ff88' }}>
+                          ◆ @{p.users?.username}
+                          {p.users?.score != null && <span style={{ color: scoreColor(p.users.score), marginLeft: 4 }}>◈{p.users.score}</span>}
+                        </span>
                       ))}
                     </div>
                   )}
+                  <div style={{ marginTop: 12, fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#4a6080' }}>
+                    ℹ You will be auto-added as a source when published.
+                  </div>
                 </div>
               </div>
 
               {error && (
-                <div style={{
-                  padding: '10px 14px', borderRadius: 6,
-                  background: 'rgba(255,107,53,0.1)', border: '1px solid #ff6b35',
-                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#ff6b35'
-                }}>
+                <div style={{ padding: '10px 14px', borderRadius: 6, background: 'rgba(255,107,53,0.1)', border: '1px solid #ff6b35', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#ff6b35' }}>
                   {error}
                 </div>
               )}
@@ -424,10 +480,7 @@ export default function StoryComposer({ onClose, onPublished }) {
             {step < 3 ? (
               <button
                 style={{ ...btnPrimary, opacity: step === 1 && !headline.trim() ? 0.4 : 1 }}
-                onClick={() => {
-                  if (step === 1 && !headline.trim()) return
-                  setStep(s => s + 1)
-                }}
+                onClick={() => { if (step === 1 && !headline.trim()) return; setStep(s => s + 1) }}
               >
                 NEXT →
               </button>
