@@ -26,7 +26,7 @@ export function usePosts() {
   async function fetchPosts() {
     const { data, error } = await supabase
       .from('posts')
-      .select('*, users(username, role, score)')
+      .select('*, users(id, username, role, score)')
       .eq('is_osint', false)
       .order('created_at', { ascending: false })
       .limit(50)

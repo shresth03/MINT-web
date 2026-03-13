@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useMessages } from '../hooks/useMessages'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../api/supabase'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -50,6 +51,11 @@ const styles = `
   .send-btn { padding:10px 18px; background:var(--accent); color:#000; border:none; border-radius:8px; font-family:var(--mono); font-size:10px; font-weight:700; cursor:pointer; letter-spacing:1px; transition:opacity 0.15s; align-self:flex-end; }
   .send-btn:disabled { opacity:0.4; cursor:not-allowed; }
   .empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--muted); gap:12px; }
+
+  /* Mobile — conv list takes full width */
+  @media (max-width: 768px) {
+    .conv-list { width:100%; min-width:unset; border-right:none; }
+  }
 `
 
 export default function MessagesPage() {
@@ -63,9 +69,9 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false)
   const [otherUser, setOtherUser] = useState(null)
   const [initialized, setInitialized] = useState(false)
+  const isMobile = useIsMobile()
   const bottomRef = useRef(null)
 
-  // Auto-open conversation from ?user= param — only once after loading
   useEffect(() => {
     if (loading || initialized) return
     const userId = searchParams.get('user')
@@ -77,12 +83,10 @@ export default function MessagesPage() {
     }
   }, [loading, searchParams, initialized])
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Realtime messages in active conversation
   useEffect(() => {
     if (!activeConv) return
     const sub = supabase
@@ -117,9 +121,7 @@ export default function MessagesPage() {
       .select('*')
       .eq('id', userId)
       .single()
-
     if (!userData) return
-
     const conv = await getOrCreateConversation(userId)
     if (conv) {
       setActiveConv(conv)
@@ -145,16 +147,28 @@ export default function MessagesPage() {
         {/* Topbar */}
         <div className="msg-topbar">
           <span style={{ fontSize:20, color:'#00d4ff' }}>⬡</span>
-          <span className="msg-title">MINT — MESSAGES</span>
-          <button className="back-btn" onClick={() => navigate('/feed')}>
-            ← Back to Feed
-          </button>
+          <span className="msg-title">
+            {isMobile && activeConv
+              ? otherUser?.username?.toUpperCase() || 'MESSAGES'
+              : 'MINT — MESSAGES'}
+          </span>
+          {isMobile && activeConv ? (
+            /* Mobile in-thread: back to conversation list */
+            <button className="back-btn" style={{ marginLeft:'auto' }} onClick={() => setActiveConv(null)}>
+              ← Back
+            </button>
+          ) : (
+            /* Default: back to feed */
+            <button className="back-btn" style={{ marginLeft:'auto' }} onClick={() => navigate('/feed')}>
+              ← Back to Feed
+            </button>
+          )}
         </div>
 
         <div className="msg-body">
 
-          {/* Conversations list */}
-          <div className="conv-list">
+          {/* Conversations list — hidden on mobile when a thread is open */}
+          <div className="conv-list" style={isMobile && activeConv ? { display:'none' } : {}}>
             <div className="conv-header">CONVERSATIONS</div>
             <div style={{ flex:1, overflowY:'auto' }}>
               {loading ? (
@@ -176,28 +190,41 @@ export default function MessagesPage() {
                     <div className="conv-avatar">
                       {other?.username?.[0]?.toUpperCase() || '?'}
                     </div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
+                    {isMobile ? (
+                      /* Mobile: name only */
+                      <div style={{ flex:1, minWidth:0, display:'flex', alignItems:'center' }}>
                         <div className="conv-name" style={{
                           color: other?.role === 'osint' ? 'var(--verified)' : 'var(--text)'
                         }}>
                           {other?.username || 'Unknown'}
                           {other?.role === 'osint' && <span style={{color:'var(--verified)',marginLeft:3}}>◆</span>}
                         </div>
-                        <div className="conv-time">{timeAgo(conv.last_message_at)}</div>
                       </div>
-                      <div className="conv-preview">
-                        {conv.last_message || 'No messages yet'}
+                    ) : (
+                      /* Desktop: name + preview + time */
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
+                          <div className="conv-name" style={{
+                            color: other?.role === 'osint' ? 'var(--verified)' : 'var(--text)'
+                          }}>
+                            {other?.username || 'Unknown'}
+                            {other?.role === 'osint' && <span style={{color:'var(--verified)',marginLeft:3}}>◆</span>}
+                          </div>
+                          <div className="conv-time">{timeAgo(conv.last_message_at)}</div>
+                        </div>
+                        <div className="conv-preview">
+                          {conv.last_message || 'No messages yet'}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )
               })}
             </div>
           </div>
 
-          {/* Thread area */}
-          <div className="thread-area">
+          {/* Thread area — hidden on mobile until a conv is selected */}
+          <div className="thread-area" style={isMobile && !activeConv ? { display:'none' } : {}}>
             {!activeConv ? (
               <div className="empty-state">
                 <div style={{ fontSize:32, opacity:0.2 }}>◇</div>
@@ -210,41 +237,43 @@ export default function MessagesPage() {
               </div>
             ) : (
               <>
-                {/* Thread header */}
-                <div className="thread-header">
-                  <div style={{
-                    width:36, height:36, borderRadius:'50%',
-                    background:'linear-gradient(135deg,#1e3a5f,#0d6efd)',
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    fontSize:14, fontWeight:700, color:'white', flexShrink:0
-                  }}>
-                    {otherUser?.username?.[0]?.toUpperCase() || '?'}
-                  </div>
-                  <div>
+                {/* Thread header — desktop only, mobile uses topbar */}
+                {!isMobile && (
+                  <div className="thread-header">
                     <div style={{
-                      fontFamily:'var(--mono)', fontSize:12, fontWeight:600,
-                      color: otherUser?.role === 'osint' ? 'var(--verified)' : 'var(--text)'
+                      width:36, height:36, borderRadius:'50%',
+                      background:'linear-gradient(135deg,#1e3a5f,#0d6efd)',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      fontSize:14, fontWeight:700, color:'white', flexShrink:0
                     }}>
-                      {otherUser?.username || 'Unknown'}
-                      {otherUser?.role === 'osint' && <span style={{color:'var(--verified)',marginLeft:4}}>◆</span>}
+                      {otherUser?.username?.[0]?.toUpperCase() || '?'}
                     </div>
-                    <div style={{ fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)', marginTop:2 }}>
-                      {otherUser?.role?.toUpperCase() || 'USER'}
+                    <div>
+                      <div style={{
+                        fontFamily:'var(--mono)', fontSize:12, fontWeight:600,
+                        color: otherUser?.role === 'osint' ? 'var(--verified)' : 'var(--text)'
+                      }}>
+                        {otherUser?.username || 'Unknown'}
+                        {otherUser?.role === 'osint' && <span style={{color:'var(--verified)',marginLeft:4}}>◆</span>}
+                      </div>
+                      <div style={{ fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)', marginTop:2 }}>
+                        {otherUser?.role?.toUpperCase() || 'USER'}
+                      </div>
                     </div>
+                    <button
+                      onClick={() => navigate(`/channel/${otherUser?.username}`)}
+                      style={{
+                        marginLeft:'auto', background:'transparent',
+                        border:'1px solid var(--border)', borderRadius:4,
+                        padding:'5px 12px', fontFamily:'var(--mono)',
+                        fontSize:9, color:'var(--muted)', cursor:'pointer',
+                        letterSpacing:1
+                      }}
+                    >
+                      VIEW PROFILE →
+                    </button>
                   </div>
-                  <button
-                    onClick={() => navigate(`/channel/${otherUser?.username}`)}
-                    style={{
-                      marginLeft:'auto', background:'transparent',
-                      border:'1px solid var(--border)', borderRadius:4,
-                      padding:'5px 12px', fontFamily:'var(--mono)',
-                      fontSize:9, color:'var(--muted)', cursor:'pointer',
-                      letterSpacing:1
-                    }}
-                  >
-                    VIEW PROFILE →
-                  </button>
-                </div>
+                )}
 
                 {/* Messages */}
                 <div className="thread-messages">

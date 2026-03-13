@@ -136,53 +136,53 @@ export default function ChannelPage() {
         <div className="ch-body">
           {/* Header Card */}
           <div className="ch-header">
-            <div className="ch-avatar-row">
-              <div className="ch-avatar">
+          <div className="ch-avatar-row">
+            <div className="ch-avatar">
                 {channel.username?.[0]?.toUpperCase() || 'C'}
-              </div>
-              <div style={{ flex:1 }}>
+            </div>
+            <div style={{ flex:1 }}>
                 <div className="ch-name">
-                  {channel.username}
-                  {channel.role === 'osint' && (
+                {channel.username}
+                {channel.role === 'osint' && (
                     <span style={{ color:'var(--verified)', fontSize:16, marginLeft:8 }}>◆</span>
-                  )}
+                )}
                 </div>
                 <div className="ch-handle">@{channel.username}</div>
                 <span className={`ch-role-badge ${channel.role}`}>
-                  {channel.role === 'osint' ? '◆ VERIFIED OSINT' :
-                   channel.role === 'admin' ? '⬡ ADMIN' : '○ PUBLIC USER'}
+                {channel.role === 'osint' ? '◆ VERIFIED OSINT' :
+                channel.role === 'admin' ? '⬡ ADMIN' : '○ PUBLIC USER'}
                 </span>
-              </div>
-              {!isOwnProfile && (
-                <div style={{ display:'flex', gap:8 }}>
-                    <button
-                    className={`follow-btn ${following ? 'following' : ''}`}
-                    onClick={toggleFollow}
-                    >
-                    {following ? '✓ FOLLOWING' : '+ FOLLOW'}
-                    </button>
-                    <button
-                    className="follow-btn"
-                    style={{ borderColor:'var(--muted)', color:'var(--muted)' }}
-                    onClick={async () => {
-                        const conv = await getOrCreateConversation(channel.id)
-                        if (conv) navigate(`/messages?user=${channel.id}`)
-                    }}
-                    >
-                    ✉ MESSAGE
-                    </button>
-                </div>
-                )}
-              {isOwnProfile && (
-                <button
-                  className="follow-btn"
-                  onClick={() => navigate('/profile')}
-                >
-                  EDIT PROFILE
-                </button>
-              )}
+            </div>
             </div>
 
+            {/* Buttons — own row, below header, above stats */}
+            {!isOwnProfile && (
+            <div style={{ display:'flex', gap:10, marginBottom:20, flexWrap:'wrap', justifyContent:'center'  }}>
+                <button
+                className={`follow-btn ${following ? 'following' : ''}`}
+                onClick={toggleFollow}
+                >
+                {following ? '✓ FOLLOWING' : '+ FOLLOW'}
+                </button>
+                <button
+                className="follow-btn"
+                style={{ borderColor:'var(--muted)', color:'var(--muted)' }}
+                onClick={async () => {
+                    const conv = await getOrCreateConversation(channel.id)
+                    if (conv) navigate(`/messages?user=${channel.id}`)
+                }}
+                >
+                ✉ MESSAGE
+                </button>
+            </div>
+            )}
+            {isOwnProfile && (
+            <div style={{ marginBottom:20 }}>
+                <button className="follow-btn" onClick={() => navigate('/profile')}>
+                EDIT PROFILE
+                </button>
+            </div>
+            )}
             {/* Stats */}
             <div className="stats-row" style={{ gridTemplateColumns:'repeat(3,1fr)' }}>
             <div className="stat-box">
