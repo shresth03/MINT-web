@@ -41,7 +41,7 @@ export default function StoryComposer({ onClose, onPublished }) {
   useEffect(() => {
     if (step === 2 && headline.trim().length > 3) {
       setLoadingSuggestions(true)
-      getSuggestedPosts(headline, region).then(results => {
+      getSuggestedPosts(headline, region, tag).then(results => {
         setSuggestedPosts(results)
         setLoadingSuggestions(false)
       })

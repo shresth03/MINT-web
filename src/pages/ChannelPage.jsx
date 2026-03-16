@@ -4,6 +4,7 @@ import { useChannel } from '../hooks/useChannel'
 import { useAuth } from '../hooks/useAuth'
 import { useFollow } from '../hooks/useFollow'
 import { useMessages } from '../hooks/useMessages'
+import { useCredibility } from '../hooks/useCredibility'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -70,6 +71,7 @@ export default function ChannelPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { channel, posts, stories, loading } = useChannel(username)
+  const { breakdown, loading: credLoading } = useCredibility(channel?.id)
   const [tab, setTab] = useState('posts')
   const { following, followerCount, followingCount, loading: followLoading, toggleFollow } = useFollow(channel?.id)
   const { getOrCreateConversation } = useMessages()
@@ -116,12 +118,6 @@ export default function ChannelPage() {
   const score = channel.score || 0
 
   // Score breakdown (mock weights for now)
-  const scoreBreakdown = [
-    { label: 'Source Accuracy', value: Math.min(100, score + 5), color: '#00ff88' },
-    { label: 'Breaking Speed', value: Math.min(100, score - 8), color: '#00d4ff' },
-    { label: 'Source Quality', value: Math.min(100, score - 3), color: '#ffcc00' },
-    { label: 'Consistency', value: Math.min(100, score + 2), color: '#ff6b35' },
-  ]
 
   return (
     <>
@@ -216,28 +212,53 @@ export default function ChannelPage() {
             </div>
 
             {/* Score breakdown — only for osint/admin */}
-            {(channel.role === 'osint' || channel.role === 'admin') && (
+            {channel.role === 'osint' && (
               <div className="score-section">
-                <div style={{
-                  fontFamily:'var(--mono)', fontSize:9, letterSpacing:2,
-                  color:'var(--muted)', marginBottom:12, marginTop:20
-                }}>
+                <div style={{ fontFamily:'var(--mono)', fontSize:9, letterSpacing:2, color:'var(--muted)', marginBottom:12, marginTop:20 }}>
                   CREDIBILITY BREAKDOWN
                 </div>
-                {scoreBreakdown.map(s => (
-                  <div key={s.label} className="score-bar-wrap">
-                    <div className="score-bar-label">
-                      <span>{s.label}</span>
-                      <span style={{ color: s.color }}>{Math.max(0, s.value)}/100</span>
-                    </div>
-                    <div className="score-bar-bg">
-                      <div className="score-bar-fill" style={{
-                        width: `${Math.max(0, s.value)}%`,
-                        background: s.color
-                      }} />
-                    </div>
+                {credLoading ? (
+                  <div style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--muted)' }}>LOADING...</div>
+                ) : breakdown ? (
+                  [
+                    { label: 'Claim Accuracy',         value: breakdown.claimAccuracy,   max: 35, color: '#00ff88' },
+                    { label: 'Corroboration Rate',     value: breakdown.corroboration,   max: 25, color: '#00d4ff' },
+                    { label: 'Multi-Source Agreement', value: breakdown.multiSource,     max: 20, color: '#ffcc00' },
+                    { label: 'Note Accuracy',          value: breakdown.noteAccuracy,    max: 15, color: '#ff9f43' },
+                    { label: 'Consistency',            value: breakdown.consistency,     max: 10, color: '#ff6b35' },
+                    ].map(s => {
+                      const pct = Math.min(100, Math.round(((s.value ?? 0) / s.max) * 100))
+                      return (
+                        <div key={s.label} className="score-bar-wrap">
+                          <div className="score-bar-label">
+                            <span>{s.label}</span>
+                            <span style={{ color: s.color }}>{pct}%</span>
+                          </div>
+                          <div className="score-bar-bg">
+                            <div className="score-bar-fill" style={{
+                              width: `${pct}%`,
+                              background: s.color
+                            }} />
+                          </div>
+                        </div>
+                      )
+                    })
+                ) : (
+                  <div style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--muted)' }}>
+                    No credibility data yet — score builds as claims are resolved.
                   </div>
-                ))}
+                )}
+                {/* False claim penalties */}
+                {breakdown?.falsePenalty > 0 && (
+                  <div style={{ marginTop:8, padding:'6px 10px', background:'rgba(255,71,87,0.08)', border:'1px solid rgba(255,71,87,0.2)', borderRadius:4, fontFamily:'var(--mono)', fontSize:10, color:'#ff4757' }}>
+                    ⚠ False claim penalties: −{breakdown.falsePenalty.toFixed(1)} pts
+                  </div>
+                )}
+                {breakdown?.reversalBonus > 0 && (
+                  <div style={{ marginTop:6, padding:'6px 10px', background:'rgba(255,211,42,0.08)', border:'1px solid rgba(255,211,42,0.2)', borderRadius:4, fontFamily:'var(--mono)', fontSize:10, color:'#ffd32a' }}>
+                    ⟳ Reversal bonuses: +{breakdown.reversalBonus.toFixed(1)} pts
+                  </div>
+                )}
               </div>
             )}
           </div>

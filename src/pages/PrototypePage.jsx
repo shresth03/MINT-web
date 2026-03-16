@@ -1326,40 +1326,88 @@ export default function App() {
             <div style={{flex:1, overflow:"hidden", display:"flex", flexDirection:"column"}}>
               <div className="section-header">
                 <span className="section-label">◆ Verified OSINT Channels</span>
-                <span className="count-badge">6 active</span>
+                <span className="count-badge">{suggestions.length} active</span>
               </div>
               <div style={{overflow:"auto", flex:1, padding:"12px 16px"}}>
-                {[
-                  {name:"StratSentinel", handle:"@StratSentinel", score:94, tag:"MARITIME · CONFLICT", posts:142},
-                  {name:"MaritimeWatch", handle:"@MW_Intel", score:89, tag:"MARITIME · NAVAL", posts:98},
-                  {name:"GulfWatcher", handle:"@GulfWatcher_OS", score:78, tag:"GULF · ENERGY", posts:67},
-                  {name:"CyberSentinel_EU", handle:"@CyberSentinel_EU", score:91, tag:"CYBER · INFRASTRUCTURE", posts:203},
-                  {name:"OT_Threat_Intel", handle:"@OTThreatIntel", score:86, tag:"CYBER · ICS", posts:115},
-                  {name:"GeoIntelysis", handle:"@GeoIntelysis", score:88, tag:"GEOPOLITICS · SATELLITE", posts:89},
-                ].map((ch, i) => (
-                  <div key={i} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"16px",marginBottom:10,cursor:"pointer"}}
-                    onClick={() => navigate(`/channel/${ch.name}`)}>
-                    <div style={{display:"flex", alignItems:"center", gap:12, marginBottom:10}}>
-                      <div style={{width:40,height:40,borderRadius:"50%",background:"linear-gradient(135deg,#1e3a5f,#0d6efd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:700,color:"white",flexShrink:0}}>
-                        {ch.name[0]}
+                {/* Top 3 podium */}
+                {suggestions.length >= 3 && (
+                  <div style={{display:"flex", gap:10, marginBottom:16, alignItems:"flex-end"}}>
+                    {/* 2nd place */}
+                    <div style={{flex:1, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, padding:"12px", textAlign:"center", cursor:"pointer"}}
+                      onClick={() => navigate(`/channel/${suggestions[1].username}`)}>
+                      <div style={{fontFamily:"var(--mono)", fontSize:20, color:"#7a9bbf", marginBottom:4}}>②</div>
+                      <div style={{width:36, height:36, borderRadius:"50%", background:"linear-gradient(135deg,#1e3a5f,#0d6efd)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"white", margin:"0 auto 8px"}}>
+                        {suggestions[1].username?.[0]?.toUpperCase()}
                       </div>
-                      <div style={{flex:1}}>
-                        <div style={{display:"flex",alignItems:"center",gap:6}}>
-                          <span style={{fontSize:13,fontWeight:600}}>{ch.name}</span>
-                          <span style={{color:"var(--verified)",fontSize:10}}>◆</span>
-                        </div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--muted)"}}>{ch.handle}</div>
-                      </div>
-                      <div style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:700,color:"var(--verified)",padding:"4px 10px",border:"1px solid var(--verified)",borderRadius:4}}>
-                        {ch.score}/100
-                      </div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:10, color:"var(--verified)", marginBottom:4}}>{suggestions[1].username} ◆</div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:18, fontWeight:700, color:"#7a9bbf"}}>{suggestions[1].score}</div>
                     </div>
-                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                      {ch.tag.split(" · ").map(t => <span key={t} className="story-tag">{t}</span>)}
-                      <span style={{marginLeft:"auto",fontFamily:"var(--mono)",fontSize:9,color:"var(--muted)"}}>{ch.posts} verified posts</span>
+                    {/* 1st place */}
+                    <div style={{flex:1, background:"rgba(255,159,67,0.08)", border:"1px solid #ff9f43", borderRadius:8, padding:"14px", textAlign:"center", cursor:"pointer"}}
+                      onClick={() => navigate(`/channel/${suggestions[0].username}`)}>
+                      <div style={{fontFamily:"var(--mono)", fontSize:22, color:"#ff9f43", marginBottom:4}}>①</div>
+                      <div style={{width:42, height:42, borderRadius:"50%", background:"linear-gradient(135deg,#7a3f00,#ff9f43)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"white", margin:"0 auto 8px", border:"2px solid #ff9f43"}}>
+                        {suggestions[0].username?.[0]?.toUpperCase()}
+                      </div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:11, color:"#ff9f43", marginBottom:4}}>{suggestions[0].username} ◆</div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:22, fontWeight:700, color:"#ff9f43"}}>{suggestions[0].score}</div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:8, color:"#ff9f43", letterSpacing:1, marginTop:2}}>TOP ANALYST</div>
+                    </div>
+                    {/* 3rd place */}
+                    <div style={{flex:1, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, padding:"12px", textAlign:"center", cursor:"pointer"}}
+                      onClick={() => navigate(`/channel/${suggestions[2].username}`)}>
+                      <div style={{fontFamily:"var(--mono)", fontSize:20, color:"#8a6a2a", marginBottom:4}}>③</div>
+                      <div style={{width:36, height:36, borderRadius:"50%", background:"linear-gradient(135deg,#1e3a5f,#0d6efd)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"white", margin:"0 auto 8px"}}>
+                        {suggestions[2].username?.[0]?.toUpperCase()}
+                      </div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:10, color:"var(--verified)", marginBottom:4}}>{suggestions[2].username} ◆</div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:18, fontWeight:700, color:"#8a6a2a"}}>{suggestions[2].score}</div>
                     </div>
                   </div>
-                ))}
+                )}
+
+                {/* Full ranked list */}
+                <div style={{fontFamily:"var(--mono)", fontSize:9, letterSpacing:2, color:"var(--muted)", marginBottom:10}}>FULL RANKINGS</div>
+                {suggestions.length === 0 ? (
+                  <div style={{textAlign:"center", padding:40, fontFamily:"var(--mono)", fontSize:11, color:"var(--muted)"}}>No verified analysts yet</div>
+                ) : suggestions.map((ch, i) => {
+                  const scoreColor = ch.score >= 75 ? 'var(--verified)' : ch.score >= 50 ? 'var(--accent)' : ch.score >= 0 ? 'var(--warn)' : '#ff4757'
+                  return (
+                    <div key={ch.id} style={{background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, padding:"14px 16px", marginBottom:8, cursor:"pointer", display:"flex", alignItems:"center", gap:12, transition:"border-color 0.15s"}}
+                      onClick={() => navigate(`/channel/${ch.username}`)}
+                      onMouseOver={e => e.currentTarget.style.borderColor='var(--accent)'}
+                      onMouseOut={e => e.currentTarget.style.borderColor='var(--border)'}>
+                      {/* Rank */}
+                      <div style={{fontFamily:"var(--mono)", fontSize:16, fontWeight:700, minWidth:28, textAlign:"center",
+                        color: i===0 ? '#ff9f43' : i===1 ? '#7a9bbf' : i===2 ? '#8a6a2a' : 'var(--muted)'}}>
+                        {i + 1}
+                      </div>
+                      {/* Avatar */}
+                      <div style={{width:38, height:38, borderRadius:"50%", background:"linear-gradient(135deg,#1e3a5f,#0d6efd)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"white", flexShrink:0}}>
+                        {ch.username?.[0]?.toUpperCase()}
+                      </div>
+                      {/* Info */}
+                      <div style={{flex:1, minWidth:0}}>
+                        <div style={{display:"flex", alignItems:"center", gap:6}}>
+                          <span style={{fontSize:13, fontWeight:600, color:"var(--text)"}}>{ch.username}</span>
+                          <span style={{color:"var(--verified)", fontSize:10}}>◆</span>
+                        </div>
+                        <div style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--muted)", marginTop:2}}>
+                          @{ch.username}
+                        </div>
+                      </div>
+                      {/* Score bar */}
+                      <div style={{display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4, minWidth:80}}>
+                        <div style={{fontFamily:"var(--mono)", fontSize:13, fontWeight:700, color:scoreColor}}>
+                          {ch.score ?? '—'}<span style={{fontSize:9, color:"var(--muted)"}}>/100</span>
+                        </div>
+                        <div style={{width:80, height:3, background:"var(--border)", borderRadius:2}}>
+                          <div style={{height:"100%", borderRadius:2, background:scoreColor, width:`${Math.max(0, ch.score ?? 0)}%`, transition:"width 0.3s"}} />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
