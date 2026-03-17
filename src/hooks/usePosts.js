@@ -152,23 +152,32 @@ export function usePosts() {
   }
 
   async function createReply(postId, body) {
-    const { error } = await supabase.from('replies').insert({
-      post_id: postId,
-      author_id: user.id,
-      body
-    })
-    if (!error) {
-      const post = posts.find(p => p.id === postId)
-      if (post) {
-        await supabase.from('posts')
-          .update({ reply_count: (post.reply_count || 0) + 1 })
-          .eq('id', postId)
-        setPosts(prev => prev.map(p =>
-          p.id === postId ? { ...p, reply_count: (p.reply_count||0)+1 } : p
-        ))
-      }
+    const { data: insertData, error } = await supabase
+      .from('replies')
+      .insert({ post_id: postId, author_id: user.id, body })
+      .select('id')
+      .single()
+  
+    if (error) return { data: null, error }
+  
+    // Fetch with user join separately (avoids RLS issue on inline join)
+    const { data: replyData } = await supabase
+      .from('replies')
+      .select('*, users(username, role)')
+      .eq('id', insertData.id)
+      .single()
+  
+    const post = posts.find(p => p.id === postId)
+    if (post) {
+      await supabase.from('posts')
+        .update({ reply_count: (post.reply_count || 0) + 1 })
+        .eq('id', postId)
+      setPosts(prev => prev.map(p =>
+        p.id === postId ? { ...p, reply_count: (p.reply_count || 0) + 1 } : p
+      ))
     }
-    return { error }
+  
+    return { data: replyData || null, error: null }
   }
 
   async function fetchReplies(postId) {
@@ -180,6 +189,13 @@ export function usePosts() {
     return { data: data || [], error }
   }
 
+  async function loadReplies() {
+    const { data, error } = await fetchReplies(postId)
+    console.log('loadReplies', postId, data, error)
+    setReplies(data)
+    setLoading(false)
+  }
+  
   async function fetchSavedPosts() {
     const { data, error } = await supabase
       .from('saved_posts')

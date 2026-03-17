@@ -637,6 +637,25 @@ function WorldMap({ filter, onRegionClick, regions: propRegions }) {
   }, [])
 
   useEffect(() => {
+    if (!story?.id) return
+  
+    const sub = supabase
+      .channel(`story-${story.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'stories',
+        filter: `id=eq.${story.id}`
+      }, (payload) => {
+        // Merge updated fields into current story object
+        setStory(prev => prev ? { ...prev, ...payload.new } : prev)
+      })
+      .subscribe()
+  
+    return () => supabase.removeChannel(sub)
+  }, [story?.id])
+
+  useEffect(() => {
     const obs = new ResizeObserver(([e]) => setDims({w: e.contentRect.width, h: e.contentRect.height}));
     if (wrapRef.current) obs.observe(wrapRef.current);
     return () => obs.disconnect();
@@ -1045,6 +1064,22 @@ export default function App() {
   const [form, setForm] = useState({channel:"",handle:"",portfolio:"",why:""})
 
   const handleSelectStory = (s) => { setStory(s); if (isMobile) setMobileDetail(true) }
+
+  const refreshStory = async (storyId) => {
+    if (!storyId) return
+    const { data } = await supabase
+      .from('stories')
+      .select(`
+        id, headline, summary, tag, region, confidence, is_breaking, created_at,
+        story_sources(
+          post_id,
+          posts(id, body, created_at, users(id, username, role, score))
+        )
+      `)
+      .eq('id', storyId)
+      .single()
+    if (data) setStory(data)
+  }
 
   const doApply = async () => {
     if (!form.channel || !form.handle) return
@@ -1599,7 +1634,21 @@ export default function App() {
       )}
 
       {showComposer && (
-        <StoryComposer onClose={() => setShowComposer(false)} onPublished={() => setShowComposer(false)} />
+        <StoryComposer
+          onClose={() => setShowComposer(false)}
+          onPublished={async (post) => {
+            setShowComposer(false)
+            // Wait for refreshStorySummary to finish writing to DB
+            await new Promise(r => setTimeout(r, 3000))
+            // Find which story this post belongs to and refresh it
+            const { data } = await supabase
+              .from('story_sources')
+              .select('story_id')
+              .eq('post_id', post.id)
+              .single()
+            if (data?.story_id) await refreshStory(data.story_id)
+          }}
+        />
       )}
 
       {showNotifs && (

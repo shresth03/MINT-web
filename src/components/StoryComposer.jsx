@@ -1,86 +1,109 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useStoryComposer } from '../hooks/useStoryComposer'
 
 const TAGS = ['MILITARY', 'CYBER', 'MARITIME', 'GEOPOLITICAL', 'HUMANITARIAN', 'ECONOMIC', 'ENERGY', 'OTHER']
 const REGIONS = ['Global', 'Middle East', 'Europe', 'Asia Pacific', 'North America', 'South America', 'Africa', 'Arctic']
 
-function scoreColor(score) {
-  if (score === null || score === undefined) return '#4a6080'
-  if (score >= 75) return '#00ff88'
-  if (score >= 50) return '#00d4ff'
-  if (score >= 0)  return '#ffcc00'
-  return '#ff4757'
-}
-
 export default function StoryComposer({ onClose, onPublished }) {
-  const { publishStory, searchPosts, getRecentOsintPosts, getSuggestedPosts } = useStoryComposer()
+  const { publishStory, searchThreads, getRecentThreads, generateHeadline, generateSummary } = useStoryComposer()
 
   const [step, setStep] = useState(1)
-  const [headline, setHeadline] = useState('')
-  const [summary, setSummary] = useState('')
+  const [body, setBody] = useState('')
   const [tag, setTag] = useState('GEOPOLITICAL')
   const [region, setRegion] = useState('Global')
-  const [confidence, setConfidence] = useState(75)
-  const [isBreaking, setIsBreaking] = useState(false)
-  const [sourcePostIds, setSourcePostIds] = useState([])
-  const [sourcePosts, setSourcePosts] = useState([])
-  const [availablePosts, setAvailablePosts] = useState([])
-  const [suggestedPosts, setSuggestedPosts] = useState([])
+  const [threadId, setThreadId] = useState(null)
+  const [threadObj, setThreadObj] = useState(null)
+  const [availableThreads, setAvailableThreads] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+  const [threadTab, setThreadTab] = useState('recent')
+  const [loadingThreads, setLoadingThreads] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState('')
-  const [sourceTab, setSourceTab] = useState('suggested') // 'suggested' | 'search' | 'recent'
 
-  // Load recent posts on mount
+  // AI state
+  const [headline, setHeadline] = useState('')
+  const [headlineGenerated, setHeadlineGenerated] = useState(false)
+  const [headlineLoading, setHeadlineLoading] = useState(false)
+  const [summary, setSummary] = useState('')
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [summaryGenerated, setSummaryGenerated] = useState(false)
+
+  // Treat the author's own post as the first source
+  const authorSource = body.trim() ? [{ users: { username: 'you' }, body: body.trim() }] : []
+
   useEffect(() => {
-    getRecentOsintPosts().then(setAvailablePosts)
+    getRecentThreads().then(setAvailableThreads)
   }, [])
 
-  // When entering step 2, load smart suggestions
   useEffect(() => {
-    if (step === 2 && headline.trim().length > 3) {
-      setLoadingSuggestions(true)
-      getSuggestedPosts(headline, region, tag).then(results => {
-        setSuggestedPosts(results)
-        setLoadingSuggestions(false)
+    if (step === 2) {
+      setLoadingThreads(true)
+      getRecentThreads().then(data => {
+        setAvailableThreads(data)
+        setLoadingThreads(false)
       })
     }
+
+    // When entering Step 2 or 3, trigger AI generation
+    if ((step === 2 || step === 3) && authorSource.length > 0) {
+      runAIGeneration()
+    }
   }, [step])
+
+  const runAIGeneration = useCallback(async () => {
+    const sources = authorSource
+
+    // Headline: generate once, lock after
+    if (!headlineGenerated) {
+      setHeadlineLoading(true)
+      const hl = await generateHeadline(sources)
+      if (hl) {
+        setHeadline(hl)
+        setHeadlineGenerated(true)
+      }
+      setHeadlineLoading(false)
+    }
+
+    // Summary: always regenerate
+    setSummaryLoading(true)
+    const sum = await generateSummary(headline || body, sources)
+    if (sum) {
+      setSummary(sum)
+      setSummaryGenerated(true)
+    }
+    setSummaryLoading(false)
+  }, [authorSource, headlineGenerated, headline, body, generateHeadline, generateSummary])
 
   async function handleSearch(q) {
     setSearchQuery(q)
     if (q.length < 2) {
-      getRecentOsintPosts().then(setAvailablePosts)
+      getRecentThreads().then(setAvailableThreads)
       return
     }
-    const results = await searchPosts(q)
-    setAvailablePosts(results)
+    setLoadingThreads(true)
+    const results = await searchThreads(q)
+    setAvailableThreads(results)
+    setLoadingThreads(false)
   }
 
-  function toggleSource(post) {
-    if (sourcePostIds.includes(post.id)) {
-      setSourcePostIds(prev => prev.filter(id => id !== post.id))
-      setSourcePosts(prev => prev.filter(p => p.id !== post.id))
+  function selectThread(thread) {
+    if (threadId === thread.id) {
+      setThreadId(null)
+      setThreadObj(null)
     } else {
-      setSourcePostIds(prev => [...prev, post.id])
-      setSourcePosts(prev => [...prev, post])
+      setThreadId(thread.id)
+      setThreadObj(thread)
     }
   }
 
   async function handlePublish() {
-    if (!headline.trim() || !summary.trim()) {
-      setError('Headline and summary are required.')
-      return
-    }
+    if (!body.trim()) { setError('Post body is required.'); return }
     setPublishing(true)
     setError('')
-    const { story, error: err } = await publishStory({
-      headline, summary, tag, region, confidence, is_breaking: isBreaking, sourcePostIds
-    })
+    const { post, error: err } = await publishStory({ body, tag, region, threadId})
     setPublishing(false)
     if (err) { setError(err.message); return }
-    onPublished?.(story)
+    onPublished?.(post)
     onClose()
   }
 
@@ -111,6 +134,10 @@ export default function StoryComposer({ onClose, onPublished }) {
     fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
     letterSpacing: 2, color: '#4a6080', marginBottom: 6, display: 'block'
   }
+  const aiLabelStyle = {
+    fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
+    letterSpacing: 2, color: '#00d4ff', marginBottom: 6, display: 'block'
+  }
   const btnPrimary = {
     padding: '10px 24px', background: '#00d4ff', color: '#000',
     border: 'none', borderRadius: 6, fontFamily: "'IBM Plex Mono', monospace",
@@ -121,11 +148,12 @@ export default function StoryComposer({ onClose, onPublished }) {
     border: '1px solid #1e2d3d', borderRadius: 6, fontFamily: "'IBM Plex Mono', monospace",
     fontSize: 11, cursor: 'pointer', letterSpacing: 1
   }
-
-  // Which list to show in step 2
-  const displayPosts = sourceTab === 'suggested' ? suggestedPosts
-    : sourceTab === 'search' ? availablePosts
-    : availablePosts
+  const regenBtn = {
+    fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
+    color: '#4a6080', background: 'none',
+    border: '1px solid #1e2d3d', borderRadius: 4,
+    padding: '2px 8px', cursor: 'pointer', letterSpacing: 1
+  }
 
   return (
     <div style={overlayStyle} onClick={e => e.target === e.currentTarget && onClose()}>
@@ -139,10 +167,10 @@ export default function StoryComposer({ onClose, onPublished }) {
         }}>
           <div>
             <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, letterSpacing: 2, color: '#00d4ff' }}>
-              ◆ PUBLISH INTEL STORY
+              ◆ WRITE INTEL
             </div>
             <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#4a6080', marginTop: 4 }}>
-              STEP {step} OF 3 — {['', 'STORY DETAILS', 'LINK SOURCES', 'PREVIEW & PUBLISH'][step]}
+              STEP {step} OF 3 — {['', 'YOUR STORY', 'ATTACH TO THREAD', 'PREVIEW & PUBLISH'][step]}
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#4a6080', fontSize: 18, cursor: 'pointer' }}>✕</button>
@@ -151,15 +179,15 @@ export default function StoryComposer({ onClose, onPublished }) {
         {/* Step indicators */}
         <div style={{ display: 'flex', borderBottom: '1px solid #1e2d3d', flexShrink: 0 }}>
           {[1, 2, 3].map(s => (
-            <div key={s} style={{
+            <div key={s} onClick={() => step > s && setStep(s)} style={{
               flex: 1, padding: '10px', textAlign: 'center',
               fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, letterSpacing: 1,
               color: step === s ? '#00d4ff' : step > s ? '#00ff88' : '#4a6080',
               borderBottom: step === s ? '2px solid #00d4ff' : '2px solid transparent',
               cursor: step > s ? 'pointer' : 'default'
-            }} onClick={() => step > s && setStep(s)}>
+            }}>
               {step > s ? '✓ ' : `${s}. `}
-              {['DETAILS', 'SOURCES', 'PREVIEW'][s - 1]}
+              {['YOUR STORY', 'THREAD', 'PREVIEW'][s - 1]}
             </div>
           ))}
         </div>
@@ -167,34 +195,21 @@ export default function StoryComposer({ onClose, onPublished }) {
         {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
 
-          {/* ── STEP 1 — Details ── */}
+          {/* ── STEP 1 — Write Story ── */}
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div>
-                <label style={labelStyle}>HEADLINE *</label>
-                <input
-                  style={inputStyle}
-                  value={headline}
-                  onChange={e => setHeadline(e.target.value)}
-                  placeholder="e.g. Russian naval exercises detected in Baltic Sea"
-                  maxLength={200}
-                />
-                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#4a6080', marginTop: 4, textAlign: 'right' }}>
-                  {headline.length}/200
-                </div>
-              </div>
-
-              <div>
-                <label style={labelStyle}>SUMMARY *</label>
+                <label style={labelStyle}>INTEL POST *</label>
                 <textarea
-                  style={{ ...inputStyle, resize: 'vertical', minHeight: 100 }}
-                  value={summary}
-                  onChange={e => setSummary(e.target.value)}
-                  placeholder="Provide a detailed summary of the intelligence..."
+                  style={{ ...inputStyle, resize: 'vertical', minHeight: 140 }}
+                  value={body}
+                  onChange={e => { setBody(e.target.value); setHeadlineGenerated(false) }}
+                  placeholder="Write your intelligence report, observation or analysis..."
                   maxLength={1000}
+                  autoFocus
                 />
-                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#4a6080', marginTop: 4, textAlign: 'right' }}>
-                  {summary.length}/1000
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: body.length > 900 ? '#ff6b35' : '#4a6080', marginTop: 4, textAlign: 'right' }}>
+                  {body.length}/1000
                 </div>
               </div>
 
@@ -213,187 +228,136 @@ export default function StoryComposer({ onClose, onPublished }) {
                 </div>
               </div>
 
-              <div>
-                <label style={labelStyle}>CONFIDENCE LEVEL — {confidence}%</label>
-                <input
-                  type="range" min={10} max={99} value={confidence}
-                  onChange={e => setConfidence(e.target.value)}
-                  style={{ width: '100%', accentColor: confidenceColor(confidence) }}
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#4a6080', marginTop: 4 }}>
-                  <span>LOW</span>
-                  <span style={{ color: confidenceColor(confidence), fontWeight: 700 }}>{confidence}% CONFIDENCE</span>
-                  <span>HIGH</span>
-                </div>
-              </div>
-
-              <div
-                onClick={() => setIsBreaking(v => !v)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '12px 16px', borderRadius: 8, cursor: 'pointer',
-                  border: `1px solid ${isBreaking ? '#ff6b35' : '#1e2d3d'}`,
-                  background: isBreaking ? 'rgba(255,107,53,0.08)' : 'transparent',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <div style={{
-                  width: 18, height: 18, borderRadius: 4,
-                  border: `2px solid ${isBreaking ? '#ff6b35' : '#4a6080'}`,
-                  background: isBreaking ? '#ff6b35' : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, color: '#000', fontWeight: 700, flexShrink: 0
-                }}>
-                  {isBreaking ? '✓' : ''}
-                </div>
-                <div>
-                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: isBreaking ? '#ff6b35' : '#c8d6e5' }}>
-                    MARK AS BREAKING
-                  </div>
-                  <div style={{ fontSize: 11, color: '#4a6080', marginTop: 2 }}>
-                    Highlights this story with a breaking indicator in the feed
-                  </div>
-                </div>
+              <div style={{
+                padding: '10px 14px', borderRadius: 6,
+                background: 'rgba(0,212,255,0.04)', border: '1px solid rgba(0,212,255,0.12)',
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#4a6080', lineHeight: 1.7
+              }}>
+                ◈ Your post will be auto-grouped into a relevant thread by the system.<br />
+                In the next step you can manually attach it to a specific thread.
               </div>
             </div>
           )}
 
-          {/* ── STEP 2 — Sources ── */}
+          {/* ── STEP 2 — Attach to Thread (optional) ── */}
           {step === 2 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-              {/* Selected sources */}
-              {sourcePosts.length > 0 && (
-                <div>
-                  <label style={labelStyle}>LINKED SOURCES ({sourcePosts.length})</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {sourcePosts.map(post => (
-                      <div key={post.id} style={{
-                        padding: '10px 14px', borderRadius: 8,
-                        border: '1px solid #00d4ff', background: 'rgba(0,212,255,0.06)',
-                        display: 'flex', gap: 10, alignItems: 'flex-start'
-                      }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#00ff88' }}>
-                              @{post.users?.username} ◆
-                            </span>
-                            {post.users?.score != null && (
-                              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: scoreColor(post.users.score), padding: '1px 5px', border: `1px solid ${scoreColor(post.users.score)}44`, borderRadius: 3 }}>
-                                ◈ {post.users.score}
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: 12, color: '#c8d6e5', lineHeight: 1.4 }}>
-                            {post.body?.substring(0, 120)}{post.body?.length > 120 ? '...' : ''}
-                          </div>
-                        </div>
-                        <button onClick={() => toggleSource(post)} style={{ background: 'none', border: 'none', color: '#ff6b35', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}>✕</button>
-                      </div>
-                    ))}
-                  </div>
+              {/* AI generation status banner */}
+              {(headlineLoading || summaryLoading) && (
+                <div style={{
+                  padding: '10px 14px', borderRadius: 6,
+                  background: 'rgba(0,212,255,0.04)', border: '1px solid rgba(0,212,255,0.2)',
+                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#00d4ff',
+                  display: 'flex', alignItems: 'center', gap: 8
+                }}>
+                  <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⟳</span>
+                  SYNTHESISING INTEL — AI is generating your headline and summary...
                 </div>
               )}
 
-              {/* Source tabs */}
-              <div style={{ display: 'flex', borderBottom: '1px solid #1e2d3d', gap: 0 }}>
+              {/* Selected thread */}
+              {threadObj && (
+                <div style={{
+                  padding: '12px 16px', borderRadius: 8,
+                  border: '1px solid #00d4ff', background: 'rgba(0,212,255,0.06)',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#00d4ff', marginBottom: 4 }}>
+                      ATTACHED TO THREAD
+                    </div>
+                    <div style={{ fontSize: 13, color: '#c8d6e5', fontWeight: 600 }}>
+                      {threadObj.headline}
+                    </div>
+                    <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#4a6080', marginTop: 4 }}>
+                      {threadObj.tag} · {threadObj.region}
+                    </div>
+                  </div>
+                  <button onClick={() => { setThreadId(null); setThreadObj(null) }}
+                    style={{ background: 'none', border: 'none', color: '#ff6b35', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                </div>
+              )}
+
+              <div style={{
+                padding: '8px 12px', borderRadius: 6,
+                background: 'rgba(255,204,0,0.04)', border: '1px solid rgba(255,204,0,0.12)',
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#4a6080', lineHeight: 1.7
+              }}>
+                ⚡ OPTIONAL — Skip this step and the system will auto-group your story.
+              </div>
+
+              {/* Tabs */}
+              <div style={{ display: 'flex', borderBottom: '1px solid #1e2d3d' }}>
                 {[
-                  { id: 'suggested', label: `◈ MATCHES (${suggestedPosts.length})` },
-                  { id: 'search',    label: '⌕ SEARCH' },
-                  { id: 'recent',    label: '◎ RECENT' },
+                  { id: 'recent', label: '◎ RECENT THREADS' },
+                  { id: 'search', label: '⌕ SEARCH THREADS' },
                 ].map(t => (
-                  <button key={t.id} onClick={() => setSourceTab(t.id)} style={{
-                    padding: '8px 16px', background: 'none',
-                    border: 'none', borderBottom: sourceTab === t.id ? '2px solid #00d4ff' : '2px solid transparent',
+                  <button key={t.id} onClick={() => { setThreadTab(t.id); if (t.id === 'recent') getRecentThreads().then(setAvailableThreads) }} style={{
+                    padding: '8px 16px', background: 'none', border: 'none',
+                    borderBottom: threadTab === t.id ? '2px solid #00d4ff' : '2px solid transparent',
                     fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, letterSpacing: 1,
-                    color: sourceTab === t.id ? '#00d4ff' : '#4a6080',
+                    color: threadTab === t.id ? '#00d4ff' : '#4a6080',
                     cursor: 'pointer', transition: 'all 0.15s'
                   }}>{t.label}</button>
                 ))}
               </div>
 
-              {/* Search input — only on search tab */}
-              {sourceTab === 'search' && (
-                <div>
-                  <input
-                    style={inputStyle}
-                    value={searchQuery}
-                    onChange={e => handleSearch(e.target.value)}
-                    placeholder="Search by keyword..."
-                    autoFocus
-                  />
-                </div>
+              {threadTab === 'search' && (
+                <input
+                  style={inputStyle}
+                  value={searchQuery}
+                  onChange={e => handleSearch(e.target.value)}
+                  placeholder="Search thread headlines..."
+                  autoFocus
+                />
               )}
 
-              {/* Smart suggestion banner */}
-              {sourceTab === 'suggested' && (
-                <div style={{
-                  padding: '8px 12px', borderRadius: 6,
-                  background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)',
-                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#4a6080', lineHeight: 1.6
-                }}>
-                  ◈ Showing posts matching your headline keywords
-                  {region !== 'Global' && ` and region "${region}"`}.
-                  {loadingSuggestions && ' Searching...'}
-                </div>
-              )}
-
-              {/* Posts list */}
+              {/* Thread list */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {loadingSuggestions && sourceTab === 'suggested' ? (
+                {loadingThreads ? (
                   <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: '#4a6080', padding: 20, textAlign: 'center' }}>
-                    SEARCHING...
+                    LOADING...
                   </div>
-                ) : displayPosts.length === 0 ? (
+                ) : availableThreads.length === 0 ? (
                   <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: '#4a6080', padding: 20, textAlign: 'center' }}>
-                    {sourceTab === 'suggested' ? 'No matching posts found — try Search or Recent' : 'No OSINT posts found'}
+                    No threads found
                   </div>
-                ) : displayPosts.map(post => {
-                  const selected = sourcePostIds.includes(post.id)
+                ) : availableThreads.map(thread => {
+                  const selected = threadId === thread.id
                   return (
-                    <div
-                      key={post.id}
-                      onClick={() => toggleSource(post)}
-                      style={{
-                        padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
-                        border: `1px solid ${selected ? '#00d4ff' : '#1e2d3d'}`,
-                        background: selected ? 'rgba(0,212,255,0.06)' : 'transparent',
-                        display: 'flex', gap: 10, alignItems: 'flex-start',
-                        transition: 'all 0.15s'
-                      }}
-                    >
+                    <div key={thread.id} onClick={() => selectThread(thread)} style={{
+                      padding: '12px 14px', borderRadius: 8, cursor: 'pointer',
+                      border: `1px solid ${selected ? '#00d4ff' : '#1e2d3d'}`,
+                      background: selected ? 'rgba(0,212,255,0.06)' : 'transparent',
+                      display: 'flex', gap: 10, alignItems: 'flex-start',
+                      transition: 'all 0.15s'
+                    }}>
                       <div style={{
-                        width: 16, height: 16, borderRadius: 3, flexShrink: 0, marginTop: 2,
+                        width: 16, height: 16, borderRadius: '50%', flexShrink: 0, marginTop: 2,
                         border: `2px solid ${selected ? '#00d4ff' : '#4a6080'}`,
                         background: selected ? '#00d4ff' : 'transparent',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 10, color: '#000', fontWeight: 700
+                        fontSize: 9, color: '#000', fontWeight: 700
                       }}>
                         {selected ? '✓' : ''}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#00ff88' }}>
-                            @{post.users?.username} ◆
-                          </span>
-                          {post.users?.score != null && (
-                            <span style={{
-                              fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
-                              color: scoreColor(post.users.score),
-                              padding: '1px 5px', borderRadius: 3,
-                              border: `1px solid ${scoreColor(post.users.score)}44`
-                            }}>
-                              ◈ {post.users.score}
-                            </span>
-                          )}
-                          {post.region && (
-                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 8, color: '#4a6080', marginLeft: 'auto' }}>
-                              {post.region}
-                            </span>
-                          )}
+                        <div style={{ fontSize: 13, color: '#c8d6e5', fontWeight: 600, marginBottom: 4, lineHeight: 1.4 }}>
+                          {thread.headline}
                         </div>
-                        <div style={{ fontSize: 12, color: '#c8d6e5', lineHeight: 1.4 }}>
-                          {post.body?.substring(0, 140)}{post.body?.length > 140 ? '...' : ''}
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 8, color: '#00d4ff', padding: '2px 6px', border: '1px solid #1e2d3d', borderRadius: 3 }}>
+                            {thread.tag}
+                          </span>
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 8, color: '#4a6080', padding: '2px 6px', border: '1px solid #1e2d3d', borderRadius: 3 }}>
+                            {thread.region}
+                          </span>
+                          {thread.confidence && (
+                            <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 8, color: confidenceColor(thread.confidence), marginLeft: 'auto' }}>
+                              {thread.confidence}% CONF
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -403,58 +367,131 @@ export default function StoryComposer({ onClose, onPublished }) {
             </div>
           )}
 
-          {/* ── STEP 3 — Preview ── */}
+          {/* ── STEP 3 — Preview & Publish ── */}
           {step === 3 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div style={{
-                border: `1px solid ${isBreaking ? '#ff6b35' : '#1e2d3d'}`,
-                borderRadius: 10, overflow: 'hidden',
-                background: isBreaking ? 'rgba(255,107,53,0.04)' : '#080c10'
-              }}>
-                {isBreaking && (
-                  <div style={{
-                    padding: '6px 16px', background: '#ff6b35',
-                    fontFamily: "'IBM Plex Mono', monospace", fontSize: 10,
-                    fontWeight: 700, color: '#000', letterSpacing: 2
+
+              {/* AI HEADLINE */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <label style={{
+                    ...aiLabelStyle, marginBottom: 0,
+                    color: headlineLoading ? '#4a6080' : headlineGenerated ? '#00d4ff' : '#4a6080'
                   }}>
-                    ◉ BREAKING
-                  </div>
-                )}
-                <div style={{ padding: 20 }}>
+                    {headlineLoading ? '⟳ GENERATING HEADLINE...' : headlineGenerated ? '✦ AI HEADLINE — EDIT IF NEEDED' : 'HEADLINE'}
+                  </label>
+                  {headlineGenerated && !headlineLoading && (
+                    <button
+                      style={regenBtn}
+                      onClick={async () => {
+                        setHeadlineLoading(true)
+                        const hl = await generateHeadline(authorSource)
+                        if (hl) setHeadline(hl)
+                        setHeadlineLoading(false)
+                      }}
+                    >
+                      ↺ REGENERATE
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={headlineLoading ? 'Analysing sources...' : headline}
+                  onChange={e => setHeadline(e.target.value)}
+                  disabled={headlineLoading}
+                  placeholder="Add your post in Step 1 to auto-generate headline..."
+                  style={{
+                    ...inputStyle,
+                    fontWeight: 700, fontSize: 15,
+                    color: headlineLoading ? '#4a6080' : '#c8d6e5',
+                    opacity: headlineLoading ? 0.6 : 1,
+                    borderColor: headlineGenerated && !headlineLoading ? 'rgba(0,212,255,0.3)' : '#1e2d3d'
+                  }}
+                />
+              </div>
+
+              {/* AI SUMMARY */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <label style={{
+                    ...aiLabelStyle, marginBottom: 0,
+                    color: summaryLoading ? '#4a6080' : summaryGenerated ? '#00d4ff' : '#4a6080'
+                  }}>
+                    {summaryLoading ? '⟳ SYNTHESISING SOURCES...' : summaryGenerated ? '✦ AI DRAFT — EDIT BEFORE PUBLISHING' : 'SUMMARY'}
+                  </label>
+                  {summaryGenerated && !summaryLoading && (
+                    <button
+                      style={regenBtn}
+                      onClick={async () => {
+                        setSummaryLoading(true)
+                        const sum = await generateSummary(headline, authorSource)
+                        if (sum) setSummary(sum)
+                        setSummaryLoading(false)
+                      }}
+                    >
+                      ↺ REGENERATE
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  value={summaryLoading ? 'Synthesising intelligence from sources...' : summary}
+                  onChange={e => setSummary(e.target.value)}
+                  disabled={summaryLoading}
+                  placeholder="Write your post in Step 1 to auto-generate summary..."
+                  rows={5}
+                  style={{
+                    ...inputStyle,
+                    resize: 'vertical',
+                    color: summaryLoading ? '#4a6080' : '#c8d6e5',
+                    opacity: summaryLoading ? 0.6 : 1,
+                    borderColor: summaryGenerated && !summaryLoading ? 'rgba(0,212,255,0.3)' : '#1e2d3d'
+                  }}
+                />
+              </div>
+
+              {/* Post preview card */}
+              <div style={{
+                border: '1px solid #1e2d3d', borderRadius: 10,
+                background: '#080c10', overflow: 'hidden'
+              }}>
+                <div style={{ padding: '8px 14px', borderBottom: '1px solid #1e2d3d', fontFamily: "'IBM Plex Mono', monospace", fontSize: 8, color: '#4a6080', letterSpacing: 1 }}>
+                  SOURCE POST PREVIEW
+                </div>
+                <div style={{ padding: 16 }}>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                     <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, padding: '3px 8px', borderRadius: 4, border: '1px solid #1e2d3d', color: '#00d4ff', letterSpacing: 1 }}>{tag}</span>
                     <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, padding: '3px 8px', borderRadius: 4, border: '1px solid #1e2d3d', color: '#4a6080', letterSpacing: 1 }}>{region}</span>
+                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, padding: '3px 8px', borderRadius: 4, border: '1px solid #00ff8844', color: '#00ff88', letterSpacing: 1 }}>◆ OSINT</span>
                   </div>
-                  <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 10, lineHeight: 1.4, color: '#c8d6e5' }}>
-                    {headline || 'Your headline will appear here'}
+                  <div style={{ fontSize: 13, color: '#c8d6e5', lineHeight: 1.6, marginBottom: 12 }}>
+                    {body}
                   </div>
-                  <div style={{ fontSize: 13, color: '#8899aa', lineHeight: 1.6, marginBottom: 16 }}>
-                    {summary || 'Your summary will appear here'}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ flex: 1, height: 4, background: '#1e2d3d', borderRadius: 2 }}>
-                      <div style={{ height: '100%', borderRadius: 2, width: `${confidence}%`, background: confidenceColor(confidence) }} />
+                  {threadObj ? (
+                    <div style={{
+                      padding: '8px 12px', borderRadius: 6,
+                      background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)',
+                      fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#00d4ff'
+                    }}>
+                      ◈ THREAD: {threadObj.headline}
                     </div>
-                    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: confidenceColor(confidence) }}>{confidence}% CONFIDENCE</span>
-                  </div>
-                  {sourcePosts.length > 0 && (
-                    <div style={{ marginTop: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {sourcePosts.map(p => (
-                        <span key={p.id} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, padding: '3px 8px', borderRadius: 4, border: '1px solid #00ff8844', color: '#00ff88' }}>
-                          ◆ @{p.users?.username}
-                          {p.users?.score != null && <span style={{ color: scoreColor(p.users.score), marginLeft: 4 }}>◈{p.users.score}</span>}
-                        </span>
-                      ))}
+                  ) : (
+                    <div style={{
+                      padding: '8px 12px', borderRadius: 6,
+                      background: 'rgba(255,204,0,0.04)', border: '1px solid rgba(255,204,0,0.12)',
+                      fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#ffcc00'
+                    }}>
+                      ⚡ Will be auto-grouped into a thread by the system
                     </div>
                   )}
-                  <div style={{ marginTop: 12, fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#4a6080' }}>
-                    ℹ You will be auto-added as a source when published.
-                  </div>
                 </div>
               </div>
 
               {error && (
-                <div style={{ padding: '10px 14px', borderRadius: 6, background: 'rgba(255,107,53,0.1)', border: '1px solid #ff6b35', fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#ff6b35' }}>
+                <div style={{
+                  padding: '10px 14px', borderRadius: 6,
+                  background: 'rgba(255,107,53,0.1)', border: '1px solid #ff6b35',
+                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: '#ff6b35'
+                }}>
                   {error}
                 </div>
               )}
@@ -474,19 +511,19 @@ export default function StoryComposer({ onClose, onPublished }) {
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             {step === 2 && (
               <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: '#4a6080' }}>
-                {sourcePosts.length} source{sourcePosts.length !== 1 ? 's' : ''} linked
+                {threadId ? '1 thread selected' : 'no thread selected — auto-group'}
               </span>
             )}
             {step < 3 ? (
               <button
-                style={{ ...btnPrimary, opacity: step === 1 && !headline.trim() ? 0.4 : 1 }}
-                onClick={() => { if (step === 1 && !headline.trim()) return; setStep(s => s + 1) }}
+                style={{ ...btnPrimary, opacity: step === 1 && !body.trim() ? 0.4 : 1 }}
+                onClick={() => { if (step === 1 && !body.trim()) return; setStep(s => s + 1) }}
               >
-                NEXT →
+                {step === 2 ? 'PREVIEW →' : 'NEXT →'}
               </button>
             ) : (
               <button
-                style={{ ...btnPrimary, background: publishing ? '#4a6080' : '#00ff88' }}
+                style={{ ...btnPrimary, background: publishing ? '#4a6080' : '#00ff88', color: '#000' }}
                 onClick={handlePublish}
                 disabled={publishing}
               >

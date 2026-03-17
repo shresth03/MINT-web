@@ -87,7 +87,10 @@ export default function ProfilePage() {
     const { error } = await updateProfile({ username })
     if (!error) {
       setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      // Reload after short delay so user sees success message
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
     }
     setSaving(false)
   }
@@ -230,7 +233,7 @@ export default function ProfilePage() {
               >
                 {saving ? 'SAVING...' : 'SAVE CHANGES'}
               </button>
-              {saved && <span className="success-msg">✓ Saved!</span>}
+              {saved && <span className="success-msg">✓ Saved! Refreshing...</span>}
             </div>
           </div>
         </div>
