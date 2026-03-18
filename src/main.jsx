@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth'
 import ErrorBoundary from './components/ErrorBoundary'
+import FeedbackPage from './pages/FeedbackPage'
 import './index.css'
 import App from './App.jsx'
 

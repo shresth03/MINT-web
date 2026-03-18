@@ -9,6 +9,7 @@ import NotFound from './pages/NotFound'
 import SearchPage from './pages/SearchPage'
 import ChannelPage from './pages/ChannelPage'
 import MessagesPage from './pages/MessagesPage'
+import FeedbackPage from './pages/FeedbackPage'
 
 export default function App() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
         </ProtectedRoute>
       } />
       <Route path="/404" element={<NotFound />} />
+      <Route path="/feedback" element={<FeedbackPage />} />
     </Routes>
   )
 }

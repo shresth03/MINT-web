@@ -1,1 +1,93 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ── LIGHT MODE — GHOST ── */
+:root, [data-theme="light"] {
+  --bg: #f8f7f5;
+  --surface: #ffffff;
+  --surface2: #f0ede8;
+  --border: #e0dbd4;
+  --accent: #c0404a;
+  --accent2: #8a3a8a;
+  --verified: #2a7a4a;
+  --warn: #b06020;
+  --text: #1a1614;
+  --muted: #8a7a70;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Inter', sans-serif;
+  --active-bg: rgba(192,64,74,0.06);
+  --story-active-bg: rgba(192,64,74,0.04);
+  --tl-bg: rgba(192,64,74,0.03);
+  --section-bg: rgba(248,247,245,0.95);
+  --stat-bg: rgba(255,255,255,0.93);
+  --tooltip-bg: rgba(248,247,245,0.97);
+  --map-bg: rgba(255,255,255,0.93);
+  --region-bg: rgba(255,255,255,0.97);
+  --modal-overlay: rgba(26,22,20,0.6);
+  --post-hover: rgba(0,0,0,0.02);
+  --mf-active-bg: rgba(192,64,74,0.08);
+  --topbar-hover: rgba(192,64,74,0.1);
+}
+
+/* ── DARK MODE — VOID ── */
+[data-theme="dark"] {
+  --bg: #000000;
+  --surface: #0a0a0a;
+  --surface2: #111111;
+  --border: #1e1e1e;
+  --accent: #4dc8e8;
+  --accent2: #e84848;
+  --verified: #30d880;
+  --warn: #e8a020;
+  --text: #e0e8f0;
+  --muted: #404858;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Inter', sans-serif;
+  --active-bg: rgba(77,200,232,0.06);
+  --story-active-bg: rgba(77,200,232,0.05);
+  --tl-bg: rgba(77,200,232,0.03);
+  --section-bg: rgba(0,0,0,0.95);
+  --stat-bg: rgba(10,10,10,0.93);
+  --tooltip-bg: rgba(0,0,0,0.97);
+  --map-bg: rgba(10,10,10,0.93);
+  --region-bg: rgba(10,10,10,0.97);
+  --modal-overlay: rgba(0,0,0,0.75);
+  --post-hover: rgba(255,255,255,0.02);
+  --mf-active-bg: rgba(77,200,232,0.08);
+  --topbar-hover: rgba(77,200,232,0.1);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  transition: background 0.4s ease, color 0.3s ease;
+}
+
+/* Radar sweep transition */
+@keyframes radarSweep {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+@keyframes decrypt {
+  0%   { opacity: 0; filter: blur(3px); }
+  40%  { opacity: 0.7; filter: blur(1px); }
+  100% { opacity: 1; filter: blur(0); }
+}
+html[data-theme-transitioning]::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 99999; pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 3px,
+    rgba(77,200,232,0.04) 3px, rgba(77,200,232,0.04) 4px
+  );
+  animation: radarSweep 0.7s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+html[data-theme-transitioning] h1,
+html[data-theme-transitioning] h2,
+html[data-theme-transitioning] p {
+  animation: decrypt 0.6s ease forwards;
+}
