@@ -185,12 +185,25 @@ export default function ProfilePage() {
               No saved posts yet. Bookmark posts to see them here.
             </div>
           ) : savedPosts.map(s => (
-            <div key={s.id} style={{ borderBottom: '1px solid var(--border)', padding: '12px 0' }}>
+            <div
+              key={s.id}
+              onClick={() => navigate(`/feed?highlight=${s.posts?.id}`)}
+              style={{
+                borderBottom: '1px solid var(--border)',
+                padding: '12px 0', cursor: 'pointer',
+                transition: 'opacity 0.15s',
+              }}
+              onMouseOver={e => e.currentTarget.style.opacity = '0.7'}
+              onMouseOut={e => e.currentTarget.style.opacity = '1'}
+            >
               <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
                 {s.posts?.users?.username || 'Unknown'} · ◈ saved
               </div>
               <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, fontFamily: 'var(--sans)' }}>
                 {s.posts?.body || ''}
+              </div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', marginTop: 6 }}>
+                TAP TO VIEW →
               </div>
             </div>
           ))}

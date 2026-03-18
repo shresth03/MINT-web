@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../api/supabase'
 import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../../hooks/useNotifications'
+import { useLocation } from 'react-router-dom'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -191,6 +192,20 @@ export default function GeneralFeed() {
   const fileInputRef = useRef(null)
   const navigate = useNavigate()
   const { createNotification } = useNotifications()
+  const location = useLocation()
+  const [highlightId, setHighlightId] = useState(null)
+  const postRefs = useRef({})
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const id = params.get('highlight')
+    if (!id || loading) return
+    setHighlightId(id)
+    setTimeout(() => {
+      postRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setTimeout(() => setHighlightId(null), 3000)
+    }, 400)
+  }, [location.search, loading])
 
   async function handlePost() {
     if (!body.trim()) return
@@ -495,75 +510,114 @@ export default function GeneralFeed() {
           </div>
         ) : (
           posts.map(post => (
-            <div key={post.id} style={{
-              borderBottom:'1px solid var(--border)',
-              background:'var(--surface)'
-            }}>
-              <div style={{ padding:'14px 16px' }}>
-                <div style={{ display:'flex', gap:10 }}>
+            <div
+              key={post._type === 'repost' ? `repost-${post._repost_id}` : post.id}
+              ref={el => { postRefs.current[post.id] = el }}
+              style={{
+                borderBottom: '1px solid var(--border)',
+                background: highlightId === String(post.id) ? 'var(--active-bg)' : 'var(--surface)',
+                borderLeft: highlightId === String(post.id) ? '3px solid var(--accent)' : '3px solid transparent',
+                transition: 'background 0.4s ease, border-color 0.4s ease',
+              }}
+            >
+              {/* Repost header banner */}
+              {post._type === 'repost' && (
+                <div style={{
+                  padding: '6px 16px 0',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)',
+                }}>
+                  <span style={{ color: 'var(--verified)' }}>⟳</span>
+                  <span
+                    onClick={() => navigate(`/channel/${post._reposter?.username}`)}
+                    style={{ cursor: 'pointer', color: 'var(--verified)', fontWeight: 600 }}
+                    onMouseOver={e => e.currentTarget.style.textDecoration = 'underline'}
+                    onMouseOut={e => e.currentTarget.style.textDecoration = 'none'}
+                  >
+                    {post._reposter?.username}
+                  </span>
+                  <span>reposted · {timeAgo(post._repost_created_at)}</span>
+                </div>
+              )}
+          
+              <div style={{ padding: '14px 16px' }}>
+                <div style={{ display: 'flex', gap: 10 }}>
                   <div style={{
-                    width:36, height:36, borderRadius:'50%',
-                    background:'linear-gradient(135deg,#1e3a5f,#0d6efd)',
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    fontSize:13, fontWeight:700, color:'white', flexShrink:0
+                    width: 36, height: 36, borderRadius: '50%',
+                    background: 'var(--accent)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 700, color: 'var(--bg)', flexShrink: 0,
+                    fontFamily: 'var(--mono)',
                   }}>
                     {post.users?.username?.[0]?.toUpperCase() || 'U'}
                   </div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:4 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
                       <span style={{
-                        fontFamily:'var(--mono)', fontSize:12, fontWeight:600,
+                        fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600,
                         color: post.users?.role === 'osint' ? 'var(--verified)' :
                                post.users?.role === 'admin' ? 'var(--accent)' : 'var(--text)'
                       }}>
                         <span
                           onClick={() => navigate(`/channel/${post.users?.username}`)}
-                          style={{ cursor:'pointer' }}
-                          onMouseOver={e => e.currentTarget.style.textDecoration='underline'}
-                          onMouseOut={e => e.currentTarget.style.textDecoration='none'}
+                          style={{ cursor: 'pointer' }}
+                          onMouseOver={e => e.currentTarget.style.textDecoration = 'underline'}
+                          onMouseOut={e => e.currentTarget.style.textDecoration = 'none'}
                         >
                           {post.users?.username || 'Unknown'}
                         </span>
                         {post.users?.role === 'osint' && (
-                          <span style={{color:'var(--verified)',marginLeft:4,fontSize:10}}>◆</span>
+                          <span style={{ color: 'var(--verified)', marginLeft: 4, fontSize: 10 }}>◆</span>
                         )}
                       </span>
-                      <span style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--muted)' }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
                         {timeAgo(post.created_at)}
                       </span>
                     </div>
-
+          
                     {/* Post body */}
-                    <div style={{ fontSize:13, lineHeight:1.6, marginBottom: post.media_url ? 8 : 10 }}>
+                    <div style={{ fontSize: 13, lineHeight: 1.6, marginBottom: post.media_url ? 8 : 10, color: 'var(--text)', fontFamily: 'var(--sans)' }}>
                       {post.body}
                     </div>
-
-                    {/* Media attachment */}
+          
+                    {/* Quote body if repost with comment */}
+                    {post._quote && (
+                      <div style={{
+                        padding: '8px 12px', marginBottom: 10,
+                        background: 'var(--bg)', border: '1px solid var(--border)',
+                        borderLeft: '2px solid var(--verified)', borderRadius: '0 4px 4px 0',
+                        fontSize: 12, color: 'var(--muted)', fontFamily: 'var(--sans)', lineHeight: 1.5,
+                      }}>
+                        {post._quote}
+                      </div>
+                    )}
+          
+                    {/* Media */}
                     {post.media_url && (
-                      <div style={{ marginBottom:10 }}>
+                      <div style={{ marginBottom: 10 }}>
                         <img
                           src={post.media_url}
                           alt="attachment"
                           style={{
-                            width:'100%', maxHeight:300, objectFit:'cover',
-                            borderRadius:6, border:'1px solid var(--border)',
-                            display:'block', cursor:'pointer'
+                            width: '100%', maxHeight: 300, objectFit: 'cover',
+                            borderRadius: 6, border: '1px solid var(--border)',
+                            display: 'block', cursor: 'pointer',
                           }}
                           onClick={() => window.open(post.media_url, '_blank')}
                         />
                       </div>
                     )}
-
+          
                     {/* Actions */}
-                    <div style={{ display:'flex', gap:16, alignItems:'center' }}>
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                       <button
                         onClick={() => likePost(post.id, createNotification)}
                         style={{
-                          background:'none', border:'none', cursor:'pointer',
-                          display:'flex', alignItems:'center', gap:5,
-                          fontFamily:'var(--mono)', fontSize:11,
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          fontFamily: 'var(--mono)', fontSize: 11,
                           color: post.liked ? '#e05577' : 'var(--muted)',
-                          padding:0, transition:'color 0.15s'
+                          padding: 0, transition: 'color 0.15s',
                         }}
                       >
                         {post.liked ? '♥' : '♡'} {post.likes || 0}
@@ -571,24 +625,23 @@ export default function GeneralFeed() {
                       <button
                         onClick={() => toggleThread(post.id)}
                         style={{
-                          background:'none', border:'none', cursor:'pointer',
-                          display:'flex', alignItems:'center', gap:5,
-                          fontFamily:'var(--mono)', fontSize:11,
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          fontFamily: 'var(--mono)', fontSize: 11,
                           color: openThreads.has(post.id) ? 'var(--accent)' : 'var(--muted)',
-                          padding:0, transition:'color 0.15s'
+                          padding: 0, transition: 'color 0.15s',
                         }}
                       >
-                        ↩ {post.reply_count || 0}
-                        {openThreads.has(post.id) ? ' ▲' : ' ▼'}
+                        ↩ {post.reply_count || 0}{openThreads.has(post.id) ? ' ▲' : ' ▼'}
                       </button>
                       <button
                         onClick={() => { setRepostModal(post); setQuoteBody('') }}
                         style={{
-                          background:'none', border:'none', cursor:'pointer',
-                          display:'flex', alignItems:'center', gap:5,
-                          fontFamily:'var(--mono)', fontSize:11,
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          fontFamily: 'var(--mono)', fontSize: 11,
                           color: post.reposted ? 'var(--verified)' : 'var(--muted)',
-                          padding:0, transition:'color 0.15s'
+                          padding: 0, transition: 'color 0.15s',
                         }}
                       >
                         ⟳ {post.repost_count || 0}
@@ -596,21 +649,20 @@ export default function GeneralFeed() {
                       <button
                         onClick={() => savePost(post.id)}
                         style={{
-                          background:'none', border:'none', cursor:'pointer',
-                          display:'flex', alignItems:'center', gap:5,
-                          fontFamily:'var(--mono)', fontSize:11,
-                          color: post.saved ? '#ffcc00' : 'var(--muted)',
-                          padding:0, transition:'color 0.15s',
-                          marginLeft:'auto'
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          fontFamily: 'var(--mono)', fontSize: 11,
+                          color: post.saved ? 'var(--warn)' : 'var(--muted)',
+                          padding: 0, transition: 'color 0.15s', marginLeft: 'auto',
                         }}
                       >
-                        {post.saved ? 'bookmarked ◈' : '◇'}
+                        {post.saved ? '◈' : '◇'}
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
-
+          
               {/* Reply Thread */}
               {openThreads.has(post.id) && (
                 <ReplyThread

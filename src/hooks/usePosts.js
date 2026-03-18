@@ -30,31 +30,60 @@ export function usePosts() {
       .eq('is_osint', false)
       .order('created_at', { ascending: false })
       .limit(50)
-
+  
     if (!error && data) {
       const { data: likedData } = await supabase
-        .from('likes')
-        .select('post_id')
-        .eq('user_id', user.id)
+        .from('likes').select('post_id').eq('user_id', user.id)
       const { data: savedData } = await supabase
-        .from('saved_posts')
-        .select('post_id')
-        .eq('user_id', user.id)
+        .from('saved_posts').select('post_id').eq('user_id', user.id)
       const { data: repostedData } = await supabase
+        .from('reposts').select('post_id').eq('user_id', user.id)
+  
+      // Fetch reposts from others to show in feed
+      const { data: repostsData } = await supabase
         .from('reposts')
-        .select('post_id')
-        .eq('user_id', user.id)
-
+        .select('*, posts(*, users(id, username, role, score)), users(id, username, role)')
+        .order('created_at', { ascending: false })
+        .limit(50)
+  
       const likedIds = new Set((likedData || []).map(l => l.post_id))
       const savedIds = new Set((savedData || []).map(s => s.post_id))
       const repostedIds = new Set((repostedData || []).map(r => r.post_id))
-
-      setPosts(data.map(p => ({
+  
+      const originalPosts = data.map(p => ({
         ...p,
+        _type: 'post',
         liked: likedIds.has(p.id),
         saved: savedIds.has(p.id),
-        reposted: repostedIds.has(p.id)
-      })))
+        reposted: repostedIds.has(p.id),
+      }))
+  
+      // Build repost cards — skip if the reposter is the original author
+      const repostCards = (repostsData || [])
+        .filter(r => r.posts && r.user_id !== r.posts.author_id)
+        .map(r => ({
+          ...r.posts,
+          _type: 'repost',
+          _reposter: r.users,
+          _quote: r.quote_body,
+          _repost_created_at: r.created_at,
+          _repost_id: r.id,
+          liked: likedIds.has(r.posts?.id),
+          saved: savedIds.has(r.posts?.id),
+          reposted: repostedIds.has(r.posts?.id),
+        }))
+  
+      // Merge and sort by relevance timestamp
+      const merged = [
+        ...originalPosts,
+        ...repostCards,
+      ].sort((a, b) => {
+        const aTime = a._type === 'repost' ? a._repost_created_at : a.created_at
+        const bTime = b._type === 'repost' ? b._repost_created_at : b.created_at
+        return new Date(bTime) - new Date(aTime)
+      })
+  
+      setPosts(merged)
     }
     setLoading(false)
   }
@@ -189,13 +218,6 @@ export function usePosts() {
     return { data: data || [], error }
   }
 
-  async function loadReplies() {
-    const { data, error } = await fetchReplies(postId)
-    console.log('loadReplies', postId, data, error)
-    setReplies(data)
-    setLoading(false)
-  }
-  
   async function fetchSavedPosts() {
     const { data, error } = await supabase
       .from('saved_posts')
@@ -205,8 +227,18 @@ export function usePosts() {
     return { data: data || [], error }
   }
 
+  async function fetchUserReposts(userId) {
+    const { data } = await supabase
+      .from('reposts')
+      .select('*, posts(*, users(id, username, role, score))')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+    return { data: data || [] }
+  }
+
   return {
     posts, loading, createPost, likePost,
-    savePost, repost, createReply, fetchReplies, fetchSavedPosts
+    savePost, repost, createReply, fetchReplies,
+    fetchSavedPosts, fetchUserReposts  // ← add fetchUserReposts
   }
 }
