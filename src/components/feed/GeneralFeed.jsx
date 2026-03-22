@@ -5,6 +5,7 @@ import { supabase } from '../../api/supabase'
 import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../../hooks/useNotifications'
 import { useLocation } from 'react-router-dom'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -55,13 +56,6 @@ function ReplyThread({ postId, authorId, onClose, createReply, fetchReplies, cre
       .eq('id', id)
       .single()
     if (data) setReplies(prev => [...prev, data])
-  }
-
-  async function loadReplies() {
-    const { data, error } = await fetchReplies(postId)
-    console.log('loadReplies', postId, data, error)
-    setReplies(data)
-    setLoading(false)
   }
 
   async function handleSend() {
@@ -177,6 +171,93 @@ function ReplyThread({ postId, authorId, onClose, createReply, fetchReplies, cre
   )
 }
 
+function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaPreview, fileInputRef, handlePost, handleFileSelect, removeMedia, posting, uploading }) {
+  return (
+    <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: '50%', background: 'var(--accent)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 13, fontWeight: 700, color: 'var(--bg)', flexShrink: 0, fontFamily: 'var(--mono)',
+      }}>
+        {user?.email?.[0]?.toUpperCase() || 'U'}
+      </div>
+      <div style={{ flex: 1 }}>
+        <textarea
+          value={body}
+          onChange={e => { setBody(e.target.value); setError('') }}
+          placeholder="Share intelligence, observations or analysis..."
+          maxLength={500} rows={3}
+          style={{
+            width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
+            borderRadius: 6, padding: '10px 12px', color: 'var(--text)',
+            fontFamily: 'var(--sans)', fontSize: 13, resize: 'none', outline: 'none',
+            lineHeight: 1.6, transition: 'border-color 0.15s',
+          }}
+          onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+          onBlur={e => e.target.style.borderColor = 'var(--border)'}
+          onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handlePost() }}
+        />
+        {mediaPreview && (
+          <div style={{ position: 'relative', marginTop: 8 }}>
+            <img src={mediaPreview} alt="preview" style={{
+              width: '100%', maxHeight: 200, objectFit: 'cover',
+              borderRadius: 6, border: '1px solid var(--border)', display: 'block',
+            }} />
+            <button onClick={removeMedia} style={{
+              position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.75)',
+              border: 'none', borderRadius: '50%', width: 22, height: 22,
+              color: 'white', cursor: 'pointer', fontSize: 11,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>✕</button>
+            <div style={{
+              position: 'absolute', bottom: 6, left: 8, fontFamily: 'var(--mono)',
+              fontSize: 9, color: 'rgba(255,255,255,0.7)',
+              background: 'rgba(0,0,0,0.5)', padding: '2px 6px', borderRadius: 3,
+            }}>
+              {(mediaFile?.size / 1024).toFixed(0)}KB
+            </div>
+          </div>
+        )}
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileSelect} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: body.length > 450 ? 'var(--accent2)' : 'var(--muted)' }}>
+              {body.length}/500
+            </span>
+            {error && <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent2)' }}>⚠ {error}</span>}
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                padding: '5px 10px', background: mediaFile ? 'rgba(0,255,180,0.1)' : 'transparent',
+                border: `1px solid ${mediaFile ? 'var(--accent)' : 'var(--border)'}`,
+                borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 10,
+                color: mediaFile ? 'var(--accent)' : 'var(--muted)', cursor: 'pointer',
+              }}
+            >
+              {mediaFile ? '📎 ATTACHED' : '📎 IMAGE'}
+            </button>
+            <button
+              onClick={handlePost}
+              disabled={!body.trim() || posting}
+              style={{
+                padding: '7px 18px', background: 'var(--accent)', color: 'var(--bg)',
+                border: 'none', borderRadius: 4, fontFamily: 'var(--mono)',
+                fontSize: 10, fontWeight: 700, letterSpacing: 1,
+                cursor: !body.trim() || posting ? 'not-allowed' : 'pointer',
+                opacity: !body.trim() || posting ? 0.5 : 1, transition: 'all 0.15s',
+              }}
+            >
+              {uploading ? 'UPLOADING...' : posting ? 'POSTING...' : 'POST'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function GeneralFeed() {
   const { user } = useAuth()
   const { posts, loading, createPost, likePost, savePost, repost, createReply, fetchReplies } = usePosts()
@@ -195,6 +276,8 @@ export default function GeneralFeed() {
   const location = useLocation()
   const [highlightId, setHighlightId] = useState(null)
   const postRefs = useRef({})
+  const isMobile = useIsMobile()
+  const [composerOpen, setComposerOpen] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -360,138 +443,178 @@ export default function GeneralFeed() {
         </div>
       )}
 
-      {/* Composer */}
-      <div style={{
-        padding:'16px', borderBottom:'1px solid var(--border)',
-        background:'var(--surface)', flexShrink:0
-      }}>
-        <div style={{ display:'flex', gap:10 }}>
-          <div style={{
-            width:36, height:36, borderRadius:'50%',
-            background:'linear-gradient(135deg,#1e3a5f,#0d6efd)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:13, fontWeight:700, color:'white', flexShrink:0
-          }}>
-            {user?.email?.[0]?.toUpperCase() || 'U'}
-          </div>
-          <div style={{ flex:1 }}>
-            <textarea
-              value={body}
-              onChange={e => { setBody(e.target.value); setError('') }}
-              placeholder="Share intelligence, observations or analysis..."
-              maxLength={500}
-              rows={3}
-              style={{
-                width:'100%', background:'var(--bg)',
-                border:'1px solid var(--border)', borderRadius:6,
-                padding:'10px 12px', color:'var(--text)',
-                fontFamily:'IBM Plex Sans, sans-serif', fontSize:13,
-                resize:'none', outline:'none', lineHeight:1.6,
-                transition:'border-color 0.15s'
-              }}
-              onFocus={e => e.target.style.borderColor='var(--accent)'}
-              onBlur={e => e.target.style.borderColor='var(--border)'}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handlePost()
-              }}
-            />
+      {/* Composer — desktop only inline */}
+      {!isMobile && (
+        <div style={{
+          padding: '16px', borderBottom: '1px solid var(--border)',
+          background: 'var(--surface)', flexShrink: 0
+        }}>
+          <ComposerInner
+            user={user} body={body} setBody={setBody}
+            error={error} setError={setError}
+            mediaFile={mediaFile} mediaPreview={mediaPreview}
+            fileInputRef={fileInputRef}
+            handlePost={handlePost} handleFileSelect={handleFileSelect}
+            removeMedia={removeMedia} posting={posting} uploading={uploading}
+          />
+        </div>
+      )}
 
-            {/* Image preview */}
-            {mediaPreview && (
-              <div style={{ position:'relative', marginTop:8 }}>
-                <img
-                  src={mediaPreview}
-                  alt="preview"
+      {/* Mobile FAB */}
+      {isMobile && (
+        <button
+          onClick={() => setComposerOpen(true)}
+          style={{
+            position: 'fixed', bottom: 72, right: 20, zIndex: 500,
+            width: 52, height: 52, borderRadius: '50%',
+            background: 'var(--accent)', color: 'var(--bg)',
+            border: 'none', fontSize: 28, fontWeight: 300,
+            cursor: 'pointer', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+            transition: 'transform 0.15s',
+          }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.08)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          +
+        </button>
+      )}
+
+      {/* Mobile fullscreen composer */}
+      {isMobile && composerOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          background: 'var(--bg)', display: 'flex', flexDirection: 'column',
+        }}>
+          {/* Header */}
+          <div style={{
+            height: 52, display: 'flex', alignItems: 'center',
+            padding: '0 16px', borderBottom: '1px solid var(--border)',
+            background: 'var(--surface)', flexShrink: 0, gap: 12,
+          }}>
+            <button
+              onClick={() => {
+                setComposerOpen(false)
+                setBody('')
+                setMediaFile(null)
+                setMediaPreview(null)
+                setError('')
+              }}
+              style={{
+                background: 'none', border: 'none', color: 'var(--muted)',
+                fontFamily: 'var(--mono)', fontSize: 11, cursor: 'pointer', letterSpacing: 1,
+              }}
+            >
+              CANCEL
+            </button>
+            <span style={{
+              fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent)',
+              letterSpacing: 2, flex: 1, textAlign: 'center',
+            }}>
+              NEW POST
+            </span>
+            <button
+              onClick={async () => {
+                await handlePost()
+                setComposerOpen(false)
+              }}
+              disabled={!body.trim() || posting}
+              style={{
+                padding: '7px 18px', background: 'var(--accent)', color: 'var(--bg)',
+                border: 'none', borderRadius: 4, fontFamily: 'var(--mono)',
+                fontSize: 11, fontWeight: 700, letterSpacing: 1,
+                cursor: !body.trim() || posting ? 'not-allowed' : 'pointer',
+                opacity: !body.trim() || posting ? 0.4 : 1,
+              }}
+            >
+              {posting ? '...' : 'POST'}
+            </button>
+          </div>
+
+          {/* Body */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: '50%', background: 'var(--accent)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, fontWeight: 700, color: 'var(--bg)', flexShrink: 0,
+                fontFamily: 'var(--mono)',
+              }}>
+                {user?.email?.[0]?.toUpperCase() || 'U'}
+              </div>
+              <div style={{ flex: 1 }}>
+                <textarea
+                  value={body}
+                  onChange={e => { setBody(e.target.value); setError('') }}
+                  placeholder="Share intelligence, observations or analysis..."
+                  maxLength={500}
+                  autoFocus
                   style={{
-                    width:'100%', maxHeight:200, objectFit:'cover',
-                    borderRadius:6, border:'1px solid var(--border)',
-                    display:'block'
+                    width: '100%', background: 'transparent', border: 'none',
+                    outline: 'none', color: 'var(--text)', fontFamily: 'var(--sans)',
+                    fontSize: 16, resize: 'none', lineHeight: 1.6, minHeight: 180,
                   }}
                 />
-                <button
-                  onClick={removeMedia}
-                  style={{
-                    position:'absolute', top:6, right:6,
-                    background:'rgba(0,0,0,0.75)', border:'none',
-                    borderRadius:'50%', width:22, height:22,
-                    color:'white', cursor:'pointer', fontSize:11,
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    lineHeight:1
-                  }}
-                >✕</button>
-                <div style={{
-                  position:'absolute', bottom:6, left:8,
-                  fontFamily:'var(--mono)', fontSize:9,
-                  color:'rgba(255,255,255,0.7)',
-                  background:'rgba(0,0,0,0.5)', padding:'2px 6px', borderRadius:3
-                }}>
-                  {(mediaFile.size / 1024).toFixed(0)}KB
-                </div>
-              </div>
-            )}
-
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              style={{ display:'none' }}
-              onChange={handleFileSelect}
-            />
-
-            <div style={{
-              display:'flex', justifyContent:'space-between',
-              alignItems:'center', marginTop:8
-            }}>
-              <div style={{ display:'flex', gap:12, alignItems:'center' }}>
-                <span style={{
-                  fontFamily:'var(--mono)', fontSize:10,
-                  color: body.length > 450 ? 'var(--accent2)' : 'var(--muted)'
-                }}>
-                  {body.length}/500
-                </span>
                 {error && (
-                  <span style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--accent2)' }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent2)', marginTop: 8 }}>
                     ⚠ {error}
-                  </span>
+                  </div>
                 )}
-              </div>
-              <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                {/* Image attach button */}
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  title="Attach image (max 5MB)"
-                  style={{
-                    padding:'5px 10px',
-                    background: mediaFile ? 'rgba(0,255,180,0.1)' : 'transparent',
-                    border:`1px solid ${mediaFile ? 'var(--accent)' : 'var(--border)'}`,
-                    borderRadius:4, fontFamily:'var(--mono)', fontSize:10,
-                    color: mediaFile ? 'var(--accent)' : 'var(--muted)',
-                    cursor:'pointer', letterSpacing:0.5
-                  }}
-                >
-                  {mediaFile ? '📎 ATTACHED' : '📎 IMAGE'}
-                </button>
-                <button
-                  onClick={handlePost}
-                  disabled={!body.trim() || posting}
-                  style={{
-                    padding:'7px 18px', background:'var(--accent)', color:'#000',
-                    border:'none', borderRadius:4, fontFamily:'var(--mono)',
-                    fontSize:10, fontWeight:700, letterSpacing:1,
-                    cursor: (!body.trim() || posting) ? 'not-allowed' : 'pointer',
-                    opacity: (!body.trim() || posting) ? 0.5 : 1,
-                    transition:'all 0.15s'
-                  }}
-                >
-                  {uploading ? 'UPLOADING...' : posting ? 'POSTING...' : 'POST'}
-                </button>
+                {mediaPreview && (
+                  <div style={{ position: 'relative', marginTop: 8 }}>
+                    <img src={mediaPreview} alt="preview" style={{
+                      width: '100%', maxHeight: 240, objectFit: 'cover',
+                      borderRadius: 8, border: '1px solid var(--border)', display: 'block',
+                    }} />
+                    <button onClick={removeMedia} style={{
+                      position: 'absolute', top: 8, right: 8,
+                      background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%',
+                      width: 24, height: 24, color: 'white', cursor: 'pointer', fontSize: 12,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>✕</button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
+          {/* Bottom toolbar */}
+          <div style={{
+            padding: '12px 16px', borderTop: '1px solid var(--border)',
+            background: 'var(--surface)', display: 'flex',
+            alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
+          }}>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+              <input
+                ref={fileInputRef} type="file" accept="image/*"
+                style={{ display: 'none' }} onChange={handleFileSelect}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: mediaFile ? 'var(--accent)' : 'var(--muted)',
+                  fontSize: 20, display: 'flex', alignItems: 'center',
+                }}
+              >
+                📎
+              </button>
+              {uploading && (
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
+                  UPLOADING...
+                </span>
+              )}
+            </div>
+            <span style={{
+              fontFamily: 'var(--mono)', fontSize: 11,
+              color: body.length > 450 ? 'var(--accent2)' : 'var(--muted)',
+            }}>
+              {body.length}/500
+            </span>
+          </div>
+        </div>
+      )}
       {/* Feed */}
       <div style={{ flex:1, overflowY:'auto' }}>
         {loading ? (
