@@ -15,7 +15,406 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff/86400)}d ago`
 }
 
-function ReplyThread({ postId, authorId, onClose, createReply, fetchReplies, createNotification }) {
+function buildTree(replies) {
+  const map = {}
+  const roots = []
+  replies.forEach(r => { map[r.id] = { ...r, children: [] } })
+  replies.forEach(r => {
+    if (r.parent_reply_id && map[r.parent_reply_id]) {
+      map[r.parent_reply_id].children.push(map[r.id])
+    } else {
+      roots.push(map[r.id])
+    }
+  })
+  return roots
+}
+
+function MentionTextarea({ value, onChange, placeholder, rows = 2, onKeyDown, autoFocus = false }) {
+  const [suggestions, setSuggestions] = useState([])
+  const [mentionQuery, setMentionQuery] = useState(null)
+  const [mentionStart, setMentionStart] = useState(null)
+  const [selectedIdx, setSelectedIdx] = useState(0)
+  const textareaRef = useRef(null)
+  const { searchUsers } = usePosts()
+
+  async function handleChange(e) {
+    const val = e.target.value
+    const cursor = e.target.selectionStart
+    onChange(val)
+
+    // Detect @mention being typed
+    const textUpToCursor = val.slice(0, cursor)
+    const match = textUpToCursor.match(/@(\w*)$/)
+
+    if (match) {
+      setMentionQuery(match[1])
+      setMentionStart(cursor - match[0].length)
+      const results = await searchUsers(match[1])
+      setSuggestions(results)
+      setSelectedIdx(0)
+    } else {
+      setSuggestions([])
+      setMentionQuery(null)
+    }
+  }
+
+  function insertMention(username) {
+    const before = value.slice(0, mentionStart)
+    const after = value.slice(textareaRef.current.selectionStart)
+    const newVal = `${before}@${username} ${after}`
+    onChange(newVal)
+    setSuggestions([])
+    setMentionQuery(null)
+    setTimeout(() => {
+      textareaRef.current?.focus()
+      const pos = before.length + username.length + 2
+      textareaRef.current?.setSelectionRange(pos, pos)
+    }, 0)
+  }
+
+  function handleKeyDown(e) {
+    if (suggestions.length > 0) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIdx(i => Math.min(i + 1, suggestions.length - 1)) }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIdx(i => Math.max(i - 1, 0)) }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        if (suggestions[selectedIdx]) { e.preventDefault(); insertMention(suggestions[selectedIdx].username) }
+        return
+      }
+      if (e.key === 'Escape') { setSuggestions([]); setMentionQuery(null) }
+    }
+    onKeyDown?.(e)
+  }
+
+  // Render @mentions in a highlighted way — we do this via the textarea value display
+  // Actual highlighting requires a contenteditable div but textarea is simpler for now
+  return (
+    <div style={{ position: 'relative' }}>
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        maxLength={500}
+        rows={rows}
+        autoFocus={autoFocus}
+        style={{
+          width: '100%', background: 'transparent', border: 'none',
+          outline: 'none', color: 'var(--text)', fontFamily: 'var(--sans)',
+          fontSize: 13, resize: 'none', lineHeight: 1.5,
+        }}
+      />
+
+      {/* Autocomplete dropdown */}
+      {suggestions.length > 0 && (
+        <div style={{
+          position: 'absolute', bottom: '100%', left: 0,
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 8, overflow: 'hidden', zIndex: 100,
+          minWidth: 180, boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+          marginBottom: 4,
+        }}>
+          {suggestions.map((u, i) => (
+            <div
+              key={u.id}
+              onClick={() => insertMention(u.username)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 12px', cursor: 'pointer',
+                background: i === selectedIdx ? 'var(--active-bg)' : 'transparent',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={() => setSelectedIdx(i)}
+            >
+              <div style={{
+                width: 24, height: 24, borderRadius: '50%',
+                background: 'var(--accent)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                fontSize: 10, fontWeight: 700, color: 'var(--bg)',
+                fontFamily: 'var(--mono)', flexShrink: 0,
+              }}>
+                {u.username[0].toUpperCase()}
+              </div>
+              <div>
+                <div style={{
+                  fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 600,
+                  color: u.role === 'osint' ? 'var(--verified)'
+                    : u.role === 'admin' ? 'var(--accent)' : 'var(--text)'
+                }}>
+                  @{u.username}
+                  {u.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 4, fontSize: 9 }}>◆</span>}
+                </div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)' }}>
+                  {u.role.toUpperCase()}
+                </div>
+              </div>
+            </div>
+          ))}
+          <div style={{
+            padding: '4px 12px', fontFamily: 'var(--mono)', fontSize: 8,
+            color: 'var(--muted)', borderTop: '1px solid var(--border)',
+          }}>
+            ↑↓ navigate · Enter to select · Esc to close
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ReplyNode({ node, depth = 0, postId, createReply, createNotification, postAuthorId, fetchNewReply, voteReply }) {
+  const { user } = useAuth()
+  const [replyOpen, setReplyOpen] = useState(false)
+  const [body, setBody] = useState('')
+  const [sending, setSending] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
+
+  const usernameColor = node.users?.role === 'osint' ? 'var(--verified)'
+    : node.users?.role === 'admin' ? 'var(--accent)' : 'var(--text)'
+  const [voteCount, setVoteCount] = useState(node.vote_count || 0)
+  const [userVote, setUserVote] = useState(node.user_vote || 0)
+    
+  async function handleVote(vote) {
+    const prev = userVote
+    // Optimistic update
+    const delta = prev === vote ? -vote : prev !== 0 ? vote * 2 : vote
+    setVoteCount(c => c + delta)
+    setUserVote(prev === vote ? 0 : vote)
+  
+    const { delta: actual } = await voteReply(node.id, vote)
+    // Reconcile if needed
+    if (actual !== delta) {
+      setVoteCount(c => c - delta + actual)
+    }
+  } 
+
+  async function handleSend() {
+    if (!body.trim()) return
+    setSending(true)
+    const { error } = await createReply(postId, body.trim(), node.id)
+    if (!error) {
+      setBody('')
+      setReplyOpen(false)
+      if (postAuthorId && createNotification) createNotification(postAuthorId, 'reply', postId)
+    }
+    setSending(false)
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 0, marginTop: depth === 0 ? 12 : 8 }}>
+      {/* Left column — avatar + collapse line */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 10, flexShrink: 0 }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: '50%',
+          background: 'var(--accent)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 11, fontWeight: 700, color: 'var(--bg)',
+          flexShrink: 0, fontFamily: 'var(--mono)', marginBottom: 4,
+        }}>
+          {node.users?.username?.[0]?.toUpperCase() || 'U'}
+        </div>
+        {!collapsed && node.children.length > 0 && (
+          <div
+            onClick={() => setCollapsed(true)}
+            style={{
+              width: 2, flex: 1, minHeight: 24,
+              background: 'var(--border)', borderRadius: 2,
+              cursor: 'pointer', transition: 'background 0.15s',
+            }}
+            onMouseOver={e => e.currentTarget.style.background = 'var(--accent)'}
+            onMouseOut={e => e.currentTarget.style.background = 'var(--border)'}
+          />
+        )}
+      </div>
+
+      {/* Right column — content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: collapsed ? 0 : 4 }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: usernameColor }}>
+            {node.users?.username || 'Unknown'}
+            {node.users?.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 4, fontSize: 10 }}>◆</span>}
+          </span>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
+            · {timeAgo(node.created_at)}
+          </span>
+          {collapsed && (
+            <button
+              onClick={() => setCollapsed(false)}
+              style={{
+                background: 'none', border: '1px solid var(--border)',
+                borderRadius: '50%', width: 18, height: 18,
+                cursor: 'pointer', color: 'var(--muted)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, marginLeft: 4,
+              }}
+            >+</button>
+          )}
+        </div>
+
+        {!collapsed && (
+          <>
+            {/* Body */}
+            <div style={{
+              fontSize: 13, color: 'var(--text)', lineHeight: 1.6,
+              fontFamily: 'var(--sans)', marginBottom: 6,
+            }}>
+              {node.body.split(/(@\w+)/g).map((part, i) =>
+                /^@\w+$/.test(part) ? (
+                  <span key={i} style={{ color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--mono)' }}>
+                    {part}
+                  </span>
+                ) : part
+              )}
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+            <div style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                background: 'var(--surface2)', borderRadius: 20, padding: '3px 10px',
+              }}>
+                <button
+                  onClick={() => handleVote(1)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: userVote === 1 ? 'var(--accent)' : 'var(--muted)',
+                    fontSize: 14, padding: 0, transition: 'color 0.15s',
+                    fontWeight: userVote === 1 ? 700 : 400,
+                  }}
+                  onMouseOver={e => { if (userVote !== 1) e.currentTarget.style.color = 'var(--accent)' }}
+                  onMouseOut={e => { if (userVote !== 1) e.currentTarget.style.color = 'var(--muted)' }}
+                >↑</button>
+                <span style={{
+                  fontFamily: 'var(--mono)', fontSize: 11,
+                  color: voteCount > 0 ? 'var(--accent)' : voteCount < 0 ? 'var(--accent2)' : 'var(--muted)',
+                  minWidth: 20, textAlign: 'center', fontWeight: 600,
+                }}>
+                  {voteCount > 0 ? `+${voteCount}` : voteCount === 0 ? '—' : voteCount}
+                </span>
+                <button
+                  onClick={() => handleVote(-1)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: userVote === -1 ? 'var(--accent2)' : 'var(--muted)',
+                    fontSize: 14, padding: 0, transition: 'color 0.15s',
+                    fontWeight: userVote === -1 ? 700 : 400,
+                  }}
+                  onMouseOver={e => { if (userVote !== -1) e.currentTarget.style.color = 'var(--accent2)' }}
+                  onMouseOut={e => { if (userVote !== -1) e.currentTarget.style.color = 'var(--muted)' }}
+                >↓</button>
+              </div>
+
+              <button
+                onClick={() => setReplyOpen(v => !v)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '3px 10px', borderRadius: 20,
+                  fontFamily: 'var(--mono)', fontSize: 11,
+                  color: replyOpen ? 'var(--accent)' : 'var(--muted)',
+                  transition: 'all 0.15s',
+                }}
+                onMouseOver={e => e.currentTarget.style.background = 'var(--surface2)'}
+                onMouseOut={e => e.currentTarget.style.background = 'none'}
+              >
+                ↩ Reply
+              </button>
+
+              <button
+                onClick={() => navigator.clipboard?.writeText(window.location.href)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '3px 10px', borderRadius: 20,
+                  fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)',
+                }}
+                onMouseOver={e => e.currentTarget.style.background = 'var(--surface2)'}
+                onMouseOut={e => e.currentTarget.style.background = 'none'}
+              >
+                ↗ Share
+              </button>
+
+              {node.children.length > 0 && (
+                <button
+                  onClick={() => setCollapsed(true)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    padding: '3px 8px', borderRadius: 20,
+                    fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)',
+                  }}
+                  onMouseOver={e => e.currentTarget.style.background = 'var(--surface2)'}
+                  onMouseOut={e => e.currentTarget.style.background = 'none'}
+                >⊖</button>
+              )}
+            </div>
+
+            {/* Inline reply composer */}
+            {replyOpen && (
+              <div style={{
+                marginTop: 8, marginBottom: 8,
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                borderRadius: 8, padding: '10px 12px',
+              }}>
+
+                <MentionTextarea
+                  value={body}
+                  onChange={setBody}
+                  placeholder={`Reply to @${node.users?.username || 'Unknown'}...`}
+                  rows={2}
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSend() }}
+                />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)' }}>
+                    {body.length}/500 · ⌘Enter to send
+                  </span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => { setReplyOpen(false); setBody('') }}
+                      style={{
+                        padding: '5px 12px', background: 'transparent',
+                        border: '1px solid var(--border)', color: 'var(--muted)',
+                        borderRadius: 20, fontFamily: 'var(--mono)', fontSize: 10, cursor: 'pointer',
+                      }}
+                    >Cancel</button>
+                    <button
+                      onClick={handleSend}
+                      disabled={!body.trim() || sending}
+                      style={{
+                        padding: '5px 14px', background: 'var(--accent)', color: 'var(--bg)',
+                        border: 'none', borderRadius: 20, fontFamily: 'var(--mono)',
+                        fontSize: 10, fontWeight: 700,
+                        cursor: !body.trim() || sending ? 'not-allowed' : 'pointer',
+                        opacity: !body.trim() || sending ? 0.4 : 1,
+                      }}
+                    >{sending ? '...' : 'Reply'}</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Nested children */}
+            {node.children.map(child => (
+            <ReplyNode
+              key={child.id}
+              node={child}
+              depth={depth + 1}
+              postId={postId}
+              createReply={createReply}
+              createNotification={createNotification}
+              postAuthorId={postAuthorId}
+              fetchNewReply={fetchNewReply}
+              voteReply={voteReply}
+            />
+          ))}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ReplyThread({ postId, authorId, onClose, createReply, fetchReplies, createNotification, voteReply }) {
   const { user } = useAuth()
   const [replies, setReplies] = useState([])
   const [body, setBody] = useState('')
@@ -28,13 +427,9 @@ function ReplyThread({ postId, authorId, onClose, createReply, fetchReplies, cre
     const sub = supabase
       .channel(`replies:${postId}`)
       .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'replies',
+        event: 'INSERT', schema: 'public', table: 'replies',
         filter: `post_id=eq.${postId}`
-      }, payload => {
-        fetchNewReply(payload.new.id)
-      })
+      }, payload => { fetchNewReply(payload.new.id) })
       .subscribe()
     return () => supabase.removeChannel(sub)
   }, [postId])
@@ -51,121 +446,98 @@ function ReplyThread({ postId, authorId, onClose, createReply, fetchReplies, cre
 
   async function fetchNewReply(id) {
     const { data } = await supabase
-      .from('replies')
-      .select('*, users(username, role)')
-      .eq('id', id)
-      .single()
-    if (data) setReplies(prev => [...prev, data])
+      .from('replies').select('*, users(username, role)').eq('id', id).single()
+    if (data) setReplies(prev => prev.some(r => r.id === data.id) ? prev : [...prev, data])
   }
 
   async function handleSend() {
     if (!body.trim()) return
     setSending(true)
-    const { error } = await createReply(postId, body.trim())
+    const { error } = await createReply(postId, body.trim(), null)
     if (!error) {
       setBody('')
-      if (authorId && createNotification) {
-        createNotification(authorId, 'reply', postId)
-      }
-      // ✅ Removed: fetchReplies refetch — realtime subscription handles appending
+      if (authorId && createNotification) createNotification(authorId, 'reply', postId)
     }
     setSending(false)
   }
+
+  const tree = buildTree(replies)
 
   return (
     <div style={{
       borderTop: '1px solid var(--border)',
       background: 'var(--bg)',
-      padding: '12px 16px',
+      padding: '8px 16px 16px',
     }}>
       {loading ? (
-        <div style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--muted)', padding:'8px 0' }}>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', padding: '8px 0' }}>
           LOADING REPLIES...
         </div>
       ) : replies.length === 0 ? (
-        <div style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--muted)', padding:'8px 0' }}>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', padding: '8px 0' }}>
           No replies yet. Be the first.
         </div>
       ) : (
-        <div style={{ marginBottom: 12 }}>
-          {replies.map(r => (
-            <div key={r.id} style={{
-              display: 'flex', gap: 10, padding: '8px 0',
-              borderBottom: '1px solid var(--border)',
-            }}>
-              <div style={{
-                width: 2, background: 'var(--border)', borderRadius: 2,
-                flexShrink: 0, marginLeft: 6
-              }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:4 }}>
-                  <span style={{
-                    fontFamily:'var(--mono)', fontSize:11,
-                    color: r.users?.role === 'osint' ? 'var(--verified)' :
-                           r.users?.role === 'admin' ? 'var(--accent)' : 'var(--text)',
-                    fontWeight: 600
-                  }}>
-                    {r.users?.username || 'Unknown'}
-                    {r.users?.role === 'osint' && <span style={{color:'var(--verified)',marginLeft:4}}>◆</span>}
-                  </span>
-                  <span style={{ fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)' }}>
-                    {timeAgo(r.created_at)}
-                  </span>
-                </div>
-                <div style={{ fontSize:12, color:'var(--text)', lineHeight:1.5 }}>
-                  {r.body}
-                </div>
-              </div>
-            </div>
+        <div>
+          {tree.map(node => (
+            <ReplyNode
+            key={node.id}
+            node={node}
+            depth={0}
+            postId={postId}
+            createReply={createReply}
+            createNotification={createNotification}
+            postAuthorId={authorId}
+            fetchNewReply={fetchNewReply}
+            voteReply={voteReply}
+          />
           ))}
           <div ref={bottomRef} />
         </div>
       )}
 
-      <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+      {/* Top-level reply composer */}
+      <div style={{
+        marginTop: 12, display: 'flex', gap: 10, alignItems: 'flex-start',
+        paddingTop: 12, borderTop: '1px solid var(--border)',
+      }}>
         <div style={{
-          width:28, height:28, borderRadius:'50%',
-          background:'linear-gradient(135deg,#1e3a5f,#0d6efd)',
-          display:'flex', alignItems:'center', justifyContent:'center',
-          fontSize:11, fontWeight:700, color:'white', flexShrink:0
+          width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 11, fontWeight: 700, color: 'var(--bg)', flexShrink: 0,
+          fontFamily: 'var(--mono)',
         }}>
           {user?.email?.[0]?.toUpperCase() || 'U'}
         </div>
-        <textarea
-          value={body}
-          onChange={e => setBody(e.target.value)}
-          placeholder="Write a reply..."
-          maxLength={500}
-          rows={2}
-          style={{
-            flex:1, background:'var(--surface2)', border:'1px solid var(--border)',
-            borderRadius:6, padding:'8px 10px', color:'var(--text)',
-            fontFamily:'IBM Plex Sans, sans-serif', fontSize:12,
-            resize:'none', outline:'none', lineHeight:1.5
-          }}
-          onKeyDown={e => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSend()
-          }}
-        />
-        <button
-          onClick={handleSend}
-          disabled={!body.trim() || sending}
-          style={{
-            padding:'8px 14px', background:'var(--accent)', color:'#000',
-            border:'none', borderRadius:4, fontFamily:'var(--mono)',
-            fontSize:10, fontWeight:700, cursor:'pointer',
-            opacity: (!body.trim() || sending) ? 0.4 : 1,
-            letterSpacing:1, whiteSpace:'nowrap'
-          }}
-        >
-          {sending ? '...' : 'REPLY'}
-        </button>
-      </div>
-      <div style={{
-        fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)',
-        marginTop:6, marginLeft:36
-      }}>
-        {body.length}/500 · Cmd+Enter to send
+        <div style={{
+          flex: 1, background: 'var(--surface)',
+          border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px',
+        }}>
+          <MentionTextarea
+            value={body}
+            onChange={setBody}
+            placeholder="Write a reply... type @ to mention"
+            rows={2}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSend() }}
+          />
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)' }}>
+              {body.length}/500 · ⌘Enter to send
+            </span>
+            <button
+              onClick={handleSend}
+              disabled={!body.trim() || sending}
+              style={{
+                padding: '5px 16px', background: 'var(--accent)', color: 'var(--bg)',
+                border: 'none', borderRadius: 20, fontFamily: 'var(--mono)',
+                fontSize: 10, fontWeight: 700,
+                cursor: !body.trim() || sending ? 'not-allowed' : 'pointer',
+                opacity: !body.trim() || sending ? 0.4 : 1,
+              }}
+            >{sending ? '...' : 'Reply'}</button>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -260,7 +632,7 @@ function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaP
 
 export default function GeneralFeed() {
   const { user } = useAuth()
-  const { posts, loading, createPost, likePost, savePost, repost, createReply, fetchReplies } = usePosts()
+  const { posts, loading, createPost, likePost, savePost, repost, createReply, fetchReplies, voteReply } = usePosts()
   const [repostModal, setRepostModal] = useState(null)
   const [quoteBody, setQuoteBody] = useState('')
   const [body, setBody] = useState('')
@@ -732,13 +1104,13 @@ export default function GeneralFeed() {
                     )}
           
                     {/* Actions */}
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginTop: 4 }}>
                       <button
                         onClick={() => likePost(post.id, createNotification)}
                         style={{
                           background: 'none', border: 'none', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 5,
-                          fontFamily: 'var(--mono)', fontSize: 11,
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          fontFamily: 'var(--mono)', fontSize: 14,
                           color: post.liked ? '#e05577' : 'var(--muted)',
                           padding: 0, transition: 'color 0.15s',
                         }}
@@ -749,8 +1121,8 @@ export default function GeneralFeed() {
                         onClick={() => toggleThread(post.id)}
                         style={{
                           background: 'none', border: 'none', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 5,
-                          fontFamily: 'var(--mono)', fontSize: 11,
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          fontFamily: 'var(--mono)', fontSize: 14,
                           color: openThreads.has(post.id) ? 'var(--accent)' : 'var(--muted)',
                           padding: 0, transition: 'color 0.15s',
                         }}
@@ -761,8 +1133,8 @@ export default function GeneralFeed() {
                         onClick={() => { setRepostModal(post); setQuoteBody('') }}
                         style={{
                           background: 'none', border: 'none', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 5,
-                          fontFamily: 'var(--mono)', fontSize: 11,
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          fontFamily: 'var(--mono)', fontSize: 14,
                           color: post.reposted ? 'var(--verified)' : 'var(--muted)',
                           padding: 0, transition: 'color 0.15s',
                         }}
@@ -773,8 +1145,8 @@ export default function GeneralFeed() {
                         onClick={() => savePost(post.id)}
                         style={{
                           background: 'none', border: 'none', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 5,
-                          fontFamily: 'var(--mono)', fontSize: 11,
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          fontFamily: 'var(--mono)', fontSize: 14,
                           color: post.saved ? 'var(--warn)' : 'var(--muted)',
                           padding: 0, transition: 'color 0.15s', marginLeft: 'auto',
                         }}
@@ -786,7 +1158,7 @@ export default function GeneralFeed() {
                 </div>
               </div>
           
-              {/* Reply Thread */}
+             {/* Reply Thread */}
               {openThreads.has(post.id) && (
                 <ReplyThread
                   postId={post.id}
@@ -795,6 +1167,7 @@ export default function GeneralFeed() {
                   createReply={createReply}
                   fetchReplies={fetchReplies}
                   createNotification={createNotification}
+                  voteReply={voteReply}
                 />
               )}
             </div>

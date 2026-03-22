@@ -12,25 +12,29 @@ function timeAgo(dateStr) {
 function notifIcon(type) {
     switch(type) {
       case 'like':                 return { icon: '♥', color: '#e05577' }
-      case 'reply':                return { icon: '↩', color: '#00d4ff' }
-      case 'repost':               return { icon: '⟳', color: '#00ff88' }
-      case 'follow':               return { icon: '+', color: '#ffcc00' }
+      case 'reply':                return { icon: '↩', color: 'var(--accent)' }
+      case 'repost':               return { icon: '⟳', color: 'var(--verified)' }
+      case 'follow':               return { icon: '+', color: 'var(--warn)' }
       case 'message':              return { icon: '✉', color: '#a78bfa' }
-      case 'application_approved': return { icon: '◆', color: '#00ff88' }
-      default:                     return { icon: '●', color: '#4a6080' }
+      case 'mention':              return { icon: '@', color: 'var(--accent)' }
+      case 'application_approved': return { icon: '◆', color: 'var(--verified)' }
+      case 'score_override':       return { icon: '◈', color: 'var(--accent)' }
+      default:                     return { icon: '●', color: 'var(--muted)' }
     }
   }
-
+  
   function notifText(n) {
     const name = n.from_user?.username || 'Someone'
     switch(n.type) {
-      case 'like':    return `${name} liked your post`
-      case 'reply':   return `${name} replied to your post`
-      case 'repost':  return `${name} reposted your post`
-      case 'follow':  return `${name} started following you`
-      case 'message': return `${name} sent you a message`
-      case 'application_approved': return `Your OSINT application was approved`
-      default: return `New notification from ${name}`
+      case 'like':                 return `${name} liked your post`
+      case 'reply':                return `${name} replied to your post`
+      case 'repost':               return `${name} reposted your post`
+      case 'follow':               return `${name} started following you`
+      case 'message':              return `${name} sent you a message`
+      case 'mention':              return `${name} mentioned you in a reply`
+      case 'application_approved': return 'Your OSINT application was approved'
+      case 'score_override':       return 'Your credibility score was updated by an admin'
+      default:                     return `New notification from ${name}`
     }
   }
 

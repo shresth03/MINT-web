@@ -180,22 +180,27 @@ export function usePosts() {
     }
   }
 
-  async function createReply(postId, body) {
+  async function createReply(postId, body, parentReplyId = null) {
     const { data: insertData, error } = await supabase
       .from('replies')
-      .insert({ post_id: postId, author_id: user.id, body })
+      .insert({
+        post_id: postId,
+        author_id: user.id,
+        body,
+        parent_reply_id: parentReplyId || null
+      })
       .select('id')
       .single()
   
     if (error) return { data: null, error }
   
-    // Fetch with user join separately (avoids RLS issue on inline join)
     const { data: replyData } = await supabase
       .from('replies')
       .select('*, users(username, role)')
       .eq('id', insertData.id)
       .single()
   
+    // Update reply count
     const post = posts.find(p => p.id === postId)
     if (post) {
       await supabase.from('posts')
@@ -204,6 +209,27 @@ export function usePosts() {
       setPosts(prev => prev.map(p =>
         p.id === postId ? { ...p, reply_count: (p.reply_count || 0) + 1 } : p
       ))
+    }
+  
+    // Parse @mentions and notify mentioned users
+    const mentions = [...body.matchAll(/@(\w+)/g)].map(m => m[1])
+    if (mentions.length > 0) {
+      const { data: mentionedUsers } = await supabase
+        .from('users')
+        .select('id, username')
+        .in('username', mentions)
+      if (mentionedUsers) {
+        await Promise.all(
+          mentionedUsers
+            .filter(u => u.id !== user.id) // don't notify yourself
+            .map(u => supabase.from('notifications').insert({
+              to_user_id: u.id,
+              from_user_id: user.id,
+              type: 'mention',
+              post_id: postId,
+            }))
+        )
+      }
     }
   
     return { data: replyData || null, error: null }
@@ -215,7 +241,69 @@ export function usePosts() {
       .select('*, users(username, role)')
       .eq('post_id', postId)
       .order('created_at', { ascending: true })
-    return { data: data || [], error }
+  
+    if (!data) return { data: [], error }
+  
+    // Fetch current user's votes for these replies
+    const replyIds = data.map(r => r.id)
+    const { data: votes } = await supabase
+      .from('reply_votes')
+      .select('reply_id, vote')
+      .eq('user_id', user.id)
+      .in('reply_id', replyIds)
+  
+    const voteMap = {}
+    ;(votes || []).forEach(v => { voteMap[v.reply_id] = v.vote })
+  
+    return {
+      data: data.map(r => ({ ...r, user_vote: voteMap[r.id] || 0 })),
+      error
+    }
+  }
+  
+  async function voteReply(replyId, vote) {
+    const { data: existing } = await supabase
+      .from('reply_votes')
+      .select('id, vote')
+      .eq('reply_id', replyId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+  
+    let delta = 0
+  
+    if (existing) {
+      if (existing.vote === vote) {
+        // Toggle off
+        await supabase.from('reply_votes').delete().eq('id', existing.id)
+        delta = -vote
+      } else {
+        // Switch vote
+        await supabase.from('reply_votes').update({ vote }).eq('id', existing.id)
+        delta = vote * 2
+      }
+    } else {
+      await supabase.from('reply_votes').insert({ reply_id: replyId, user_id: user.id, vote })
+      delta = vote
+    }
+  
+    // Update vote_count
+    if (delta !== 0) {
+      const { data: reply } = await supabase
+        .from('replies').select('vote_count').eq('id', replyId).single()
+      await supabase.from('replies')
+        .update({ vote_count: (reply?.vote_count || 0) + delta })
+        .eq('id', replyId)
+    }
+  
+    return { delta }
+  }
+  
+  async function fetchReplyVotes(postId) {
+    const { data } = await supabase
+      .from('reply_votes')
+      .select('reply_id, vote')
+      .eq('user_id', user.id)
+    return data || []
   }
 
   async function fetchSavedPosts() {
@@ -236,9 +324,20 @@ export function usePosts() {
     return { data: data || [] }
   }
 
+  async function searchUsers(query) {
+    if (!query || query.length < 1) return []
+    const { data } = await supabase
+      .from('users')
+      .select('id, username, role')
+      .ilike('username', `${query}%`)
+      .limit(5)
+    return data || []
+  }
+
   return {
     posts, loading, createPost, likePost,
     savePost, repost, createReply, fetchReplies,
-    fetchSavedPosts, fetchUserReposts  // ← add fetchUserReposts
+    fetchSavedPosts, fetchUserReposts, searchUsers,
+    voteReply, fetchReplyVotes
   }
 }

@@ -64,6 +64,11 @@ http.post(
       return HttpResponse.json({ headline: 'New AI Generated Headline After 10 Sources' })
     }
   ),
+http.post(
+  'https://ipemqgxcjjyvrfzkcjoh.supabase.co/rest/v1/feedback',
+  () => HttpResponse.json({ id: 'fb-test-id' })
+),
 ]
 
 export const handlers = [...anthropicHandlers, ...supabaseHandlers]
+

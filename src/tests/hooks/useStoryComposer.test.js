@@ -30,6 +30,52 @@ describe('useStoryComposer', () => {
         import.meta.env.VITE_ANTHROPIC_API_KEY = 'test-key'
       })
 
+      // ── refreshStorySummary ──
+      describe('refreshStorySummary', () => {
+        it('publishStory with threadId inserts post and fetches story headline', async () => {
+          // post insert
+          mockSupabase.single.mockResolvedValueOnce({
+            data: { id: 'new-post', body: 'Test' }, error: null
+          })
+          // story headline fetch
+          mockSupabase.single.mockResolvedValueOnce({
+            data: { headline: 'Existing Headline' }, error: null
+          })
+      
+          const { result } = renderHook(() => useStoryComposer())
+          await act(async () => {
+            await result.current.publishStory({
+              body: 'Test', tag: 'MILITARY', region: 'Global',
+              threadId: 35, headline: 'Test Headline', summary: 'Test Summary'
+            })
+          })
+      
+          // Verify post was inserted with manual_story_id
+          expect(mockSupabase.insert).toHaveBeenCalledWith(
+            expect.objectContaining({ manual_story_id: 35 })
+          )
+        })
+      
+        it('generateSummary produces text used for story update', async () => {
+          const { result } = renderHook(() => useStoryComposer())
+          const sum = await result.current.generateSummary('Test headline', [
+            { body: 'Indian vessels spotted', users: { username: 'shresth' } }
+          ])
+          // Verify Claude returned a summary (mock returns this text)
+          expect(sum).toContain('Indian vessels')
+        })
+      
+        it('generateSummary returns null if API key is missing', async () => {
+          const savedKey = import.meta.env.VITE_ANTHROPIC_API_KEY
+          import.meta.env.VITE_ANTHROPIC_API_KEY = ''
+          const { result } = renderHook(() => useStoryComposer())
+          const sum = await result.current.generateSummary('headline', [
+            { body: 'test', users: { username: 'user' } }
+          ])
+          expect(sum).toBeNull()
+          import.meta.env.VITE_ANTHROPIC_API_KEY = savedKey
+        })
+      })
   // ── generateHeadline ──
   describe('generateHeadline', () => {
     it('returns null if no source posts', async () => {
@@ -99,29 +145,25 @@ describe('useStoryComposer', () => {
       )
     })
 
-    it('inserts post with manual_story_id null when no threadId', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
-        data: { id: 'test-post-id', body: 'Test' },
-        error: null
+    it('sets manual_story_id to null when no threadId', async () => {
+        mockSupabase.single.mockResolvedValueOnce({
+          data: { id: 'new-post', body: 'Test' }, error: null
+        })
+        mockSupabase.limit.mockResolvedValueOnce({
+          data: [{ story_id: 40 }], error: null
+        })
+      
+        const { result } = renderHook(() => useStoryComposer())
+        await result.current.publishStory({
+          body: 'Auto cluster post', tag: 'CYBER',
+          region: 'Europe', threadId: null,
+          headline: 'AI Headline', summary: 'AI Summary'
+        })
+      
+        expect(mockSupabase.insert).toHaveBeenCalledWith(
+          expect.objectContaining({ manual_story_id: null })
+        )
       })
-      mockSupabase.limit.mockResolvedValueOnce({
-        data: [{ story_id: 36 }], error: null
-      })
-
-      const { result } = renderHook(() => useStoryComposer())
-      await result.current.publishStory({
-        body: 'Test post',
-        tag: 'MILITARY',
-        region: 'Global',
-        threadId: null,
-        headline: 'AI Headline',
-        summary: 'AI Summary'
-      })
-
-      expect(mockSupabase.insert).toHaveBeenCalledWith(
-        expect.objectContaining({ manual_story_id: null })
-      )
-    })
   })
 
   // ── searchThreads ──
