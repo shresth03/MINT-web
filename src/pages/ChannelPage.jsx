@@ -199,33 +199,60 @@ export default function ChannelPage() {
               ) : breakdown ? (
                 <>
                   {[
-                    { label: 'Claim Accuracy',         value: breakdown.claimAccuracy, max: 35, color: 'var(--verified)' },
-                    { label: 'Corroboration Rate',     value: breakdown.corroboration, max: 25, color: 'var(--accent)' },
-                    { label: 'Multi-Source Agreement', value: breakdown.multiSource,   max: 20, color: 'var(--warn)' },
-                    { label: 'Note Accuracy',          value: breakdown.noteAccuracy,  max: 15, color: '#ff9f43' },
-                    { label: 'Consistency',            value: breakdown.consistency,   max: 10, color: 'var(--accent2)' },
-                  ].map(s => {
-                    const pct = Math.min(100, Math.round(((s.value ?? 0) / s.max) * 100))
-                    return (
-                      <div key={s.label} style={{ marginBottom: 10 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginBottom: 4 }}>
-                          <span>{s.label}</span>
-                          <span style={{ color: s.color }}>{pct}%</span>
-                        </div>
-                        <div style={{ height: 6, background: 'var(--surface2)', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', borderRadius: 3, background: s.color, width: `${pct}%`, transition: 'width 1s ease' }} />
-                        </div>
+                    {
+                      label: 'Avg Post Score',
+                      value: breakdown.avgPostScore ?? 0,
+                      max: 100,
+                      color: 'var(--verified)',
+                      display: `${breakdown.avgPostScore ?? 0}/100`,
+                    },
+                    {
+                      label: 'Corroboration',
+                      value: breakdown.totalPosts > 0 ? Math.round((breakdown.totalPeerCorr / breakdown.totalPosts) * 100) : 0,
+                      max: 100,
+                      color: 'var(--accent)',
+                      display: `${breakdown.totalPeerCorr}/${breakdown.totalPosts} posts`,
+                    },
+                    {
+                      label: 'Source Citations',
+                      value: breakdown.totalPosts > 0 ? Math.round((breakdown.totalCited / breakdown.totalPosts) * 100) : 0,
+                      max: 100,
+                      color: 'var(--warn)',
+                      display: `${breakdown.totalCited} cited`,
+                    },
+                    {
+                      label: 'Note Accuracy',
+                      value: breakdown.noteBoost != null ? Math.round((breakdown.noteBoost / 5) * 100) : 0,
+                      max: 100,
+                      color: '#ff9f43',
+                      display: `+${breakdown.noteBoost ?? 0} pts`,
+                    },
+                    {
+                      label: 'Consistency',
+                      value: breakdown.consistencyBoost != null ? Math.round((breakdown.consistencyBoost / 5) * 100) : 0,
+                      max: 100,
+                      color: 'var(--accent2)',
+                      display: `${breakdown.activeDays ?? 0} active days`,
+                    },
+                  ].map(s => (
+                    <div key={s.label} style={{ marginBottom: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginBottom: 4 }}>
+                        <span>{s.label}</span>
+                        <span style={{ color: s.color }}>{s.display}</span>
                       </div>
-                    )
-                  })}
-                  {breakdown?.falsePenalty > 0 && (
+                      <div style={{ height: 6, background: 'var(--surface2)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', borderRadius: 3, background: s.color, width: `${s.value}%`, transition: 'width 1s ease' }} />
+                      </div>
+                    </div>
+                  ))}
+                  {(breakdown.falseClaims ?? 0) > 0 && (
                     <div style={{ marginTop: 8, padding: '6px 10px', background: 'rgba(232,72,72,0.08)', border: '1px solid rgba(232,72,72,0.2)', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent2)' }}>
-                      ⚠ False claim penalties: −{breakdown.falsePenalty.toFixed(1)} pts
+                      ⚠ {breakdown.falseClaims} false claim{breakdown.falseClaims !== 1 ? 's' : ''} on record
                     </div>
                   )}
-                  {breakdown?.reversalBonus > 0 && (
-                    <div style={{ marginTop: 6, padding: '6px 10px', background: 'rgba(232,160,32,0.08)', border: '1px solid rgba(232,160,32,0.2)', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--warn)' }}>
-                      ⟳ Reversal bonuses: +{breakdown.reversalBonus.toFixed(1)} pts
+                  {(breakdown.positiveReactions ?? 0) > 0 && (
+                    <div style={{ marginTop: 6, padding: '6px 10px', background: 'rgba(48,216,128,0.06)', border: '1px solid rgba(48,216,128,0.2)', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--verified)' }}>
+                      ✓ {breakdown.positiveReactions} verified/confirmed reaction{breakdown.positiveReactions !== 1 ? 's' : ''}
                     </div>
                   )}
                 </>

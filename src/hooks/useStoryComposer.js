@@ -164,6 +164,7 @@ Output only the summary text. No preamble, no labels.`
         tag,
         region,
         is_osint: true,
+        post_type: 'news',
         likes: 0,
         reply_count: 0,
         repost_count: 0,

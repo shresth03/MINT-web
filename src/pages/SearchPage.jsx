@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useSearch } from '../hooks/useSearch'
 import PageShell from '../components/PageShell'
 
@@ -11,14 +11,39 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
+const TOPIC_TAGS = [
+  'CONFLICT', 'CYBER', 'GEOPOLITICS', 'MILITARY', 'HUMANITARIAN',
+  'NUCLEAR', 'MARITIME', 'INTELLIGENCE', 'BREAKING', 'SECURITY',
+]
+
+const DATE_OPTIONS = [
+  { id: 'all', label: 'All Time' },
+  { id: '1h',  label: 'Past Hour' },
+  { id: '24h', label: 'Past 24h' },
+  { id: '7d',  label: 'Past Week' },
+]
+
 export default function SearchPage() {
   const navigate = useNavigate()
-  const { results, loading, query, setQuery, search, clear } = useSearch()
+  const location = useLocation()
+  const {
+    results, loading, query, setQuery,
+    dateFilter, setDateFilter, tagFilter, setTagFilter,
+    search, clear
+  } = useSearch()
   const [tab, setTab] = useState('stories')
   const [debounceTimer, setDebounceTimer] = useState(null)
   const inputRef = useRef(null)
 
-  useEffect(() => { inputRef.current?.focus() }, [])
+  // Pre-fill from ?q= URL param on mount
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const q = params.get('q') || ''
+    const t = params.get('tag') || null
+    if (q) { setQuery(q); search(q, { tagFilter: t }) }
+    if (t) setTagFilter(t)
+    inputRef.current?.focus()
+  }, [])
 
   useEffect(() => {
     const handler = (e) => {
@@ -36,9 +61,26 @@ export default function SearchPage() {
     setDebounceTimer(t)
   }
 
+  function applyDateFilter(d) {
+    setDateFilter(d)
+    if (query.trim().length >= 2) search(query, { dateFilter: d })
+  }
+
+  function applyTagFilter(tag) {
+    const next = tagFilter === tag ? null : tag
+    setTagFilter(next)
+    if (query.trim().length >= 2) search(query, { tagFilter: next })
+    else {
+      // Search with just the tag chip as query
+      if (next) { setQuery(`#${next}`); search(`#${next}`, { tagFilter: null }) }
+      else clear()
+    }
+  }
+
   function highlight(text, q) {
     if (!q || !text) return text
-    const regex = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+    const plain = q.startsWith('#') ? q.slice(1) : q
+    const regex = new RegExp(`(${plain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
     return text.split(regex).map((part, i) =>
       regex.test(part)
         ? <span key={i} style={{ color: 'var(--accent)', fontWeight: 600 }}>{part}</span>
@@ -79,7 +121,6 @@ export default function SearchPage() {
 
   return (
     <PageShell title="MINT — SEARCH">
-      {/* Inject keyframe animation */}
       <style>{`
         @keyframes loadbar { 0%{width:0;margin-left:0} 50%{width:60%;margin-left:20%} 100%{width:0;margin-left:100%} }
       `}</style>
@@ -92,7 +133,7 @@ export default function SearchPage() {
             ref={inputRef}
             value={query}
             onChange={e => handleInput(e.target.value)}
-            placeholder="Search stories, posts, channels..."
+            placeholder="Search stories, posts, channels... or #cybersecurity"
             style={{
               width: '100%', background: 'var(--surface)',
               border: '1px solid var(--border)', borderRadius: 8,
@@ -116,9 +157,78 @@ export default function SearchPage() {
             >×</button>
           )}
         </div>
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: 1, marginBottom: 24 }}>
-          ⌘K to focus · ESC to go back · Results update as you type
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: 1, marginBottom: 16 }}>
+          ⌘K to focus · ESC to go back · Search #hashtags directly
         </div>
+
+        {/* Topic tag chips */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
+          {TOPIC_TAGS.map(tag => (
+            <button
+              key={tag}
+              onClick={() => applyTagFilter(tag)}
+              style={{
+                padding: '4px 10px', borderRadius: 12,
+                fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
+                cursor: 'pointer', transition: 'all 0.15s',
+                border: `1px solid ${tagFilter === tag ? 'var(--accent)' : 'var(--border)'}`,
+                background: tagFilter === tag ? 'rgba(0,212,255,0.1)' : 'transparent',
+                color: tagFilter === tag ? 'var(--accent)' : 'var(--muted)',
+              }}
+            >
+              #{tag}
+            </button>
+          ))}
+        </div>
+
+        {/* Date filter */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 24 }}>
+          {DATE_OPTIONS.map(opt => (
+            <button
+              key={opt.id}
+              onClick={() => applyDateFilter(opt.id)}
+              style={{
+                padding: '5px 12px', borderRadius: 6,
+                fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
+                cursor: 'pointer', transition: 'all 0.15s',
+                border: `1px solid ${dateFilter === opt.id ? 'var(--accent)' : 'var(--border)'}`,
+                background: dateFilter === opt.id ? 'rgba(0,212,255,0.1)' : 'transparent',
+                color: dateFilter === opt.id ? 'var(--accent)' : 'var(--muted)',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Active filters row */}
+        {(tagFilter || dateFilter !== 'all') && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', letterSpacing: 1 }}>FILTERS:</span>
+            {tagFilter && (
+              <span style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '3px 8px', borderRadius: 10,
+                border: '1px solid var(--accent)', color: 'var(--accent)',
+                fontFamily: 'var(--mono)', fontSize: 9,
+              }}>
+                #{tagFilter}
+                <button onClick={() => applyTagFilter(tagFilter)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
+              </span>
+            )}
+            {dateFilter !== 'all' && (
+              <span style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '3px 8px', borderRadius: 10,
+                border: '1px solid var(--accent)', color: 'var(--accent)',
+                fontFamily: 'var(--mono)', fontSize: 9,
+              }}>
+                {DATE_OPTIONS.find(d => d.id === dateFilter)?.label}
+                <button onClick={() => applyDateFilter('all')} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Loading bar */}
         {loading && (
@@ -177,7 +287,12 @@ export default function SearchPage() {
                 >
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
                     {s.is_breaking && <span style={tagStyle(true)}>BREAKING</span>}
-                    <span style={tagStyle()}>{s.tag}</span>
+                    <span
+                      onClick={e => { e.stopPropagation(); applyTagFilter(s.tag) }}
+                      style={{ ...tagStyle(), cursor: 'pointer', color: tagFilter === s.tag ? 'var(--accent)' : 'var(--muted)', borderColor: tagFilter === s.tag ? 'var(--accent)' : 'var(--border)' }}
+                    >
+                      {s.tag}
+                    </span>
                     <span style={tagStyle()}>{s.region}</span>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>{timeAgo(s.created_at)}</span>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', marginLeft: 'auto' }}>
@@ -198,6 +313,7 @@ export default function SearchPage() {
               ) : results.posts.map(p => (
                 <div
                   key={p.id} style={resultCard}
+                  onClick={() => navigate(`/feed?highlight=${p.id}`)}
                   onMouseOver={e => e.currentTarget.style.borderColor = 'var(--accent)'}
                   onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
                 >
@@ -205,17 +321,32 @@ export default function SearchPage() {
                     <div style={avatarStyle(28)}>
                       {p.users?.username?.[0]?.toUpperCase() || 'U'}
                     </div>
-                    <span style={{
-                      fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600,
-                      color: p.users?.role === 'osint' ? 'var(--verified)'
-                        : p.users?.role === 'admin' ? 'var(--accent)' : 'var(--text)'
-                    }}>
+                    <span
+                      onClick={e => { e.stopPropagation(); navigate(`/channel/${p.users?.username}`) }}
+                      style={{
+                        fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        color: p.users?.role === 'osint' ? 'var(--verified)'
+                          : p.users?.role === 'admin' ? 'var(--accent)' : 'var(--text)'
+                      }}
+                    >
                       {p.users?.username || 'Unknown'}
                       {p.users?.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 4 }}>◆</span>}
                     </span>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
                       {timeAgo(p.created_at)}
                     </span>
+                    {p.tag && (
+                      <span
+                        onClick={e => { e.stopPropagation(); applyTagFilter(p.tag) }}
+                        style={{
+                          marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
+                          padding: '2px 8px', borderRadius: 10, cursor: 'pointer',
+                          border: '1px solid var(--verified)', color: 'var(--verified)',
+                        }}
+                      >
+                        #{p.tag.toLowerCase()}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--text)', marginBottom: 8, fontFamily: 'var(--sans)' }}>
                     {highlight(p.body, query)}
@@ -267,11 +398,11 @@ export default function SearchPage() {
         )}
 
         {/* Initial state */}
-        {!hasQuery && (
+        {!hasQuery && !tagFilter && (
           <div style={{ ...emptyState, marginTop: 48 }}>
             <div style={{ fontSize: 32, marginBottom: 16, opacity: 0.3 }}>◈</div>
             <div>Start typing to search intel stories, posts and channels</div>
-            <div style={{ marginTop: 8, fontSize: 9 }}>Minimum 2 characters</div>
+            <div style={{ marginTop: 8, fontSize: 9 }}>Search #hashtags · Filter by topic · Filter by date</div>
           </div>
         )}
 
@@ -280,7 +411,7 @@ export default function SearchPage() {
           <div style={{ ...emptyState, marginTop: 48 }}>
             <div style={{ fontSize: 32, marginBottom: 16, opacity: 0.3 }}>◇</div>
             <div>No results found for "{query}"</div>
-            <div style={{ marginTop: 8, fontSize: 9 }}>Try different keywords</div>
+            <div style={{ marginTop: 8, fontSize: 9 }}>Try different keywords or remove filters</div>
           </div>
         )}
       </div>

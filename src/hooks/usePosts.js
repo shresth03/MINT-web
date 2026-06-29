@@ -97,13 +97,15 @@ export function usePosts() {
     if (data) setPosts(prev => [data, ...prev])
   }
 
-  async function createPost(body, mediaUrl = null, region = null, tag = null) {
+  async function createPost(body, mediaUrl = null, region = null, tag = null, postType = 'general') {
+    const extractedTag = tag || (body.match(/#(\w+)/)?.[1]?.toUpperCase() || null)
     const { error } = await supabase.from('posts').insert({
       author_id: user.id,
       body,
       region,
-      tag,
+      tag: extractedTag,
       is_osint: false,
+      post_type: postType,
       likes: 0,
       reply_count: 0,
       repost_count: 0,

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../../hooks/useNotifications'
 import { useLocation } from 'react-router-dom'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import { useReactions, REACTION_TYPES } from '../../hooks/useReactions'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -13,6 +14,123 @@ function timeAgo(dateStr) {
   if (diff < 3600) return `${Math.floor(diff/60)}m ago`
   if (diff < 86400) return `${Math.floor(diff/3600)}h ago`
   return `${Math.floor(diff/86400)}d ago`
+}
+
+function RichBody({ text, navigate }) {
+  return text.split(/(#\w+|@\w+)/g).map((part, i) => {
+    if (/^#\w+$/.test(part)) return (
+      <span key={i}
+        onClick={e => { e.stopPropagation(); navigate(`/search?q=${encodeURIComponent(part)}`) }}
+        style={{ color: 'var(--verified)', fontWeight: 600, fontFamily: 'var(--mono)', cursor: 'pointer' }}
+      >{part}</span>
+    )
+    if (/^@\w+$/.test(part)) return (
+      <span key={i}
+        onClick={e => { e.stopPropagation(); navigate(`/channel/${part.slice(1)}`) }}
+        style={{ color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--mono)', cursor: 'pointer' }}
+      >{part}</span>
+    )
+    return part
+  })
+}
+
+function ReactionBar({ postId }) {
+  const { counts, userReaction, total, toggle } = useReactions(postId)
+  if (total === 0 && !userReaction) {
+    return (
+      <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+        {REACTION_TYPES.map(r => (
+          <button
+            key={r.type}
+            onClick={() => toggle(r.type)}
+            title={r.label}
+            style={{
+              background: 'none', border: '1px solid var(--border)', borderRadius: 12,
+              padding: '2px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+              fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)',
+              transition: 'all 0.15s',
+            }}
+            onMouseOver={e => { e.currentTarget.style.borderColor = r.color; e.currentTarget.style.color = r.color }}
+            onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)' }}
+          >
+            <span>{r.icon}</span>
+          </button>
+        ))}
+      </div>
+    )
+  }
+  return (
+    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
+      {REACTION_TYPES.filter(r => counts[r.type] > 0 || userReaction === r.type).map(r => (
+        <button
+          key={r.type}
+          onClick={() => toggle(r.type)}
+          title={r.label}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '2px 8px', borderRadius: 12, cursor: 'pointer',
+            fontFamily: 'var(--mono)', fontSize: 10,
+            border: `1px solid ${userReaction === r.type ? r.color : 'var(--border)'}`,
+            background: userReaction === r.type ? `${r.color}18` : 'transparent',
+            color: userReaction === r.type ? r.color : 'var(--muted)',
+            transition: 'all 0.15s',
+          }}
+        >
+          <span>{r.icon}</span>
+          {counts[r.type] > 0 && <span>{counts[r.type]}</span>}
+        </button>
+      ))}
+      {/* Add reaction button when some reactions already exist */}
+      {REACTION_TYPES.filter(r => counts[r.type] === 0 && userReaction !== r.type).length > 0 && (
+        <div style={{ position: 'relative' }}>
+          <AddReactionButton onSelect={toggle} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AddReactionButton({ onSelect }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          background: 'none', border: '1px solid var(--border)', borderRadius: 12,
+          padding: '2px 8px', cursor: 'pointer',
+          fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)',
+        }}
+      >
+        +
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', bottom: '120%', left: 0,
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 8, padding: '6px 8px', display: 'flex', gap: 4,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)', zIndex: 50,
+        }}>
+          {REACTION_TYPES.map(r => (
+            <button
+              key={r.type}
+              onClick={() => { onSelect(r.type); setOpen(false) }}
+              title={r.label}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 14, padding: '2px 4px', borderRadius: 4,
+                color: r.color, transition: 'transform 0.1s',
+              }}
+              onMouseOver={e => e.currentTarget.style.transform = 'scale(1.3)'}
+              onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              {r.icon}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function buildTree(replies) {
@@ -164,6 +282,7 @@ function MentionTextarea({ value, onChange, placeholder, rows = 2, onKeyDown, au
 
 function ReplyNode({ node, depth = 0, postId, createReply, createNotification, postAuthorId, fetchNewReply, voteReply }) {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [replyOpen, setReplyOpen] = useState(false)
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
@@ -259,13 +378,7 @@ function ReplyNode({ node, depth = 0, postId, createReply, createNotification, p
               fontSize: 13, color: 'var(--text)', lineHeight: 1.6,
               fontFamily: 'var(--sans)', marginBottom: 6,
             }}>
-              {node.body.split(/(@\w+)/g).map((part, i) =>
-                /^@\w+$/.test(part) ? (
-                  <span key={i} style={{ color: 'var(--accent)', fontWeight: 600, fontFamily: 'var(--mono)' }}>
-                    {part}
-                  </span>
-                ) : part
-              )}
+              <RichBody text={node.body} navigate={navigate} />
             </div>
 
             {/* Actions */}
@@ -543,7 +656,7 @@ function ReplyThread({ postId, authorId, onClose, createReply, fetchReplies, cre
   )
 }
 
-function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaPreview, fileInputRef, handlePost, handleFileSelect, removeMedia, posting, uploading }) {
+function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaPreview, fileInputRef, handlePost, handleFileSelect, removeMedia, posting, uploading, postType, setPostType }) {
   return (
     <div style={{ display: 'flex', gap: 10 }}>
       <div style={{
@@ -599,6 +712,28 @@ function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaP
             {error && <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent2)' }}>⚠ {error}</span>}
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {/* Post type toggle */}
+            <div style={{ display: 'flex', borderRadius: 4, border: '1px solid var(--border)', overflow: 'hidden' }}>
+              {['general', 'news'].map(t => (
+                <button
+                  key={t}
+                  onClick={() => setPostType(t)}
+                  style={{
+                    padding: '5px 10px', border: 'none', cursor: 'pointer',
+                    fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
+                    background: postType === t
+                      ? t === 'news' ? 'rgba(48,216,128,0.15)' : 'rgba(0,212,255,0.1)'
+                      : 'transparent',
+                    color: postType === t
+                      ? t === 'news' ? 'var(--verified)' : 'var(--accent)'
+                      : 'var(--muted)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {t === 'news' ? '◆ NEWS' : '○ GENERAL'}
+                </button>
+              ))}
+            </div>
             <button
               onClick={() => fileInputRef.current?.click()}
               style={{
@@ -650,6 +785,15 @@ export default function GeneralFeed() {
   const postRefs = useRef({})
   const isMobile = useIsMobile()
   const [composerOpen, setComposerOpen] = useState(false)
+  const [postType, setPostType] = useState('general')
+  const [feedTab, setFeedTab] = useState('all')
+  const [followedIds, setFollowedIds] = useState([])
+
+  useEffect(() => {
+    if (!user?.id) return
+    supabase.from('follows').select('following_id').eq('follower_id', user.id)
+      .then(({ data }) => setFollowedIds((data || []).map(f => f.following_id)))
+  }, [user?.id])
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -689,12 +833,13 @@ export default function GeneralFeed() {
       setUploading(false)
     }
 
-    const { error } = await createPost(body.trim(), mediaUrl)
+    const { error } = await createPost(body.trim(), mediaUrl, null, null, postType)
     if (error) setError(error.message)
     else {
       setBody('')
       setMediaFile(null)
       setMediaPreview(null)
+      setPostType('general')
     }
     setPosting(false)
   }
@@ -828,6 +973,7 @@ export default function GeneralFeed() {
             fileInputRef={fileInputRef}
             handlePost={handlePost} handleFileSelect={handleFileSelect}
             removeMedia={removeMedia} posting={posting} uploading={uploading}
+            postType={postType} setPostType={setPostType}
           />
         </div>
       )}
@@ -987,6 +1133,25 @@ export default function GeneralFeed() {
           </div>
         </div>
       )}
+      {/* Feed tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--surface)', flexShrink: 0 }}>
+        {[{ id: 'all', label: 'For You' }, { id: 'following', label: 'Following' }, { id: 'trending', label: '↑ Trending' }].map(t => (
+          <button
+            key={t.id}
+            onClick={() => setFeedTab(t.id)}
+            style={{
+              flex: 1, padding: '10px 0', background: 'none', border: 'none',
+              borderBottom: feedTab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
+              fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: 1,
+              color: feedTab === t.id ? 'var(--accent)' : 'var(--muted)',
+              cursor: 'pointer', transition: 'all 0.15s', textTransform: 'uppercase',
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* Feed */}
       <div style={{ flex:1, overflowY:'auto' }}>
         {loading ? (
@@ -996,15 +1161,45 @@ export default function GeneralFeed() {
           }}>
             LOADING FEED...
           </div>
-        ) : posts.length === 0 ? (
-          <div style={{
-            padding:40, textAlign:'center',
-            fontFamily:'var(--mono)', fontSize:11, color:'var(--muted)'
-          }}>
-            No posts yet. Be the first to share intelligence.
-          </div>
-        ) : (
-          posts.map(post => (
+        ) : (() => {
+          const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000)
+          const hotScore = p => (p.likes || 0) + (p.reply_count || 0) * 2 + (p.repost_count || 0)
+
+          const displayPosts = feedTab === 'following'
+            ? posts.filter(p =>
+                p._type === 'repost'
+                  ? followedIds.includes(p._reposter?.id)
+                  : followedIds.includes(p.author_id)
+              )
+            : feedTab === 'trending'
+              ? posts
+                  .filter(p => new Date(p._type === 'repost' ? p._repost_created_at : p.created_at) > cutoff48h)
+                  .sort((a, b) => hotScore(b) - hotScore(a))
+              : posts
+
+          if (displayPosts.length === 0) {
+            return (
+              <div style={{ padding: 40, textAlign: 'center' }}>
+                <div style={{ fontSize: 28, marginBottom: 12, color: 'var(--border)' }}>◇</div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)', letterSpacing: 1, marginBottom: 8 }}>
+                  {feedTab === 'following'
+                    ? followedIds.length === 0
+                      ? 'YOU\'RE NOT FOLLOWING ANYONE YET'
+                      : 'NO POSTS FROM PEOPLE YOU FOLLOW'
+                    : feedTab === 'trending'
+                      ? 'NO ACTIVITY IN THE LAST 48 HOURS'
+                      : 'NO POSTS YET'}
+                </div>
+                {feedTab === 'following' && followedIds.length === 0 && (
+                  <div style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'var(--sans)', marginTop: 4 }}>
+                    Visit a user's profile and hit <strong>+ FOLLOW</strong> to see their posts here.
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+          return displayPosts.map((post, idx) => (
             <div
               key={post._type === 'repost' ? `repost-${post._repost_id}` : post.id}
               ref={el => { postRefs.current[post.id] = el }}
@@ -1015,6 +1210,24 @@ export default function GeneralFeed() {
                 transition: 'background 0.4s ease, border-color 0.4s ease',
               }}
             >
+              {/* Trending rank banner */}
+              {feedTab === 'trending' && (
+                <div style={{
+                  padding: '6px 16px 0', display: 'flex', alignItems: 'center', gap: 8,
+                  fontFamily: 'var(--mono)', fontSize: 10,
+                }}>
+                  <span style={{
+                    fontSize: 14, fontWeight: 700, minWidth: 20,
+                    color: idx === 0 ? '#ff9f43' : idx === 1 ? '#7a9bbf' : idx === 2 ? '#8a6a2a' : 'var(--muted)',
+                  }}>
+                    {idx + 1}
+                  </span>
+                  <span style={{ color: 'var(--muted)' }}>
+                    ↑ {hotScore(post)} pts · {timeAgo(post.created_at)}
+                  </span>
+                </div>
+              )}
+
               {/* Repost header banner */}
               {post._type === 'repost' && (
                 <div style={{
@@ -1068,13 +1281,41 @@ export default function GeneralFeed() {
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
                         {timeAgo(post.created_at)}
                       </span>
+                      {post.post_type === 'news' && (
+                        <span style={{
+                          fontFamily: 'var(--mono)', fontSize: 8, letterSpacing: 1,
+                          padding: '2px 6px', borderRadius: 3,
+                          background: 'rgba(48,216,128,0.1)', border: '1px solid var(--verified)',
+                          color: 'var(--verified)',
+                        }}>
+                          NEWS
+                        </span>
+                      )}
                     </div>
-          
+
                     {/* Post body */}
                     <div style={{ fontSize: 13, lineHeight: 1.6, marginBottom: post.media_url ? 8 : 10, color: 'var(--text)', fontFamily: 'var(--sans)' }}>
-                      {post.body}
+                      <RichBody text={post.body} navigate={navigate} />
                     </div>
           
+                    {/* Tag badge */}
+                    {post.tag && (
+                      <span
+                        onClick={() => navigate(`/search?q=%23${post.tag.toLowerCase()}`)}
+                        style={{
+                          display: 'inline-block', marginBottom: 8,
+                          fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
+                          padding: '2px 8px', borderRadius: 10,
+                          border: '1px solid var(--verified)', color: 'var(--verified)',
+                          cursor: 'pointer', transition: 'opacity 0.15s',
+                        }}
+                        onMouseOver={e => e.currentTarget.style.opacity = '0.7'}
+                        onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                      >
+                        #{post.tag.toLowerCase()}
+                      </span>
+                    )}
+
                     {/* Quote body if repost with comment */}
                     {post._quote && (
                       <div style={{
@@ -1155,11 +1396,12 @@ export default function GeneralFeed() {
                       </button>
                     </div>
                   </div>
+                  {/* Reactions */}
+                  <ReactionBar postId={post.id} />
                 </div>
               </div>
-          
-             {/* Reply Thread */}
-              {openThreads.has(post.id) && (
+            {/* Reply Thread */}
+            {openThreads.has(post.id) && (
                 <ReplyThread
                   postId={post.id}
                   authorId={post.users?.id}
@@ -1172,7 +1414,7 @@ export default function GeneralFeed() {
               )}
             </div>
           ))
-        )}
+        })()}
       </div>
     </div>
   )

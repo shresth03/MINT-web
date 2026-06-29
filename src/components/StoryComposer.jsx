@@ -114,44 +114,44 @@ export default function StoryComposer({ onClose, onPublished }) {
   }
 
   const overlayStyle = {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+    position: 'fixed', inset: 0, background: 'var(--modal-overlay)',
     zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center',
     backdropFilter: 'blur(4px)'
   }
   const modalStyle = {
     width: 720, maxWidth: '95vw', maxHeight: '90vh',
-    background: '#0d1219', border: '1px solid #1e2d3d',
+    background: 'var(--surface)', border: '1px solid var(--border)',
     borderRadius: 12, display: 'flex', flexDirection: 'column',
-    overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.6)'
+    overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.4)'
   }
   const inputStyle = {
-    width: '100%', background: '#080c10', border: '1px solid #1e2d3d',
-    borderRadius: 6, padding: '10px 14px', color: '#c8d6e5',
-    fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 13,
+    width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
+    borderRadius: 6, padding: '10px 14px', color: 'var(--text)',
+    fontFamily: 'var(--sans)', fontSize: 13,
     outline: 'none', transition: 'border-color 0.15s', boxSizing: 'border-box'
   }
   const labelStyle = {
-    fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
-    letterSpacing: 2, color: '#4a6080', marginBottom: 6, display: 'block'
+    fontFamily: 'var(--mono)', fontSize: 9,
+    letterSpacing: 2, color: 'var(--muted)', marginBottom: 6, display: 'block'
   }
   const aiLabelStyle = {
-    fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
-    letterSpacing: 2, color: '#00d4ff', marginBottom: 6, display: 'block'
+    fontFamily: 'var(--mono)', fontSize: 9,
+    letterSpacing: 2, color: 'var(--accent)', marginBottom: 6, display: 'block'
   }
   const btnPrimary = {
-    padding: '10px 24px', background: '#00d4ff', color: '#000',
-    border: 'none', borderRadius: 6, fontFamily: "'IBM Plex Mono', monospace",
+    padding: '10px 24px', background: 'var(--accent)', color: 'var(--bg)',
+    border: 'none', borderRadius: 6, fontFamily: 'var(--mono)',
     fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: 1
   }
   const btnSecondary = {
-    padding: '10px 24px', background: 'transparent', color: '#4a6080',
-    border: '1px solid #1e2d3d', borderRadius: 6, fontFamily: "'IBM Plex Mono', monospace",
+    padding: '10px 24px', background: 'transparent', color: 'var(--muted)',
+    border: '1px solid var(--border)', borderRadius: 6, fontFamily: 'var(--mono)',
     fontSize: 11, cursor: 'pointer', letterSpacing: 1
   }
   const regenBtn = {
-    fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
-    color: '#4a6080', background: 'none',
-    border: '1px solid #1e2d3d', borderRadius: 4,
+    fontFamily: 'var(--mono)', fontSize: 9,
+    color: 'var(--muted)', background: 'none',
+    border: '1px solid var(--border)', borderRadius: 4,
     padding: '2px 8px', cursor: 'pointer', letterSpacing: 1
   }
 

@@ -3,6 +3,22 @@ import { supabase } from '../api/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import PageShell from '../components/PageShell'
+import { computeScore } from '../hooks/useCredibility'
+
+const FEATURES_META = {
+  intel_feed: 'Intel Feed', general_feed: 'General Feed', following_feed: 'Following Feed',
+  posting: 'Posting', replies: 'Replies', reposts: 'Reposts & Quote Posts',
+  likes: 'Likes', media_upload: 'Media Upload', saved_posts: 'Saved Posts',
+  story_composer: 'Story Composer', story_threading: 'Story Threading',
+  ai_headline: 'AI Headline', ai_summary: 'AI Summary', auto_clustering: 'Auto Clustering',
+  confidence_score: 'Confidence Score', community_notes: 'Community Notes',
+  claims: 'Claims System', credibility: 'Credibility Scores', leaderboard: 'Leaderboard',
+  search: 'Search', trending: 'Trending', event_map: 'Event Map',
+  channel_page: 'Channel Pages', following: 'Follow System', messages: 'Direct Messages',
+  notifications: 'Notifications', osint_application: 'OSINT Application',
+  auth: 'Login / Signup', settings: 'Settings', mobile: 'Mobile Experience',
+  performance: 'Performance', design: 'Design & UI', dark_theme: 'Theme', overall: 'Overall'
+}
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -51,6 +67,41 @@ function StatusBadge({ status }) {
   )
 }
 
+function StartingScoreChip({ userId }) {
+  const [score, setScore] = useState(null)
+  const [postCount, setPostCount] = useState(null)
+
+  useEffect(() => {
+    if (!userId) return
+    computeScore(userId).then(({ score: s, breakdown }) => {
+      setScore(s)
+      setPostCount(breakdown?.totalPosts ?? 0)
+    })
+  }, [userId])
+
+  if (score === null) {
+    return (
+      <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
+        computing…
+      </span>
+    )
+  }
+
+  const color = score >= 80 ? 'var(--verified)' : score >= 60 ? '#ff9f43' : 'var(--accent2)'
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+      <span style={{
+        fontFamily: 'var(--mono)', fontSize: 16, fontWeight: 700, color,
+      }}>
+        {score}
+      </span>
+      <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', letterSpacing: 1 }}>
+        {postCount} NEWS POST{postCount !== 1 ? 'S' : ''}
+      </span>
+    </div>
+  )
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -65,6 +116,7 @@ export default function AdminDashboard() {
   const [expandedClaim, setExpandedClaim] = useState(null)
   const [claimNotes, setClaimNotes] = useState({})
   const [scoreInputs, setScoreInputs] = useState({})
+  const [feedback, setFeedback] = useState([])
 
   useEffect(() => { checkAdminAndLoad() }, [])
 
@@ -72,13 +124,21 @@ export default function AdminDashboard() {
     const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
     if (!data || data.role !== 'admin') { navigate('/feed'); return }
     setUserRole('admin')
-    await Promise.all([loadApplications(), loadClaims(), loadOsintUsers()])
+    await Promise.all([loadApplications(), loadClaims(), loadOsintUsers(), loadFeedback()])
     setLoading(false)
   }
 
   async function loadApplications() {
     const { data } = await supabase.from('osint_applications').select('*').order('created_at', { ascending: false })
     setApplications(data || [])
+  }
+
+  async function loadFeedback() {
+    const { data } = await supabase
+      .from('feedback')
+      .select('*')
+      .order('created_at', { ascending: false })
+    setFeedback(data || [])
   }
 
   async function loadClaims() {
@@ -193,6 +253,7 @@ export default function AdminDashboard() {
           { id: 'applications', label: `Applications (${pending.length})` },
           { id: 'claims',       label: `Claims (${openClaims.length} open)` },
           { id: 'scores',       label: 'Score Override' },
+          { id: 'feedback', label: `Feedback (${feedback.length})` },
         ].map(t => (
           <div
             key={t.id}
@@ -246,7 +307,11 @@ export default function AdminDashboard() {
                       <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{app.handle}</div>
                     </div>
                     <StatusBadge status="pending" />
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}>{timeAgo(app.created_at)}</div>
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>{timeAgo(app.created_at)}</div>
+                    <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', letterSpacing: 1, marginBottom: 2 }}>STARTING SCORE</div>
+                      <StartingScoreChip userId={app.user_id} />
+                    </div>
                   </div>
                   {app.portfolio && <div style={{ marginBottom: 8 }}><div style={fieldLabel}>Portfolio</div><div style={fieldValue}>{app.portfolio}</div></div>}
                   {app.why && <div style={{ marginBottom: 8 }}><div style={fieldLabel}>Why they should be approved</div><div style={fieldValue}>{app.why}</div></div>}
@@ -500,6 +565,96 @@ export default function AdminDashboard() {
                       {processing === `score-${u.id}` ? '...' : 'SET SCORE'}
                     </button>
                   </div>
+                </div>
+              ))
+            }
+          </>
+        )}
+        {/* ══ FEEDBACK ══ */}
+        {activeTab === 'feedback' && (
+          <>
+            {/* Stats */}
+            <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
+              {['very_bad', 'bad', 'okay', 'good', 'very_good'].map(r => {
+                const color = { very_bad: '#e84848', bad: 'var(--accent2)', okay: 'var(--warn)', good: 'var(--accent)', very_good: 'var(--verified)' }[r]
+                const label = { very_bad: 'Very Bad', bad: 'Bad', okay: 'Okay', good: 'Good', very_good: 'Very Good' }[r]
+                const count = feedback.reduce((acc, f) => {
+                  return acc + Object.values(f.ratings || {}).filter(v => v?.rating === r).length
+                }, 0)
+                return (
+                  <div key={r} style={{ flex: 1, minWidth: 100, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 18px' }}>
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 2, color: 'var(--muted)', marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color }}>{count}</div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div style={sectionTitle}>◈ Submissions ({feedback.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
+
+            {loading ? <div style={emptyState}>LOADING...</div>
+              : feedback.length === 0 ? <div style={emptyState}>No feedback submitted yet</div>
+              : feedback.map(f => (
+                <div key={f.id} style={{ ...card, marginBottom: 16 }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <div style={{ ...avatarStyle, background: 'var(--surface2)' }}>
+                      {(f.username || '?')[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text)', fontWeight: 600 }}>
+                        {f.username || 'Anonymous'}
+                      </div>
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)' }}>
+                        {timeAgo(f.created_at)}
+                      </div>
+                    </div>
+                    {/* Rating summary */}
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      {['very_bad', 'bad', 'okay', 'good', 'very_good'].map(r => {
+                        const color = { very_bad: '#e84848', bad: 'var(--accent2)', okay: 'var(--warn)', good: 'var(--accent)', very_good: 'var(--verified)' }[r]
+                        const label = { very_bad: 'Very Bad', bad: 'Bad', okay: 'Okay', good: 'Good', very_good: 'Very Good' }[r]
+                        const count = Object.values(f.ratings || {}).filter(v => v?.rating === r).length
+                        if (count === 0) return null
+                        return (
+                          <span key={r} style={{ fontFamily: 'var(--mono)', fontSize: 9, color, padding: '2px 8px', border: `1px solid ${color}44`, borderRadius: 3 }}>
+                            {label} × {count}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Feature ratings */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: f.overall_comment ? 14 : 0 }}>
+                    {Object.entries(f.ratings || {}).map(([featureId, val]) => {
+                      if (!val?.rating && !val?.comment) return null
+                      const feature = FEATURES_META[featureId] || featureId.replace(/_/g, ' ')
+                      const ratingColor = { very_bad: '#e84848', bad: 'var(--accent2)', okay: 'var(--warn)', good: 'var(--accent)', very_good: 'var(--verified)' }[val.rating] || 'var(--muted)'
+                      const ratingLabel = { very_bad: 'Very Bad', bad: 'Bad', okay: 'Okay', good: 'Good', very_good: 'Very Good' }[val.rating] || '—'
+                      return (
+                        <div key={featureId} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '6px 10px', background: 'var(--bg)', borderRadius: 4 }}>
+                          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', minWidth: 160 }}>{feature}</div>
+                          <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: ratingColor, padding: '2px 6px', border: `1px solid ${ratingColor}44`, borderRadius: 3, flexShrink: 0 }}>
+                            {ratingLabel}
+                          </span>
+                          {val.comment && (
+                            <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5, fontFamily: 'var(--sans)' }}>
+                              {val.comment}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Overall comment */}
+                  {f.overall_comment && (
+                    <div style={{ padding: '10px 14px', background: 'rgba(0,212,255,0.04)', border: '1px solid rgba(0,212,255,0.12)', borderRadius: 6 }}>
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', marginBottom: 6, letterSpacing: 1 }}>OVERALL COMMENTS</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, fontFamily: 'var(--sans)' }}>{f.overall_comment}</div>
+                    </div>
+                  )}
                 </div>
               ))
             }
