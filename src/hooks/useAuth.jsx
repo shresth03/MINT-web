@@ -24,16 +24,15 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signUp = async (email, password, username) => {
+  const signUp = async (email, password, username, role = 'public') => {
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) return { error }
 
-    // Create user profile in public.users table
     if (data.user) {
       await supabase.from('users').insert({
         id: data.user.id,
         username,
-        role: 'public',
+        role: ['public', 'reporter'].includes(role) ? role : 'public',
       })
     }
     return { data }

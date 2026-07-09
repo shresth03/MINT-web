@@ -1273,6 +1273,9 @@ export default function GeneralFeed() {
                         {post.users?.role === 'osint' && (
                           <span style={{ color: 'var(--verified)', marginLeft: 4, fontSize: 10 }}>◆</span>
                         )}
+                        {post.users?.role === 'reporter' && (
+                          <span style={{ color: 'var(--accent)', marginLeft: 4, fontSize: 10 }}>◈</span>
+                        )}
                       </span>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
                         {timeAgo(post.created_at)}

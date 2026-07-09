@@ -10,6 +10,9 @@ import SearchPage from './pages/SearchPage'
 import ChannelPage from './pages/ChannelPage'
 import MessagesPage from './pages/MessagesPage'
 import FeedbackPage from './pages/FeedbackPage'
+import ArticlesPage from './pages/ArticlesPage'
+import LivePage from './pages/LivePage'
+import ReelsPage from './pages/ReelsPage'
 
 export default function App() {
   return (
@@ -48,6 +51,9 @@ export default function App() {
       } />
       <Route path="/404" element={<NotFound />} />
       <Route path="/feedback" element={<FeedbackPage />} />
+      <Route path="/articles" element={<ProtectedRoute><ArticlesPage /></ProtectedRoute>} />
+      <Route path="/live" element={<ProtectedRoute><LivePage /></ProtectedRoute>} />
+      <Route path="/reels" element={<ProtectedRoute><ReelsPage /></ProtectedRoute>} />
     </Routes>
   )
 }

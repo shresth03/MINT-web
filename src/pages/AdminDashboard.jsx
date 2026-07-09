@@ -109,6 +109,8 @@ export default function AdminDashboard() {
   const [applications, setApplications] = useState([])
   const [claims, setClaims] = useState([])
   const [osintUsers, setOsintUsers] = useState([])
+  const [reporters, setReporters] = useState([])
+  const [publicUsers, setPublicUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(null)
   const [userRole, setUserRole] = useState(null)
@@ -144,11 +146,23 @@ export default function AdminDashboard() {
     setOsintUsers(data || [])
   }
 
+  async function loadReportersAndPublic() {
+    const { data: rData } = await supabase.from('users').select('id, username, role, created_at').eq('role', 'reporter').order('created_at', { ascending: false })
+    const { data: pData } = await supabase.from('users').select('id, username, role, created_at').eq('role', 'public').order('created_at', { ascending: false }).limit(50)
+    setReporters(rData || [])
+    setPublicUsers(pData || [])
+  }
+
+  async function assignRole(userId, newRole) {
+    await supabase.from('users').update({ role: newRole }).eq('id', userId)
+    await loadReportersAndPublic()
+  }
+
   async function checkAdminAndLoad() {
     const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
     if (!data || data.role !== 'admin') { navigate('/feed'); return }
     setUserRole('admin')
-    await Promise.all([loadApplications(), loadClaims(), loadOsintUsers(), loadFeedback()])
+    await Promise.all([loadApplications(), loadClaims(), loadOsintUsers(), loadFeedback(), loadReportersAndPublic()])
     setLoading(false)
   }
 
@@ -253,7 +267,8 @@ export default function AdminDashboard() {
           { id: 'applications', label: `Applications (${pending.length})` },
           { id: 'claims',       label: `Claims (${openClaims.length} open)` },
           { id: 'scores',       label: 'Score Override' },
-          { id: 'feedback', label: `Feedback (${feedback.length})` },
+          { id: 'reporters',    label: 'Reporters' },
+          { id: 'feedback',     label: `Feedback (${feedback.length})` },
         ].map(t => (
           <div
             key={t.id}
@@ -570,6 +585,44 @@ export default function AdminDashboard() {
             }
           </>
         )}
+        {/* ══ REPORTERS ══ */}
+        {activeTab === 'reporters' && (
+          <>
+            <div style={sectionTitle}>◈ Active Reporters ({reporters.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
+            {reporters.length === 0
+              ? <div style={emptyState}>No reporters yet</div>
+              : reporters.map(u => (
+                <div key={u.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ ...avatarStyle, width: 32, height: 32, fontSize: 12 }}>{u.username?.[0]?.toUpperCase()}</div>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{u.username}</span>
+                    <span style={{ marginLeft: 6, fontSize: 9, color: 'var(--accent)' }}>◈ REPORTER</span>
+                  </div>
+                  <button onClick={() => assignRole(u.id, 'public')} disabled={processing === u.id} style={{ padding: '5px 12px', background: 'transparent', border: '1px solid var(--accent2)', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent2)', cursor: 'pointer' }}>
+                    REVOKE
+                  </button>
+                </div>
+              ))
+            }
+
+            <div style={{ ...sectionTitle, marginTop: 28 }}>○ Public Users — Assign Reporter ({publicUsers.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
+            {publicUsers.length === 0
+              ? <div style={emptyState}>No public users</div>
+              : publicUsers.map(u => (
+                <div key={u.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ ...avatarStyle, width: 32, height: 32, fontSize: 12, background: 'var(--surface2)' }}>{u.username?.[0]?.toUpperCase()}</div>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)' }}>{u.username}</span>
+                  </div>
+                  <button onClick={() => assignRole(u.id, 'reporter')} disabled={processing === u.id} style={{ padding: '5px 12px', background: 'rgba(0,212,255,0.08)', border: '1px solid var(--accent)', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', cursor: 'pointer' }}>
+                    MAKE REPORTER
+                  </button>
+                </div>
+              ))
+            }
+          </>
+        )}
+
         {/* ══ FEEDBACK ══ */}
         {activeTab === 'feedback' && (
           <>

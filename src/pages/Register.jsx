@@ -2,10 +2,26 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
+const ACCOUNT_TYPES = [
+  {
+    id: 'public',
+    label: 'Public',
+    icon: '○',
+    desc: 'Read intel, follow analysts, join discussions',
+  },
+  {
+    id: 'reporter',
+    label: 'Reporter',
+    icon: '◈',
+    desc: 'Access articles, publish live broadcasts & reels',
+  },
+]
+
 export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
+  const [accountType, setAccountType] = useState('public')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
@@ -17,7 +33,7 @@ export default function Register() {
     if (password.length < 6) { setError('Password must be at least 6 characters'); return }
     setLoading(true)
     setError('')
-    const { error } = await signUp(email, password, username)
+    const { error } = await signUp(email, password, username, accountType)
     if (error) { setError(error.message); setLoading(false) }
     else { setSuccess('Account created! Redirecting...'); setTimeout(() => navigate('/feed'), 1500) }
   }
@@ -38,7 +54,7 @@ export default function Register() {
     }}>
       <div style={{
         background: 'var(--surface)', border: '1px solid var(--border)',
-        borderRadius: 10, padding: 36, width: 400, maxWidth: '92vw',
+        borderRadius: 10, padding: 36, width: 420, maxWidth: '92vw',
       }}>
 
         {/* Logo */}
@@ -49,96 +65,77 @@ export default function Register() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 16, fontWeight: 700, color: 'var(--bg)', fontFamily: 'var(--mono)',
           }}>⬡</div>
-          <div style={{
-            fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700,
-            color: 'var(--accent)', letterSpacing: 3,
-          }}>MINT</div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700, color: 'var(--accent)', letterSpacing: 3 }}>MINT</div>
         </div>
 
-        {/* Subtitle */}
-        <div style={{
-          fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: 2,
-          color: 'var(--muted)', textAlign: 'center',
-          marginBottom: 28, textTransform: 'uppercase',
-        }}>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: 2, color: 'var(--muted)', textAlign: 'center', marginBottom: 24, textTransform: 'uppercase' }}>
           Create your account
         </div>
 
-        {/* Error */}
+        {/* Account type selector */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 2, color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase' }}>
+            Account type
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {ACCOUNT_TYPES.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setAccountType(t.id)}
+                style={{
+                  flex: 1, padding: '10px 12px', cursor: 'pointer',
+                  border: `1px solid ${accountType === t.id ? 'var(--accent)' : 'var(--border)'}`,
+                  background: accountType === t.id ? 'rgba(0,212,255,0.07)' : 'transparent',
+                  borderRadius: 6, textAlign: 'left', transition: 'all 0.15s',
+                }}
+              >
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: accountType === t.id ? 'var(--accent)' : 'var(--text)', marginBottom: 4 }}>
+                  {t.icon} {t.label.toUpperCase()}
+                </div>
+                <div style={{ fontFamily: 'var(--sans)', fontSize: 10, color: 'var(--muted)', lineHeight: 1.4 }}>
+                  {t.desc}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {error && (
-          <div style={{
-            background: 'rgba(232,72,72,0.1)', border: '1px solid var(--accent2)',
-            borderRadius: 4, padding: '10px 14px', color: 'var(--accent2)',
-            fontSize: 12, marginBottom: 14, fontFamily: 'var(--sans)',
-          }}>
+          <div style={{ background: 'rgba(232,72,72,0.1)', border: '1px solid var(--accent2)', borderRadius: 4, padding: '10px 14px', color: 'var(--accent2)', fontSize: 12, marginBottom: 14, fontFamily: 'var(--sans)' }}>
             {error}
           </div>
         )}
-
-        {/* Success */}
         {success && (
-          <div style={{
-            background: 'rgba(48,216,128,0.1)', border: '1px solid var(--verified)',
-            borderRadius: 4, padding: '10px 14px', color: 'var(--verified)',
-            fontSize: 12, marginBottom: 14, fontFamily: 'var(--sans)',
-          }}>
+          <div style={{ background: 'rgba(48,216,128,0.1)', border: '1px solid var(--verified)', borderRadius: 4, padding: '10px 14px', color: 'var(--verified)', fontSize: 12, marginBottom: 14, fontFamily: 'var(--sans)' }}>
             {success}
           </div>
         )}
 
-        {/* Inputs */}
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={e => setUsername(e.target.value)}
-          style={inputStyle}
+        <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} style={inputStyle}
           onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-          onBlur={e => e.target.style.borderColor = 'var(--border)'}
-        />
-        <input
-          type="email"
-          placeholder="Email address"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          style={inputStyle}
+          onBlur={e => e.target.style.borderColor = 'var(--border)'} />
+        <input type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle}
           onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-          onBlur={e => e.target.style.borderColor = 'var(--border)'}
-        />
-        <input
-          type="password"
-          placeholder="Password (min 6 characters)"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleRegister()}
-          style={inputStyle}
+          onBlur={e => e.target.style.borderColor = 'var(--border)'} />
+        <input type="password" placeholder="Password (min 6 characters)" value={password} onChange={e => setPassword(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleRegister()} style={inputStyle}
           onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-          onBlur={e => e.target.style.borderColor = 'var(--border)'}
-        />
+          onBlur={e => e.target.style.borderColor = 'var(--border)'} />
 
-        {/* Button */}
-        <button
-          onClick={handleRegister}
-          disabled={loading}
-          style={{
-            width: '100%', padding: 11, marginTop: 4,
-            background: loading ? 'var(--border)' : 'var(--accent)',
-            color: loading ? 'var(--muted)' : 'var(--bg)',
-            fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700,
-            letterSpacing: 1, border: 'none', borderRadius: 4,
-            cursor: loading ? 'not-allowed' : 'pointer',
-            transition: 'background 0.15s',
-          }}
-        >
+        <button onClick={handleRegister} disabled={loading} style={{
+          width: '100%', padding: 11, marginTop: 4,
+          background: loading ? 'var(--border)' : 'var(--accent)',
+          color: loading ? 'var(--muted)' : 'var(--bg)',
+          fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700,
+          letterSpacing: 1, border: 'none', borderRadius: 4,
+          cursor: loading ? 'not-allowed' : 'pointer', transition: 'background 0.15s',
+        }}>
           {loading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
         </button>
 
-        {/* Link */}
         <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: 'var(--muted)', fontFamily: 'var(--sans)' }}>
           Already have an account?{' '}
-          <Link to="/login" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
-            Sign in
-          </Link>
+          <Link to="/login" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Sign in</Link>
         </div>
       </div>
     </div>
