@@ -150,7 +150,7 @@ export async function computeScore(targetUserId) {
       .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
   ])
 
-  const { avgPostScore, breakdown, totalPosts } = postResult
+  const { avgPostScore, breakdown } = postResult
 
   // Note accuracy modifier (0–5 pts)
   const accurateNotes   = noteRes.data?.filter(n => n.accuracy_rating === 'accurate').length || 0
@@ -186,11 +186,6 @@ export function useCredibility(targetUserId) {
   const [breakdown, setBreakdown] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!targetUserId) return
-    fetchCredibility()
-  }, [targetUserId])
-
   async function fetchCredibility() {
     setLoading(true)
 
@@ -216,6 +211,11 @@ export function useCredibility(targetUserId) {
     setBreakdown(bd)
     setLoading(false)
   }
+
+  useEffect(() => {
+    if (!targetUserId) return
+    fetchCredibility()
+  }, [targetUserId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return { score, breakdown, loading, refetch: fetchCredibility }
 }

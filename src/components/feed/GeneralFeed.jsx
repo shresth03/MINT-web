@@ -149,7 +149,6 @@ function buildTree(replies) {
 
 function MentionTextarea({ value, onChange, placeholder, rows = 2, onKeyDown, autoFocus = false }) {
   const [suggestions, setSuggestions] = useState([])
-  const [mentionQuery, setMentionQuery] = useState(null)
   const [mentionStart, setMentionStart] = useState(null)
   const [selectedIdx, setSelectedIdx] = useState(0)
   const textareaRef = useRef(null)
@@ -165,14 +164,13 @@ function MentionTextarea({ value, onChange, placeholder, rows = 2, onKeyDown, au
     const match = textUpToCursor.match(/@(\w*)$/)
 
     if (match) {
-      setMentionQuery(match[1])
       setMentionStart(cursor - match[0].length)
       const results = await searchUsers(match[1])
       setSuggestions(results)
       setSelectedIdx(0)
     } else {
       setSuggestions([])
-      setMentionQuery(null)
+      setMentionStart(null)
     }
   }
 
@@ -182,7 +180,6 @@ function MentionTextarea({ value, onChange, placeholder, rows = 2, onKeyDown, au
     const newVal = `${before}@${username} ${after}`
     onChange(newVal)
     setSuggestions([])
-    setMentionQuery(null)
     setTimeout(() => {
       textareaRef.current?.focus()
       const pos = before.length + username.length + 2
@@ -198,7 +195,7 @@ function MentionTextarea({ value, onChange, placeholder, rows = 2, onKeyDown, au
         if (suggestions[selectedIdx]) { e.preventDefault(); insertMention(suggestions[selectedIdx].username) }
         return
       }
-      if (e.key === 'Escape') { setSuggestions([]); setMentionQuery(null) }
+      if (e.key === 'Escape') { setSuggestions([]); setMentionStart(null) }
     }
     onKeyDown?.(e)
   }
@@ -281,7 +278,6 @@ function MentionTextarea({ value, onChange, placeholder, rows = 2, onKeyDown, au
 }
 
 function ReplyNode({ node, depth = 0, postId, createReply, createNotification, postAuthorId, fetchNewReply, voteReply }) {
-  const { user } = useAuth()
   const navigate = useNavigate()
   const [replyOpen, setReplyOpen] = useState(false)
   const [body, setBody] = useState('')
@@ -527,29 +523,13 @@ function ReplyNode({ node, depth = 0, postId, createReply, createNotification, p
   )
 }
 
-function ReplyThread({ postId, authorId, onClose, createReply, fetchReplies, createNotification, voteReply }) {
+function ReplyThread({ postId, authorId, createReply, fetchReplies, createNotification, voteReply }) {
   const { user } = useAuth()
   const [replies, setReplies] = useState([])
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
   const bottomRef = useRef(null)
-
-  useEffect(() => {
-    loadReplies()
-    const sub = supabase
-      .channel(`replies:${postId}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'replies',
-        filter: `post_id=eq.${postId}`
-      }, payload => { fetchNewReply(payload.new.id) })
-      .subscribe()
-    return () => supabase.removeChannel(sub)
-  }, [postId])
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [replies])
 
   async function loadReplies() {
     const { data } = await fetchReplies(postId)
@@ -562,6 +542,22 @@ function ReplyThread({ postId, authorId, onClose, createReply, fetchReplies, cre
       .from('replies').select('*, users(username, role)').eq('id', id).single()
     if (data) setReplies(prev => prev.some(r => r.id === data.id) ? prev : [...prev, data])
   }
+
+  useEffect(() => {
+    loadReplies()
+    const sub = supabase
+      .channel(`replies:${postId}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'replies',
+        filter: `post_id=eq.${postId}`
+      }, payload => { fetchNewReply(payload.new.id) })
+      .subscribe()
+    return () => supabase.removeChannel(sub)
+  }, [postId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [replies])
 
   async function handleSend() {
     if (!body.trim()) return
@@ -787,6 +783,7 @@ export default function GeneralFeed() {
   const [composerOpen, setComposerOpen] = useState(false)
   const [postType, setPostType] = useState('general')
   const [feedTab, setFeedTab] = useState('all')
+  const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000)
   const [followedIds, setFollowedIds] = useState([])
 
   useEffect(() => {
@@ -1162,7 +1159,6 @@ export default function GeneralFeed() {
             LOADING FEED...
           </div>
         ) : (() => {
-          const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000)
           const hotScore = p => (p.likes || 0) + (p.reply_count || 0) * 2 + (p.repost_count || 0)
 
           const displayPosts = feedTab === 'following'

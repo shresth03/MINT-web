@@ -118,16 +118,6 @@ export default function AdminDashboard() {
   const [scoreInputs, setScoreInputs] = useState({})
   const [feedback, setFeedback] = useState([])
 
-  useEffect(() => { checkAdminAndLoad() }, [])
-
-  async function checkAdminAndLoad() {
-    const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-    if (!data || data.role !== 'admin') { navigate('/feed'); return }
-    setUserRole('admin')
-    await Promise.all([loadApplications(), loadClaims(), loadOsintUsers(), loadFeedback()])
-    setLoading(false)
-  }
-
   async function loadApplications() {
     const { data } = await supabase.from('osint_applications').select('*').order('created_at', { ascending: false })
     setApplications(data || [])
@@ -153,6 +143,16 @@ export default function AdminDashboard() {
     const { data } = await supabase.from('users').select('id, username, score, role').eq('role', 'osint').order('score', { ascending: false })
     setOsintUsers(data || [])
   }
+
+  async function checkAdminAndLoad() {
+    const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
+    if (!data || data.role !== 'admin') { navigate('/feed'); return }
+    setUserRole('admin')
+    await Promise.all([loadApplications(), loadClaims(), loadOsintUsers(), loadFeedback()])
+    setLoading(false)
+  }
+
+  useEffect(() => { checkAdminAndLoad() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadClaimNotes(claimId, postId) {
     if (claimNotes[claimId]) { setExpandedClaim(expandedClaim === claimId ? null : claimId); return }
