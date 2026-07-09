@@ -12,7 +12,6 @@ function makeChain(resolved = DEFAULT) {
     // Terminal methods that return promises directly
     single: vi.fn().mockResolvedValue({ data: null, error: null }),
     maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-    limit: vi.fn().mockResolvedValue(resolved),
     // Channel for realtime subscriptions
     channel: vi.fn().mockReturnValue({
       on: vi.fn().mockReturnThis(),
@@ -25,7 +24,7 @@ function makeChain(resolved = DEFAULT) {
   const chainable = [
     'from', 'select', 'insert', 'update', 'delete',
     'eq', 'neq', 'in', 'gte', 'lte', 'gt', 'lt',
-    'ilike', 'like', 'textSearch', 'order',
+    'ilike', 'like', 'textSearch', 'order', 'limit',
     'not', 'filter', 'match', 'is',
   ]
   chainable.forEach(m => { chain[m] = vi.fn().mockReturnValue(chain) })
