@@ -1,24 +1,37 @@
 import { vi } from 'vitest'
 
-export const mockSupabase = {
-  from: vi.fn().mockReturnThis(),
-  select: vi.fn().mockReturnThis(),
-  insert: vi.fn().mockReturnThis(),
-  update: vi.fn().mockReturnThis(),
-  delete: vi.fn().mockReturnThis(),
-  eq: vi.fn().mockReturnThis(),
-  in: vi.fn().mockReturnThis(),
-  single: vi.fn().mockResolvedValue({ data: null, error: null }),
-  order: vi.fn().mockReturnThis(),
-  limit: vi.fn().mockResolvedValue({ data: [], error: null }),
-  textSearch: vi.fn().mockReturnThis(),
-  ilike: vi.fn().mockReturnThis(),
-  rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
-  channel: vi.fn().mockReturnValue({
-    on: vi.fn().mockReturnThis(),
-    subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
-  }),
-  removeChannel: vi.fn(),
+// Default resolved value for terminal awaits
+const DEFAULT = { data: [], error: null }
+
+// Build a chainable mock that is also thenable (awaitable without a terminal method)
+function makeChain(resolved = DEFAULT) {
+  const chain = {
+    // Thenable: allows `await supabase.from(...).select(...).eq(...)`
+    then: vi.fn((resolve) => Promise.resolve(resolved).then(resolve)),
+    catch: vi.fn((reject) => Promise.resolve(resolved).catch(reject)),
+    // Terminal methods that return promises directly
+    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    limit: vi.fn().mockResolvedValue(resolved),
+    // Channel for realtime subscriptions
+    channel: vi.fn().mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
+    }),
+    removeChannel: vi.fn(),
+    rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
+  }
+  // All chainable filter/modifier methods return the same chain
+  const chainable = [
+    'from', 'select', 'insert', 'update', 'delete',
+    'eq', 'neq', 'in', 'gte', 'lte', 'gt', 'lt',
+    'ilike', 'like', 'textSearch', 'order',
+    'not', 'filter', 'match', 'is',
+  ]
+  chainable.forEach(m => { chain[m] = vi.fn().mockReturnValue(chain) })
+  return chain
 }
+
+export const mockSupabase = makeChain()
 
 vi.mock('../../api/supabase', () => ({ supabase: mockSupabase }))
