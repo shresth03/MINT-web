@@ -14,7 +14,15 @@ async function scoreNewsPosts(targetUserId) {
     .eq('post_type', 'news')
     .gte('created_at', sixMonthsAgo)
 
-  if (!ownPosts || ownPosts.length === 0) return { avgPostScore: null, breakdown: null, totalPosts: 0 }
+  if (!ownPosts || ownPosts.length === 0) return {
+    avgPostScore: null,
+    totalPosts: 0,
+    breakdown: {
+      avgPostScore: 0, totalPosts: 0, totalCited: 0, totalPeerCorr: 0,
+      totalReactions: 0, positiveReactions: 0, negativeReactions: 0,
+      falseClaims: 0, verifiedClaims: 0,
+    },
+  }
 
   const postIds = ownPosts.map(p => p.id)
 
@@ -165,19 +173,12 @@ export async function computeScore(targetUserId) {
   const base = avgPostScore === null ? 80 : avgPostScore
   const finalScore = Math.min(100, Math.max(0, base + noteBoost + consistencyBoost))
 
+  const extra = { noteBoost, consistencyBoost, activeDays, accurateNotes, totalRatedNotes, finalScore }
   return {
     score: finalScore,
     breakdown: breakdown
-      ? {
-          ...breakdown,
-          noteBoost,
-          consistencyBoost,
-          activeDays,
-          accurateNotes,
-          totalRatedNotes,
-          finalScore,
-        }
-      : null,
+      ? { ...breakdown, ...extra }
+      : { avgPostScore: 0, totalPosts: 0, totalCited: 0, totalPeerCorr: 0, totalReactions: 0, positiveReactions: 0, negativeReactions: 0, falseClaims: 0, verifiedClaims: 0, ...extra },
   }
 }
 

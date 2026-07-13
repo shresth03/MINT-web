@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageShell from '../components/PageShell'
 import { useStories } from '../hooks/useStories'
+import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../api/supabase'
 
 const TAG_COLORS = {
   CONFLICT: '#e84848', CYBER: '#00d4ff', GEOPOLITICS: '#ff9f43',
@@ -227,11 +229,135 @@ function ArticleDetail({ story, onClose }) {
   )
 }
 
+const TAGS = ['CONFLICT', 'CYBER', 'GEOPOLITICS', 'MILITARY', 'HUMANITARIAN', 'NUCLEAR', 'MARITIME', 'INTELLIGENCE', 'BREAKING', 'SECURITY', 'OTHER']
+const REGIONS = ['Global', 'North America', 'South America', 'Europe', 'Middle East', 'Africa', 'Asia Pacific', 'Central Asia', 'Eastern Europe']
+
+function ArticleComposer({ onClose, onPublished }) {
+  const { user } = useAuth()
+  const [headline, setHeadline] = useState('')
+  const [summary, setSummary] = useState('')
+  const [tag, setTag] = useState('GEOPOLITICS')
+  const [region, setRegion] = useState('Global')
+  const [confidence, setConfidence] = useState(60)
+  const [publishing, setPublishing] = useState(false)
+  const [error, setError] = useState('')
+
+  const handlePublish = async () => {
+    if (!headline.trim() || !summary.trim()) { setError('Headline and summary are required'); return }
+    setPublishing(true)
+    const { error: err } = await supabase.from('stories').insert({
+      headline: headline.trim(),
+      summary: summary.trim(),
+      tag,
+      region,
+      confidence,
+      author_id: user.id,
+      is_breaking: false,
+    })
+    setPublishing(false)
+    if (err) { setError(err.message); return }
+    onPublished()
+    onClose()
+  }
+
+  const inputStyle = {
+    width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
+    borderRadius: 4, padding: '10px 14px', color: 'var(--text)',
+    fontFamily: 'var(--sans)', fontSize: 13, outline: 'none',
+    marginBottom: 12, boxSizing: 'border-box',
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+      zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+    }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 10, padding: 28, width: 520, maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, letterSpacing: 1, color: 'var(--text)' }}>
+            ◈ WRITE ARTICLE
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 16, cursor: 'pointer' }}>✕</button>
+        </div>
+
+        {error && (
+          <div style={{ background: 'rgba(232,72,72,0.1)', border: '1px solid var(--accent2)', borderRadius: 4, padding: '8px 12px', color: 'var(--accent2)', fontSize: 11, marginBottom: 12, fontFamily: 'var(--sans)' }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1, color: 'var(--muted)', marginBottom: 4 }}>HEADLINE *</div>
+        <input value={headline} onChange={e => setHeadline(e.target.value)} placeholder="Article headline..." style={inputStyle}
+          onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+          onBlur={e => e.target.style.borderColor = 'var(--border)'} />
+
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1, color: 'var(--muted)', marginBottom: 4 }}>SUMMARY *</div>
+        <textarea value={summary} onChange={e => setSummary(e.target.value)} placeholder="Intel summary and analysis..." rows={5}
+          style={{ ...inputStyle, resize: 'vertical', fontFamily: 'var(--sans)' }}
+          onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+          onBlur={e => e.target.style.borderColor = 'var(--border)'} />
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1, color: 'var(--muted)', marginBottom: 4 }}>TAG</div>
+            <select value={tag} onChange={e => setTag(e.target.value)} style={{ ...inputStyle, marginBottom: 0, cursor: 'pointer' }}>
+              {TAGS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1, color: 'var(--muted)', marginBottom: 4 }}>REGION</div>
+            <select value={region} onChange={e => setRegion(e.target.value)} style={{ ...inputStyle, marginBottom: 0, cursor: 'pointer' }}>
+              {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1, color: 'var(--muted)' }}>CONFIDENCE</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: confidence >= 70 ? 'var(--verified)' : confidence >= 40 ? '#ff9f43' : 'var(--accent2)' }}>
+              {confidence}%
+            </div>
+          </div>
+          <input type="range" min={0} max={100} value={confidence} onChange={e => setConfidence(Number(e.target.value))}
+            style={{ width: '100%', accentColor: 'var(--accent)', cursor: 'pointer' }} />
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '9px 0', background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', cursor: 'pointer' }}>
+            CANCEL
+          </button>
+          <button onClick={handlePublish} disabled={publishing || !headline.trim() || !summary.trim()} style={{
+            flex: 2, padding: '9px 0', background: 'var(--accent)', color: 'var(--bg)',
+            border: 'none', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, cursor: 'pointer',
+            opacity: (!headline.trim() || !summary.trim()) ? 0.5 : 1,
+          }}>
+            {publishing ? 'PUBLISHING...' : 'PUBLISH ARTICLE'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ArticlesPage() {
-  const { stories, loading } = useStories()
+  const { user } = useAuth()
+  const { stories, loading, refetch } = useStories()
   const [selected, setSelected] = useState(null)
   const [tagFilter, setTagFilter] = useState(null)
+  const [showComposer, setShowComposer] = useState(false)
+  const [userRole, setUserRole] = useState(null)
 
+  useEffect(() => {
+    if (!user?.id) return
+    supabase.from('users').select('role').eq('id', user.id).single()
+      .then(({ data }) => setUserRole(data?.role || null))
+  }, [user?.id])
+
+  const canWrite = ['osint', 'reporter', 'admin'].includes(userRole)
   const filtered = tagFilter ? stories.filter(s => s.tag === tagFilter) : stories
   const allTags = [...new Set(stories.map(s => s.tag).filter(Boolean))]
 
@@ -240,13 +366,29 @@ export default function ArticlesPage() {
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
 
         {/* Header */}
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: 2, marginBottom: 6 }}>
-            ◈ INTEL ARTICLES
+        <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 28 }}>
+          <div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: 2, marginBottom: 6 }}>
+              ◈ INTEL ARTICLES
+            </div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: 1 }}>
+              OSINT intelligence compiled into verified reports
+            </div>
           </div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: 1 }}>
-            OSINT intelligence compiled into verified reports
-          </div>
+          {canWrite && (
+            <button
+              onClick={() => setShowComposer(true)}
+              style={{
+                marginLeft: 'auto', padding: '9px 18px',
+                background: 'var(--accent)', color: 'var(--bg)',
+                border: 'none', borderRadius: 4,
+                fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700,
+                letterSpacing: 1, cursor: 'pointer',
+              }}
+            >
+              + WRITE ARTICLE
+            </button>
+          )}
         </div>
 
         {/* Tag filter chips */}
@@ -304,6 +446,12 @@ export default function ArticlesPage() {
       </div>
 
       {selected && <ArticleDetail story={selected} onClose={() => setSelected(null)} />}
+      {showComposer && (
+        <ArticleComposer
+          onClose={() => setShowComposer(false)}
+          onPublished={() => { setShowComposer(false); refetch?.() }}
+        />
+      )}
     </PageShell>
   )
 }

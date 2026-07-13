@@ -44,6 +44,11 @@ export default function App() {
           <MessagesPage />
         </ProtectedRoute>
       } />
+      <Route path="/feed" element={
+        <ProtectedRoute>
+          <PrototypePage />
+        </ProtectedRoute>
+      } />
       <Route path="/*" element={
         <ProtectedRoute>
           <PrototypePage />

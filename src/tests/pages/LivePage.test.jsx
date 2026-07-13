@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import '../mocks/supabase.js'
+import { mockSupabase } from '../mocks/supabase.js'
 import LivePage from '../../pages/LivePage'
 
 const mockCreateStream = vi.fn()
@@ -44,7 +44,11 @@ vi.mock('../../hooks/useAuth', () => ({
 const renderPage = () => render(<MemoryRouter><LivePage /></MemoryRouter>)
 
 describe('LivePage', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Role is fetched from users table; return 'osint' so canBroadcast is true
+    mockSupabase.single.mockResolvedValue({ data: { role: 'osint' }, error: null })
+  })
 
   it('renders page header', () => {
     renderPage()
@@ -73,22 +77,22 @@ describe('LivePage', () => {
     expect(screen.getByText('◷ SCHEDULED')).toBeInTheDocument()
   })
 
-  it('shows GO LIVE button for eligible users', () => {
+  it('shows GO LIVE button for eligible users', async () => {
     renderPage()
-    // Button text is "▶ GO LIVE"
-    expect(screen.getAllByText('▶ GO LIVE').length).toBeGreaterThan(0)
+    const buttons = await screen.findAllByText('▶ GO LIVE')
+    expect(buttons.length).toBeGreaterThan(0)
   })
 
-  it('opens create stream modal on GO LIVE click', () => {
+  it('opens create stream modal on GO LIVE click', async () => {
     renderPage()
-    const buttons = screen.getAllByText('▶ GO LIVE')
+    const buttons = await screen.findAllByText('▶ GO LIVE')
     fireEvent.click(buttons[0])
     expect(screen.getByPlaceholderText(/Stream title/i)).toBeInTheDocument()
   })
 
-  it('closes create modal on CANCEL', () => {
+  it('closes create modal on CANCEL', async () => {
     renderPage()
-    fireEvent.click(screen.getAllByText('▶ GO LIVE')[0])
+    fireEvent.click((await screen.findAllByText('▶ GO LIVE'))[0])
     fireEvent.click(screen.getByText('CANCEL'))
     expect(screen.queryByPlaceholderText(/Stream title/i)).not.toBeInTheDocument()
   })
@@ -96,7 +100,7 @@ describe('LivePage', () => {
   it('calls createStream with title and description', async () => {
     mockCreateStream.mockResolvedValue({ data: { id: 'new-stream', status: 'scheduled' }, error: null })
     renderPage()
-    fireEvent.click(screen.getAllByText('▶ GO LIVE')[0])
+    fireEvent.click((await screen.findAllByText('▶ GO LIVE'))[0])
     fireEvent.change(screen.getByPlaceholderText(/Stream title/i), {
       target: { value: 'My Intel Briefing' },
     })

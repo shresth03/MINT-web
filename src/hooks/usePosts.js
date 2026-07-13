@@ -24,13 +24,14 @@ export function usePosts() {
   }, [])
 
   async function fetchPosts() {
+    if (!user?.id) { setLoading(false); return }
     const { data, error } = await supabase
       .from('posts')
       .select('*, users(id, username, role, score)')
       .eq('is_osint', false)
       .order('created_at', { ascending: false })
       .limit(50)
-  
+
     if (!error && data) {
       const { data: likedData } = await supabase
         .from('likes').select('post_id').eq('user_id', user.id)
@@ -98,6 +99,7 @@ export function usePosts() {
   }
 
   async function createPost(body, mediaUrl = null, region = null, tag = null, postType = 'general') {
+    if (!user?.id) return { error: new Error('Not authenticated') }
     const extractedTag = tag || (body.match(/#(\w+)/)?.[1]?.toUpperCase() || null)
     const { error } = await supabase.from('posts').insert({
       author_id: user.id,

@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageShell from '../components/PageShell'
 import { useLiveStreams, useStreamViewers } from '../hooks/useLiveStreams'
 import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../api/supabase'
 
 function timeAgo(dateStr) {
   if (!dateStr) return ''
@@ -212,15 +213,75 @@ function CreateStreamModal({ onClose, onCreate }) {
   )
 }
 
+function StreamCard({ stream }) {
+  return (
+    <div style={{
+      background: 'var(--surface)', border: '1px solid var(--border)',
+      borderRadius: 8, overflow: 'hidden', transition: 'border-color 0.15s',
+    }}
+      onMouseOver={e => e.currentTarget.style.borderColor = stream.status === 'live' ? '#e84848' : 'var(--accent)'}
+      onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
+    >
+      <div style={{
+        background: stream.status === 'live' ? 'rgba(232,72,72,0.05)' : '#0a0a0a',
+        aspectRatio: '16/9', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', position: 'relative',
+      }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: '50%',
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'var(--mono)', fontSize: 18, color: 'var(--text)',
+        }}>
+          {stream.users?.username?.[0]?.toUpperCase() || '?'}
+        </div>
+        <div style={{ position: 'absolute', top: 8, left: 8 }}>
+          {stream.status === 'live' ? <LiveBadge /> : (
+            <span style={{
+              fontFamily: 'var(--mono)', fontSize: 9, padding: '2px 8px',
+              background: 'rgba(0,0,0,0.6)', border: '1px solid var(--border)',
+              borderRadius: 3, color: 'var(--muted)',
+            }}>SCHEDULED</span>
+          )}
+        </div>
+        {stream.viewer_count > 0 && (
+          <div style={{ position: 'absolute', top: 8, right: 8 }}>
+            <span style={{
+              fontFamily: 'var(--mono)', fontSize: 9, padding: '2px 8px',
+              background: 'rgba(0,0,0,0.6)', border: '1px solid var(--border)',
+              borderRadius: 3, color: 'var(--text)',
+            }}>👁 {stream.viewer_count}</span>
+          </div>
+        )}
+      </div>
+      <div style={{ padding: '12px 14px' }}>
+        <div style={{ fontFamily: 'var(--sans)', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+          {stream.title}
+        </div>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)' }}>
+          @{stream.users?.username}
+          {stream.users?.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 4 }}>◆</span>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function LivePage() {
   const { user } = useAuth()
   const { streams, loading, createStream, goLive, endStream } = useLiveStreams()
   const [showCreate, setShowCreate] = useState(false)
   const [activeStream, setActiveStream] = useState(null)
+  const [userRole, setUserRole] = useState(null)
 
   const navigate = useNavigate()
 
-  const userRole = user?.app_metadata?.role || null
+  useEffect(() => {
+    if (!user?.id) return
+    supabase.from('users').select('role').eq('id', user.id).single()
+      .then(({ data }) => setUserRole(data?.role || null))
+  }, [user?.id])
+
   const canBroadcast = ['osint', 'reporter', 'admin'].includes(userRole)
 
   const liveStreams = streams.filter(s => s.status === 'live')
@@ -351,57 +412,3 @@ export default function LivePage() {
   )
 }
 
-function StreamCard({ stream }) {
-  return (
-    <div style={{
-      background: 'var(--surface)', border: '1px solid var(--border)',
-      borderRadius: 8, overflow: 'hidden', transition: 'border-color 0.15s',
-    }}
-      onMouseOver={e => e.currentTarget.style.borderColor = stream.status === 'live' ? '#e84848' : 'var(--accent)'}
-      onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
-    >
-      {/* Thumbnail */}
-      <div style={{
-        background: stream.status === 'live' ? 'rgba(232,72,72,0.05)' : '#0a0a0a',
-        aspectRatio: '16/9', display: 'flex', alignItems: 'center',
-        justifyContent: 'center', position: 'relative',
-      }}>
-        <div style={{
-          width: 48, height: 48, borderRadius: '50%',
-          background: 'var(--surface)', border: '1px solid var(--border)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: 'var(--mono)', fontSize: 18, color: 'var(--text)',
-        }}>
-          {stream.users?.username?.[0]?.toUpperCase() || '?'}
-        </div>
-        <div style={{ position: 'absolute', top: 8, left: 8 }}>
-          {stream.status === 'live' ? <LiveBadge /> : (
-            <span style={{
-              fontFamily: 'var(--mono)', fontSize: 9, padding: '2px 8px',
-              background: 'rgba(0,0,0,0.6)', border: '1px solid var(--border)',
-              borderRadius: 3, color: 'var(--muted)',
-            }}>SCHEDULED</span>
-          )}
-        </div>
-        {stream.viewer_count > 0 && (
-          <div style={{ position: 'absolute', top: 8, right: 8 }}>
-            <span style={{
-              fontFamily: 'var(--mono)', fontSize: 9, padding: '2px 8px',
-              background: 'rgba(0,0,0,0.6)', border: '1px solid var(--border)',
-              borderRadius: 3, color: 'var(--text)',
-            }}>👁 {stream.viewer_count}</span>
-          </div>
-        )}
-      </div>
-      <div style={{ padding: '12px 14px' }}>
-        <div style={{ fontFamily: 'var(--sans)', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
-          {stream.title}
-        </div>
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)' }}>
-          @{stream.users?.username}
-          {stream.users?.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 4 }}>◆</span>}
-        </div>
-      </div>
-    </div>
-  )
-}
