@@ -1,411 +1,493 @@
 import { useState, useEffect, useRef } from 'react'
 import * as d3 from 'd3'
 
+// Fixed ray lengths so they don't flicker each animation frame
+const TYCHO_RAYS  = [2.8, 3.4, 2.6, 3.6, 3.0, 2.5, 3.2, 2.9]
+const COPER_RAYS  = [2.5, 3.0, 2.3, 2.8, 2.6, 3.1]
+
 export default function WorldMap({ filter, onRegionClick, regions: propRegions }) {
-  const svgRef = useRef(null);
-  const wrapRef = useRef(null);
-  const [tooltip, setTooltip] = useState(null);
-  const [topoData, setTopoData] = useState(null);
-  const [dims, setDims] = useState({w:900, h:520});
-  const rotationRef = useRef([-20, -30, 0]);
-  const isDragging = useRef(false);
-  const lastPos = useRef(null);
-  const animFrameRef = useRef(null);
-  const projRef = useRef(null);
-  const [zoom, setZoom] = useState(1)
-  const zoomRef = useRef(1)
+  const svgRef    = useRef(null)
+  const wrapRef   = useRef(null)
+  const rotRef    = useRef([-20, -30, 0])
+  const dragRef   = useRef(false)
+  const lastPos   = useRef(null)
+  const rafRef    = useRef(null)
 
-  const allRegions = propRegions || [];
-  const regions = filter === "ALL" ? allRegions : allRegions.filter(r => r.tags.includes(filter));
+  const [tooltip,   setTooltip]   = useState(null)
+  const [topoData,  setTopoData]  = useState(null)
+  const [dims,      setDims]      = useState({ w: 900, h: 520 })
+  const [showRover, setShowRover] = useState(false)
 
+  const allRegions = propRegions || []
+  const regions    = filter === 'ALL' ? allRegions : allRegions.filter(r => r.tags.includes(filter))
 
+  // Resize observer
   useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-  
-    function onWheel(e) {
-      e.preventDefault()
-      zoomRef.current = Math.max(0.5, Math.min(4, zoomRef.current - e.deltaY * 0.001))
-      setZoom(zoomRef.current)
-    }
-  
-    // Pinch zoom for mobile
-    let lastDist = null
-    function onTouchMove(e) {
-      if (e.touches.length === 2) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX
-        const dy = e.touches[0].clientY - e.touches[1].clientY
-        const dist = Math.sqrt(dx*dx + dy*dy)
-        if (lastDist !== null) {
-          zoomRef.current = Math.max(0.5, Math.min(4, zoomRef.current + (dist - lastDist) * 0.005))
-          setZoom(zoomRef.current)
-        }
-        lastDist = dist
-      }
-    }
-    function onTouchEnd() { lastDist = null }
-  
-    el.addEventListener('wheel', onWheel, { passive: false })
-    el.addEventListener('touchmove', onTouchMove, { passive: true })
-    el.addEventListener('touchend', onTouchEnd)
-    return () => {
-      el.removeEventListener('wheel', onWheel)
-      el.removeEventListener('touchmove', onTouchMove)
-      el.removeEventListener('touchend', onTouchEnd)
+    const obs = new ResizeObserver(([e]) =>
+      setDims({ w: e.contentRect.width, h: e.contentRect.height })
+    )
+    if (wrapRef.current) obs.observe(wrapRef.current)
+    return () => obs.disconnect()
+  }, [])
+
+  // Fetch topojson countries
+  useEffect(() => {
+    fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+      .then(r => r.json()).then(setTopoData).catch(() => {})
+  }, [])
+
+  // Inject topojson lib if missing
+  useEffect(() => {
+    if (!window.topojson) {
+      const s = document.createElement('script')
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js'
+      s.onload = () => setDims(d => ({ ...d }))
+      document.head.appendChild(s)
     }
   }, [])
 
+  // Auto-rotation loop
   useEffect(() => {
-    const obs = new ResizeObserver(([e]) => setDims({w: e.contentRect.width, h: e.contentRect.height}));
-    if (wrapRef.current) obs.observe(wrapRef.current);
-    return () => obs.disconnect();
-  }, []);
-
-  useEffect(() => {
-    fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
-      .then(r => r.json()).then(setTopoData).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!window.topojson) {
-      const s = document.createElement("script");
-      s.src = "https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js";
-      s.onload = () => setDims(d => ({...d}));
-      document.head.appendChild(s);
-    }
-  }, []);
-
-  // Auto-rotation
-  useEffect(() => {
-    let lastTime = null;
-    function autoRotate(time) {
-      if (!isDragging.current) {
+    let lastTime = null
+    function tick(time) {
+      if (!dragRef.current) {
         if (lastTime !== null) {
-          const delta = time - lastTime;
-          rotationRef.current = [rotationRef.current[0] + delta * 0.01, rotationRef.current[1], 0];
+          rotRef.current = [rotRef.current[0] + (time - lastTime) * 0.01, rotRef.current[1], 0]
         }
-        lastTime = time;
-        drawGlobe();
+        lastTime = time
+        draw()
       } else {
-        lastTime = null;
+        lastTime = null
       }
-      animFrameRef.current = requestAnimationFrame(autoRotate);
+      rafRef.current = requestAnimationFrame(tick)
     }
-    animFrameRef.current = requestAnimationFrame(autoRotate);
-    return () => cancelAnimationFrame(animFrameRef.current);
-  }, [dims, regions, topoData]);
+    rafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [dims, regions, topoData]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function drawGlobe() {
-    const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove();
-    const {w, h} = dims;
-    const r = (Math.min(w, h) / 2 - 20) * zoomRef.current;
+  function draw() {
+    const svg = d3.select(svgRef.current)
+    svg.selectAll('*').remove()
+
+    const { w, h } = dims
+    const r = Math.min(w, h) / 2 - 20
+
+    // Moon constants — computed here so clip-path uses the right r
+    const mX = 78
+    const mY = 78
+    const mR = Math.min(52, r * 0.20)
+
     const proj = d3.geoOrthographic()
-      .scale(r)
-      .translate([w/2, h/2])
-      .rotate(rotationRef.current)
-      .clipAngle(90);
-    projRef.current = proj;
-    const path = d3.geoPath().projection(proj);
+      .scale(r).translate([w / 2, h / 2])
+      .rotate(rotRef.current).clipAngle(90)
+    const path = d3.geoPath().projection(proj)
 
-    // Outer glow
-    const defs = svg.append("defs");
-    const radialGrad = defs.append("radialGradient").attr("id","globe-glow")
-      .attr("cx","50%").attr("cy","50%").attr("r","50%");
-    radialGrad.append("stop").attr("offset","85%").attr("stop-color","#04090f").attr("stop-opacity",1);
-    radialGrad.append("stop").attr("offset","100%").attr("stop-color","#00d4ff").attr("stop-opacity",0.15);
+    // ── DEFS ──────────────────────────────────────────────────────────────
+    const defs = svg.append('defs')
 
-    // Globe base
-    svg.append("circle").attr("cx",w/2).attr("cy",h/2).attr("r",r+8)
-      .attr("fill","url(#globe-glow)").attr("stroke","#1e2d3d").attr("stroke-width",1);
-    svg.append("circle").attr("cx",w/2).attr("cy",h/2).attr("r",r)
-      .attr("fill","#04090f").attr("stroke","#00d4ff").attr("stroke-width",0.5).attr("stroke-opacity",0.3);
+    // Globe outer glow
+    const gg = defs.append('radialGradient').attr('id', 'gg')
+      .attr('cx', '50%').attr('cy', '50%').attr('r', '50%')
+    gg.append('stop').attr('offset', '85%').attr('stop-color', '#04090f').attr('stop-opacity', 1)
+    gg.append('stop').attr('offset', '100%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.15)
 
-    // Graticule
-    svg.append("path").datum(d3.geoGraticule()()).attr("d",path)
-      .attr("fill","none").attr("stroke","#0d1e2e").attr("stroke-width",0.5);
+    // Moon surface — lit from top-left, dims toward right/bottom
+    const mb = defs.append('radialGradient').attr('id', 'mb')
+      .attr('cx', '36%').attr('cy', '30%').attr('r', '70%')
+    mb.append('stop').attr('offset',  '0%').attr('stop-color', '#e0dcd2')
+    mb.append('stop').attr('offset', '22%').attr('stop-color', '#cac4b0')
+    mb.append('stop').attr('offset', '52%').attr('stop-color', '#968c78')
+    mb.append('stop').attr('offset', '76%').attr('stop-color', '#524840')
+    mb.append('stop').attr('offset','100%').attr('stop-color', '#1a1510')
 
-    // Countries
+    // Moon terminator — right-side night shadow
+    const mt = defs.append('linearGradient').attr('id', 'mt')
+      .attr('x1', '0%').attr('y1', '0%').attr('x2', '100%').attr('y2', '0%')
+    mt.append('stop').attr('offset', '40%').attr('stop-color', '#000').attr('stop-opacity', 0)
+    mt.append('stop').attr('offset', '66%').attr('stop-color', '#000').attr('stop-opacity', 0.28)
+    mt.append('stop').attr('offset','100%').attr('stop-color', '#000').attr('stop-opacity', 0.84)
+
+    // Moon atmospheric halo
+    const mh = defs.append('radialGradient').attr('id', 'mh')
+      .attr('cx', '50%').attr('cy', '50%').attr('r', '50%')
+    mh.append('stop').attr('offset', '80%').attr('stop-color', '#c8c0a8').attr('stop-opacity', 0)
+    mh.append('stop').attr('offset', '92%').attr('stop-color', '#c8c0a8').attr('stop-opacity', 0.07)
+    mh.append('stop').attr('offset','100%').attr('stop-color', '#c8c0a8').attr('stop-opacity', 0)
+
+    // Clip path for moon features
+    defs.append('clipPath').attr('id', 'mc')
+      .append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR - 0.5)
+
+    // ── GLOBE ─────────────────────────────────────────────────────────────
+    svg.append('circle').attr('cx', w/2).attr('cy', h/2).attr('r', r + 8)
+      .attr('fill', 'url(#gg)').attr('stroke', '#1e2d3d').attr('stroke-width', 1)
+    svg.append('circle').attr('cx', w/2).attr('cy', h/2).attr('r', r)
+      .attr('fill', '#04090f').attr('stroke', '#00d4ff')
+      .attr('stroke-width', 0.5).attr('stroke-opacity', 0.3)
+    svg.append('path').datum(d3.geoGraticule()()).attr('d', path)
+      .attr('fill', 'none').attr('stroke', '#0d1e2e').attr('stroke-width', 0.5)
+
     if (topoData && window.topojson) {
-      svg.append("g").selectAll("path")
+      svg.append('g').selectAll('path')
         .data(window.topojson.feature(topoData, topoData.objects.countries).features)
-        .join("path").attr("d", path)
-        .attr("fill","#0c1a26").attr("stroke","#1a2d40").attr("stroke-width",0.4);
+        .join('path').attr('d', path)
+        .attr('fill', '#0c1a26').attr('stroke', '#1a2d40').attr('stroke-width', 0.4)
     }
 
-    // Hotspot bubbles
-    const maxC = d3.max(regions, d => d.count) || 1;
-    const rScale = d3.scaleSqrt().domain([1, maxC]).range([6, 22]);
-    const g = svg.append("g");
+    // ── EVENT HOTSPOTS ────────────────────────────────────────────────────
+    const maxC  = d3.max(regions, d => d.count) || 1
+    const rScale = d3.scaleSqrt().domain([1, maxC]).range([6, 22])
+    const g = svg.append('g')
 
     regions.forEach(reg => {
-      const coords = proj([reg.lng, reg.lat]);
-      if (!coords) return;
-      // Check if on visible side
-      const geoAngle = d3.geoDistance([reg.lng, reg.lat], [-rotationRef.current[0], -rotationRef.current[1]]);
-      if (geoAngle > Math.PI / 2) return; // behind globe
-      const [cx, cy] = coords;
-      const bR = rScale(reg.count);
+      const coords = proj([reg.lng, reg.lat])
+      if (!coords) return
+      if (d3.geoDistance([reg.lng, reg.lat], [-rotRef.current[0], -rotRef.current[1]]) > Math.PI / 2) return
+      const [cx, cy] = coords
+      const bR = rScale(reg.count)
 
       if (reg.breaking) {
-        const ring = g.append("circle").attr("cx",cx).attr("cy",cy).attr("r",bR)
-          .attr("fill","none").attr("stroke",reg.color).attr("stroke-width",1.5).attr("pointer-events","none");
-        function animRing() {
-          ring.attr("r",bR).attr("opacity",0.8)
+        const ring = g.append('circle').attr('cx', cx).attr('cy', cy).attr('r', bR)
+          .attr('fill', 'none').attr('stroke', reg.color).attr('stroke-width', 1.5).attr('pointer-events', 'none')
+        ;(function pulse() {
+          ring.attr('r', bR).attr('opacity', 0.8)
             .transition().duration(1800).ease(d3.easeCubicOut)
-            .attr("r",bR*2.8).attr("opacity",0).on("end",animRing);
-        }
-        animRing();
+            .attr('r', bR * 2.8).attr('opacity', 0).on('end', pulse)
+        })()
       }
 
-      g.append("circle").attr("cx",cx).attr("cy",cy).attr("r",bR+3)
-        .attr("fill",reg.color).attr("fill-opacity",0.06).attr("pointer-events","none");
+      g.append('circle').attr('cx', cx).attr('cy', cy).attr('r', bR + 3)
+        .attr('fill', reg.color).attr('fill-opacity', 0.06).attr('pointer-events', 'none')
 
-      const circle = g.append("circle").attr("cx",cx).attr("cy",cy).attr("r",bR)
-        .attr("fill",reg.color).attr("fill-opacity",reg.breaking?0.45:0.25)
-        .attr("stroke",reg.color).attr("stroke-width",reg.breaking?2:1.2)
-        .attr("stroke-opacity",0.9).style("cursor","pointer");
+      const circle = g.append('circle').attr('cx', cx).attr('cy', cy).attr('r', bR)
+        .attr('fill', reg.color).attr('fill-opacity', reg.breaking ? 0.45 : 0.25)
+        .attr('stroke', reg.color).attr('stroke-width', reg.breaking ? 2 : 1.2)
+        .attr('stroke-opacity', 0.9).style('cursor', 'pointer')
 
-      g.append("text").attr("x",cx).attr("y",cy+1)
-        .attr("text-anchor","middle").attr("dominant-baseline","middle")
-        .attr("fill","#fff").attr("font-size", bR > 14 ? 10 : 8)
-        .attr("font-family","'IBM Plex Mono',monospace").attr("font-weight","700")
-        .attr("pointer-events","none").text(reg.count);
+      g.append('text').attr('x', cx).attr('y', cy + 1)
+        .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
+        .attr('fill', '#fff').attr('font-size', bR > 14 ? 10 : 8)
+        .attr('font-family', "'IBM Plex Mono',monospace").attr('font-weight', '700')
+        .attr('pointer-events', 'none').text(reg.count)
 
       circle
-        .on("mouseover", function(event) {
-          d3.select(this).attr("fill-opacity",0.7);
-          setTooltip({reg, mx:event.clientX, my:event.clientY});
+        .on('mouseover', function (event) {
+          d3.select(this).attr('fill-opacity', 0.7)
+          setTooltip({ reg, mx: event.clientX, my: event.clientY })
         })
-        .on("mousemove", function(event) {
-          setTooltip(p => p ? {...p, mx:event.clientX, my:event.clientY} : null);
+        .on('mousemove', function (event) {
+          setTooltip(p => p ? { ...p, mx: event.clientX, my: event.clientY } : null)
         })
-        .on("mouseout", function() {
-          d3.select(this).attr("fill-opacity",reg.breaking?0.45:0.25);
-          setTooltip(null);
+        .on('mouseout', function () {
+          d3.select(this).attr('fill-opacity', reg.breaking ? 0.45 : 0.25)
+          setTooltip(null)
         })
-        .on("click", () => onRegionClick(reg));
-    });
-   // ── MOON ──────────────────────────────────────────────────────
-    // Fixed position in top-right corner, independent of globe size
-    const moonX = 80
-    const moonY = 80
-    const z = zoomRef.current
-    const isZoomedIn = z > 1.8
-    // Smooth scale — moon grows naturally from dot to full size between zoom 0.5 and 2.5
-    const moonScale = Math.max(0, Math.min(1, (z - 0.8) / 1.7))
-    const moonR = 4 + moonScale * (r * 0.27 - 4)
+        .on('click', () => onRegionClick(reg))
+    })
 
-    const moonDefs = svg.select("defs")
+    // ── REALISTIC MOON (easter egg) ────────────────────────────────────────
+    // Atmosphere halo behind moon
+    svg.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR * 1.20)
+      .attr('fill', 'url(#mh)').attr('pointer-events', 'none')
 
-    // Moon glow
-    const moonGlow = moonDefs.append("radialGradient").attr("id","moon-glow")
-      .attr("cx","40%").attr("cy","35%").attr("r","60%")
-    moonGlow.append("stop").attr("offset","0%").attr("stop-color","#e8dcc8").attr("stop-opacity",1)
-    moonGlow.append("stop").attr("offset","60%").attr("stop-color","#b8a882").attr("stop-opacity",1)
-    moonGlow.append("stop").attr("offset","100%").attr("stop-color","#6a5a3a").attr("stop-opacity",1)
+    const moon = svg.append('g').style('cursor', 'pointer')
+    moon.on('click', () => setShowRover(true))
 
-    // Moon shadow (makes it look 3D)
-    const moonShadow = moonDefs.append("radialGradient").attr("id","moon-shadow")
-      .attr("cx","70%").attr("cy","50%").attr("r","55%")
-    moonShadow.append("stop").attr("offset","0%").attr("stop-color","#000").attr("stop-opacity",0)
-    moonShadow.append("stop").attr("offset","100%").attr("stop-color","#000").attr("stop-opacity",0.65)
+    // Base sphere surface
+    moon.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR)
+      .attr('fill', 'url(#mb)')
 
-    // Star-like glow when far
-    if (moonScale < 1) {
-      svg.append("circle")
-        .attr("cx", moonX).attr("cy", moonY).attr("r", moonR + 3)
-        .attr("fill", "#e8dcc8").attr("fill-opacity", 0.15 * (1 - moonScale))
-        .attr("pointer-events", "none")
-    }
+    // Clipped features (maria, craters, terminator rect)
+    const feats = moon.append('g').attr('clip-path', 'url(#mc)')
 
-    // Moon base
-    const moonGroup = svg.append("g").style("cursor", isZoomedIn ? "pointer" : "default")
+    // Maria — ancient basalt plains (dark patches)
+    const maria = [
+      // Oceanus Procellarum — large, left side
+      { cx: mX - mR*0.28, cy: mY - mR*0.10, rx: mR*0.40, ry: mR*0.46, o: 0.56 },
+      // Mare Imbrium — upper left
+      { cx: mX - mR*0.22, cy: mY - mR*0.32, rx: mR*0.21, ry: mR*0.18, o: 0.62 },
+      // Mare Serenitatis — upper centre
+      { cx: mX + mR*0.10, cy: mY - mR*0.27, rx: mR*0.14, ry: mR*0.12, o: 0.58 },
+      // Mare Tranquillitatis — centre
+      { cx: mX + mR*0.18, cy: mY - mR*0.10, rx: mR*0.16, ry: mR*0.13, o: 0.55 },
+      // Mare Nubium — lower left
+      { cx: mX - mR*0.12, cy: mY + mR*0.22, rx: mR*0.13, ry: mR*0.10, o: 0.52 },
+      // Mare Crisium — right edge (compact, distinct)
+      { cx: mX + mR*0.40, cy: mY - mR*0.24, rx: mR*0.10, ry: mR*0.08, o: 0.64 },
+      // Mare Fecunditatis — right centre
+      { cx: mX + mR*0.32, cy: mY + mR*0.04, rx: mR*0.09, ry: mR*0.08, o: 0.50 },
+    ]
+    maria.forEach(m => {
+      feats.append('ellipse')
+        .attr('cx', m.cx).attr('cy', m.cy).attr('rx', m.rx).attr('ry', m.ry)
+        .attr('fill', '#26231a').attr('fill-opacity', m.o)
+    })
 
-    moonGroup.append("circle")
-      .attr("cx", moonX).attr("cy", moonY).attr("r", moonR)
-      .attr("fill", "url(#moon-glow)")
+    // Highland texture strokes (subtle variation)
+    const strokes = [
+      { x1: mX - mR*0.05, y1: mY - mR*0.60, x2: mX + mR*0.15, y2: mY - mR*0.50, o: 0.07 },
+      { x1: mX + mR*0.10, y1: mY + mR*0.35, x2: mX + mR*0.35, y2: mY + mR*0.45, o: 0.06 },
+      { x1: mX - mR*0.45, y1: mY + mR*0.30, x2: mX - mR*0.20, y2: mY + mR*0.40, o: 0.07 },
+    ]
+    strokes.forEach(s => {
+      feats.append('line')
+        .attr('x1', s.x1).attr('y1', s.y1).attr('x2', s.x2).attr('y2', s.y2)
+        .attr('stroke', '#9a9080').attr('stroke-width', mR * 0.04)
+        .attr('stroke-opacity', s.o).attr('stroke-linecap', 'round')
+    })
 
-    // 3D shadow overlay
-    moonGroup.append("circle")
-      .attr("cx", moonX).attr("cy", moonY).attr("r", moonR)
-      .attr("fill", "url(#moon-shadow)")
-      .attr("pointer-events", "none")
+    // Craters — rim + floor shadow + highlight
+    const craters = [
+      { dx: 0.05,  dy: 0.48,  r: 0.09, rays: TYCHO_RAYS  },   // Tycho (south, prominent)
+      { dx: -0.20, dy: 0.12,  r: 0.07, rays: COPER_RAYS  },   // Copernicus
+      { dx: -0.24, dy: -0.42, r: 0.06 },                       // Plato
+      { dx: -0.35, dy:  0.08, r: 0.05 },                       // Kepler
+      { dx: -0.38, dy: -0.16, r: 0.04, bright: true },         // Aristarchus (bright)
+      { dx: -0.08, dy:  0.44, r: 0.11 },                       // Clavius (large, south)
+      { dx: -0.50, dy:  0.06, r: 0.06 },                       // Grimaldi
+      { dx:  0.25, dy:  0.30, r: 0.04 },
+      { dx:  0.32, dy: -0.38, r: 0.035 },
+      { dx: -0.10, dy:  0.34, r: 0.035 },
+      { dx:  0.15, dy: -0.46, r: 0.030 },
+      { dx:  0.40, dy:  0.10, r: 0.030 },
+      { dx: -0.42, dy:  0.30, r: 0.040 },
+      { dx:  0.06, dy: -0.20, r: 0.025 },
+      { dx: -0.14, dy: -0.28, r: 0.025 },
+    ]
+    craters.forEach(c => {
+      const cx = mX + c.dx * mR
+      const cy = mY + c.dy * mR
+      const cr = c.r * mR
+      // Ejecta blanket / rim
+      feats.append('circle').attr('cx', cx).attr('cy', cy).attr('r', cr + cr * 0.30)
+        .attr('fill', c.bright ? '#ece8d8' : '#a89e88').attr('fill-opacity', 0.30)
+      // Floor (dark shadow inside)
+      feats.append('circle').attr('cx', cx + cr*0.10).attr('cy', cy + cr*0.10).attr('r', cr * 0.75)
+        .attr('fill', '#16140e').attr('fill-opacity', 0.70)
+      // Lit rim highlight (top-left of crater)
+      feats.append('circle').attr('cx', cx - cr*0.28).attr('cy', cy - cr*0.28).attr('r', cr * 0.36)
+        .attr('fill', c.bright ? '#fffff5' : '#d0c8b0')
+        .attr('fill-opacity', c.bright ? 0.72 : 0.40)
+      // Ray system for major craters
+      if (c.rays) {
+        c.rays.forEach((len, i) => {
+          const angle = (i / c.rays.length) * Math.PI * 2
+          feats.append('line')
+            .attr('x1', cx).attr('y1', cy)
+            .attr('x2', cx + Math.cos(angle) * cr * len)
+            .attr('y2', cy + Math.sin(angle) * cr * len)
+            .attr('stroke', '#ccc4a4').attr('stroke-width', 0.5)
+            .attr('stroke-opacity', 0.20)
+        })
+      }
+    })
 
-    if (moonScale > 0.5) {
-      // Craters
-      const craters = [
-        {dx:-0.25, dy:-0.1,  r:0.12},
-        {dx: 0.1,  dy: 0.2,  r:0.09},
-        {dx:-0.05, dy: 0.3,  r:0.07},
-        {dx: 0.3,  dy:-0.2,  r:0.06},
-        {dx:-0.35, dy: 0.25, r:0.05},
-        {dx: 0.15, dy:-0.35, r:0.08},
-      ]
-      craters.forEach(c => {
-        moonGroup.append("circle")
-          .attr("cx", moonX + c.dx * moonR).attr("cy", moonY + c.dy * moonR)
-          .attr("r", c.r * moonR)
-          .attr("fill", "#8a7a5a").attr("fill-opacity", 0.5)
-          .attr("stroke", "#6a5a3a").attr("stroke-width", 0.5).attr("pointer-events", "none")
-      })
+    // South polar region — subtle bright ice cap hint
+    feats.append('ellipse')
+      .attr('cx', mX).attr('cy', mY + mR * 0.76)
+      .attr('rx', mR * 0.18).attr('ry', mR * 0.06)
+      .attr('fill', '#d8d4c8').attr('fill-opacity', 0.18)
 
-      // Chandrayaan-3 lander marker
-      const c3x = moonX - moonR * 0.18
-      const c3y = moonY + moonR * 0.55
+    // Terminator shadow rect (right-side night, clipped to sphere)
+    feats.append('rect')
+      .attr('x', mX - mR).attr('y', mY - mR)
+      .attr('width', mR * 2).attr('height', mR * 2)
+      .attr('fill', 'url(#mt)').attr('pointer-events', 'none')
 
-      // Landing site glow
-      moonGroup.append("circle")
-        .attr("cx", c3x).attr("cy", c3y).attr("r", moonR * 0.09)
-        .attr("fill", "#00d4ff").attr("fill-opacity", 0.2)
-        .attr("pointer-events", "none")
+    // Terminator circle on top of features (smooth edge)
+    moon.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR)
+      .attr('fill', 'url(#mt)').attr('pointer-events', 'none')
 
-      // Lander icon (simple cross/satellite shape)
-      const ls = moonR * 0.04
-      moonGroup.append("line")
-        .attr("x1", c3x - ls*2).attr("y1", c3y).attr("x2", c3x + ls*2).attr("y2", c3y)
-        .attr("stroke", "#00d4ff").attr("stroke-width", 1.5).attr("pointer-events","none")
-      moonGroup.append("line")
-        .attr("x1", c3x).attr("y1", c3y - ls*2).attr("x2", c3x).attr("y2", c3y + ls*2)
-        .attr("stroke", "#00d4ff").attr("stroke-width", 1.5).attr("pointer-events","none")
-      moonGroup.append("circle")
-        .attr("cx", c3x).attr("cy", c3y).attr("r", ls)
-        .attr("fill", "#00d4ff").attr("pointer-events","none")
+    // Sphere limb (faint edge highlight)
+    moon.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR)
+      .attr('fill', 'none').attr('stroke', '#c8c0a8')
+      .attr('stroke-width', 1.8).attr('stroke-opacity', 0.16)
+      .attr('pointer-events', 'none')
 
-      // Chandrayaan label
-      moonGroup.append("text")
-        .attr("x", c3x + moonR * 0.14).attr("y", c3y + 3)
-        .attr("fill", "#00d4ff").attr("font-size", Math.max(7, moonR * 0.09))
-        .attr("font-family", "'IBM Plex Mono',monospace").attr("font-weight", "600")
-        .attr("pointer-events","none")
-        .text("CHANDRAYAAN-3")
+    // ── CHANDRAYAAN-3 — South Pole ─────────────────────────────────────
+    const c3y = mY + mR * 0.82   // near the bottom of the sphere
 
-      // South Pole label
-      moonGroup.append("text")
-        .attr("x", moonX - moonR * 0.15).attr("y", moonY + moonR * 0.72)
-        .attr("fill", "#b8a882").attr("font-size", Math.max(6, moonR * 0.07))
-        .attr("font-family", "'IBM Plex Mono',monospace")
-        .attr("pointer-events","none")
-        .text("SOUTH POLE")
+    // Outer landing-site glow
+    moon.append('circle').attr('cx', mX).attr('cy', c3y).attr('r', mR * 0.115)
+      .attr('fill', '#00d4ff').attr('fill-opacity', 0.12).attr('pointer-events', 'none')
+    // Inner glow
+    moon.append('circle').attr('cx', mX).attr('cy', c3y).attr('r', mR * 0.058)
+      .attr('fill', '#00d4ff').attr('fill-opacity', 0.42).attr('pointer-events', 'none')
 
-      // Moon label
-      moonGroup.append("text")
-        .attr("x", moonX).attr("y", moonY - moonR - 8)
-        .attr("text-anchor", "middle").attr("fill", "#e8dcc8")
-        .attr("font-size", Math.max(8, moonR * 0.1))
-        .attr("font-family", "'IBM Plex Mono',monospace").attr("letter-spacing", 2)
-        .attr("pointer-events","none")
-        .text("MOON")
+    // Lander cross
+    const ls = mR * 0.038
+    moon.append('line')
+      .attr('x1', mX - ls*2.5).attr('y1', c3y)
+      .attr('x2', mX + ls*2.5).attr('y2', c3y)
+      .attr('stroke', '#00d4ff').attr('stroke-width', 1.5).attr('pointer-events', 'none')
+    moon.append('line')
+      .attr('x1', mX).attr('y1', c3y - ls*2.5)
+      .attr('x2', mX).attr('y2', c3y + ls*2.5)
+      .attr('stroke', '#00d4ff').attr('stroke-width', 1.5).attr('pointer-events', 'none')
+    moon.append('circle').attr('cx', mX).attr('cy', c3y).attr('r', ls)
+      .attr('fill', '#00d4ff').attr('pointer-events', 'none')
 
-      // Real Chandrayaan-3 image overlay using foreignObject
-      const imgSize = moonR * 0.45
-      moonGroup.append("image")
-        .attr("href", "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Chandrayaan-3_Pragyan_rover_on_Moon.jpg/320px-Chandrayaan-3_Pragyan_rover_on_Moon.jpg")
-        .attr("x", moonX + moonR * 0.35).attr("y", moonY - moonR * 0.95)
-        .attr("width", imgSize).attr("height", imgSize * 0.65)
-        .attr("clip-path", "inset(0 round 4px)")
-        .attr("opacity", 0.9)
-        .attr("pointer-events","none")
+    // Label: CHANDRAYAAN-3
+    moon.append('text')
+      .attr('x', mX).attr('y', c3y + mR * 0.17)
+      .attr('text-anchor', 'middle').attr('fill', '#00d4ff')
+      .attr('font-size', Math.max(5.5, mR * 0.088))
+      .attr('font-family', "'IBM Plex Mono',monospace").attr('font-weight', '600')
+      .attr('pointer-events', 'none')
+      .text('CHANDRAYAAN-3')
 
-      // Image border
-      moonGroup.append("rect")
-        .attr("x", moonX + moonR * 0.35).attr("y", moonY - moonR * 0.95)
-        .attr("width", imgSize).attr("height", imgSize * 0.65)
-        .attr("fill", "none").attr("stroke", "#00d4ff")
-        .attr("stroke-width", 1).attr("rx", 4).attr("pointer-events","none")
+    moon.append('text')
+      .attr('x', mX).attr('y', c3y + mR * 0.27)
+      .attr('text-anchor', 'middle').attr('fill', '#9a9278')
+      .attr('font-size', Math.max(4.5, mR * 0.064))
+      .attr('font-family', "'IBM Plex Mono',monospace")
+      .attr('pointer-events', 'none')
+      .text('SOUTH POLE · 2023')
 
-      // Image caption
-      moonGroup.append("text")
-        .attr("x", moonX + moonR * 0.35 + imgSize/2).attr("y", moonY - moonR * 0.95 + imgSize * 0.65 + 10)
-        .attr("text-anchor","middle").attr("fill","#7a9bbf")
-        .attr("font-size", Math.max(6, moonR * 0.07))
-        .attr("font-family","'IBM Plex Mono',monospace")
-        .attr("pointer-events","none")
-        .text("Pragyan Rover · ISRO 2023")
+    // MOON label above
+    moon.append('text')
+      .attr('x', mX).attr('y', mY - mR - 7)
+      .attr('text-anchor', 'middle').attr('fill', '#c8c0a8')
+      .attr('font-size', Math.max(7, mR * 0.10))
+      .attr('font-family', "'IBM Plex Mono',monospace").attr('letter-spacing', 2)
+      .attr('pointer-events', 'none')
+      .text('MOON')
 
-      } else if (moonScale <= 0.5) {
-        
-        moonGroup.append("text")
-        .attr("x", moonX + moonR + 5).attr("y", moonY + 3)
-        .attr("fill", "#6a5a3a").attr("fill-opacity", 0.7)
-        .attr("font-size", 7).attr("font-family","'IBM Plex Mono',monospace")
-        .attr("pointer-events","none")
-        .text("●")
-    }
-
-    // Zoom hint (only shown when not zoomed)
-    if (moonScale < 0.4) {
-      svg.append("text")
-        .attr("x", moonX)
-        .attr("y", moonY + moonR + 18)
-        .attr("text-anchor","middle").attr("fill","#2a3d54")
-        .attr("font-size", 7).attr("font-family","'IBM Plex Mono',monospace")
-        .attr("pointer-events","none")
-        .text("scroll to zoom")
-    }
+    // Subtle click hint
+    moon.append('text')
+      .attr('x', mX).attr('y', mY - mR - 15)
+      .attr('text-anchor', 'middle').attr('fill', '#3a5068')
+      .attr('font-size', 6)
+      .attr('font-family', "'IBM Plex Mono',monospace")
+      .attr('pointer-events', 'none')
+      .text('[ CLICK ]')
   }
 
-  // Drag to rotate
+  // Drag-to-rotate
   useEffect(() => {
-    const el = svgRef.current;
-    if (!el) return;
+    const el = svgRef.current
+    if (!el) return
+    const getPos = e => e.touches
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      : { x: e.clientX, y: e.clientY }
 
-    function getPos(e) {
-      if (e.touches) return {x: e.touches[0].clientX, y: e.touches[0].clientY};
-      return {x: e.clientX, y: e.clientY};
+    const onStart = e => { dragRef.current = true; lastPos.current = getPos(e) }
+    const onMove  = e => {
+      if (!dragRef.current || !lastPos.current) return
+      const pos = getPos(e)
+      const dx = pos.x - lastPos.current.x
+      const dy = pos.y - lastPos.current.y
+      rotRef.current = [rotRef.current[0] + dx * 0.4, rotRef.current[1] - dy * 0.4, 0]
+      lastPos.current = pos
+      draw()
     }
+    const onEnd = () => { dragRef.current = false; lastPos.current = null }
 
-    function onStart(e) {
-      isDragging.current = true;
-      lastPos.current = getPos(e);
-    }
-    function onMove(e) {
-      if (!isDragging.current || !lastPos.current) return;
-      const pos = getPos(e);
-      const dx = pos.x - lastPos.current.x;
-      const dy = pos.y - lastPos.current.y;
-      rotationRef.current = [
-        rotationRef.current[0] + dx * 0.4,
-        rotationRef.current[1] - dy * 0.4,
-        0
-      ];
-      lastPos.current = pos;
-      drawGlobe();
-    }
-    function onEnd() { isDragging.current = false; lastPos.current = null; }
-
-    el.addEventListener("mousedown", onStart);
-    el.addEventListener("mousemove", onMove);
-    el.addEventListener("mouseup", onEnd);
-    el.addEventListener("mouseleave", onEnd);
-    el.addEventListener("touchstart", onStart, {passive:true});
-    el.addEventListener("touchmove", onMove, {passive:true});
-    el.addEventListener("touchend", onEnd);
-
+    el.addEventListener('mousedown',  onStart)
+    el.addEventListener('mousemove',  onMove)
+    el.addEventListener('mouseup',    onEnd)
+    el.addEventListener('mouseleave', onEnd)
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchmove',  onMove,  { passive: true })
+    el.addEventListener('touchend',   onEnd)
     return () => {
-      el.removeEventListener("mousedown", onStart);
-      el.removeEventListener("mousemove", onMove);
-      el.removeEventListener("mouseup", onEnd);
-      el.removeEventListener("mouseleave", onEnd);
-      el.removeEventListener("touchstart", onStart);
-      el.removeEventListener("touchmove", onMove);
-      el.removeEventListener("touchend", onEnd);
-    };
-  }, [dims, regions, topoData]);
+      el.removeEventListener('mousedown',  onStart)
+      el.removeEventListener('mousemove',  onMove)
+      el.removeEventListener('mouseup',    onEnd)
+      el.removeEventListener('mouseleave', onEnd)
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchmove',  onMove)
+      el.removeEventListener('touchend',   onEnd)
+    }
+  }, [dims, regions, topoData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div ref={wrapRef} className="map-body" style={{cursor: isDragging.current ? 'grabbing' : 'grab'}}>
+    <div ref={wrapRef} className="map-body" style={{ cursor: dragRef.current ? 'grabbing' : 'grab' }}>
       <svg ref={svgRef} className="map-svg" />
+
       {tooltip && (
-        <div className="tooltip-box" style={{left: tooltip.mx+14, top: tooltip.my-60}}>
+        <div className="tooltip-box" style={{ left: tooltip.mx + 14, top: tooltip.my - 60 }}>
           <div className="tt-region">{tooltip.reg.name.toUpperCase()}</div>
           <div className="tt-count">{tooltip.reg.count}</div>
-          <div style={{fontSize:9,color:"var(--muted)",fontFamily:"var(--mono)",marginBottom:4}}>active events</div>
-          {tooltip.reg.breaking && <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--accent2)",letterSpacing:1,marginBottom:4}}>⚑ BREAKING EVENT</div>}
-          <div className="tt-tags">{tooltip.reg.tags.map(t => <span key={t} className="tt-tag">{t}</span>)}</div>
+          <div style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--mono)', marginBottom: 4 }}>
+            active events
+          </div>
+          {tooltip.reg.breaking && (
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'var(--accent2)', letterSpacing: 1, marginBottom: 4 }}>
+              ⚑ BREAKING EVENT
+            </div>
+          )}
+          <div className="tt-tags">
+            {tooltip.reg.tags.map(t => <span key={t} className="tt-tag">{t}</span>)}
+          </div>
           <div className="tt-hint">Click to view details →</div>
         </div>
       )}
+
+      {showRover && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(2, 5, 10, 0.93)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+          onClick={() => setShowRover(false)}
+        >
+          <div
+            style={{ position: 'relative', maxWidth: 680, width: '90vw', padding: '28px 24px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{
+              fontFamily: "'IBM Plex Mono',monospace",
+              color: '#00d4ff', letterSpacing: 3, fontSize: 9,
+              marginBottom: 14, textTransform: 'uppercase',
+            }}>
+              ISRO · CHANDRAYAAN-3 · VIKRAM LANDER · SOUTH POLE · AUGUST 2023
+            </div>
+
+            {/* Photo */}
+            <div style={{ position: 'relative' }}>
+              <img
+                src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Chandrayaan-3_Pragyan_rover_on_Moon.jpg/960px-Chandrayaan-3_Pragyan_rover_on_Moon.jpg"
+                alt="Pragyan rover on the lunar south pole"
+                style={{
+                  width: '100%', display: 'block',
+                  borderRadius: 3,
+                  border: '1px solid rgba(0,212,255,0.22)',
+                }}
+              />
+              {/* CRT scan-line aesthetic */}
+              <div style={{
+                position: 'absolute', inset: 0, pointerEvents: 'none',
+                background: 'repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.07) 3px,rgba(0,0,0,0.07) 4px)',
+                borderRadius: 3,
+              }} />
+            </div>
+
+            {/* Caption */}
+            <div style={{
+              marginTop: 12, display: 'flex', justifyContent: 'space-between',
+              fontFamily: "'IBM Plex Mono',monospace", fontSize: 9,
+            }}>
+              <span style={{ color: '#5a7a9a' }}>Pragyan rover · photographed by Vikram lander</span>
+              <span style={{ color: '#3a5a6a' }}>ISRO 2023</span>
+            </div>
+
+            {/* Close */}
+            <button
+              onClick={() => setShowRover(false)}
+              style={{
+                position: 'absolute', top: 4, right: -4,
+                background: 'none', border: 'none',
+                color: '#4a6a8a', cursor: 'pointer',
+                fontSize: 16, fontFamily: 'monospace', padding: '4px 8px',
+              }}
+            >✕</button>
+          </div>
+        </div>
+      )}
     </div>
-  );
+  )
 }
