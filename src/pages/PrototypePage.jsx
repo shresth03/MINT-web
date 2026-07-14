@@ -481,7 +481,7 @@ export default function App() {
 
         {/* ── SIDEBAR ── */}
         <div className={`sidebar ${isMobile && sidebarOpen ? 'mobile-open' : ''}`}>
-          <div className="logo">
+          <div className="logo" onClick={() => navigate('/')} style={{cursor:'pointer'}}>
             <div className="logo-icon">⬡</div>
             <div style={{flex:1}}>
               <div className="logo-text">MINT</div>
@@ -508,6 +508,7 @@ export default function App() {
                     if(n.id==="notifications") { setShowNotifs(v => !v); if(isMobile) setSidebarOpen(false); return; }
                     if(n.id==="apply") { setShowApply(true); if(isMobile) setSidebarOpen(false); return; }
                     if (n.id === 'feedback') { navigate('/feedback'); if (isMobile) setSidebarOpen(false); return; }
+                    if (n.id === 'settings') { navigate('/settings'); if (isMobile) setSidebarOpen(false); return; }
                     setNavAndSave(n.id)
                   }}
                 >

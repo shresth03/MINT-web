@@ -13,11 +13,13 @@ import FeedbackPage from './pages/FeedbackPage'
 import ArticlesPage from './pages/ArticlesPage'
 import LivePage from './pages/LivePage'
 import ReelsPage from './pages/ReelsPage'
+import HomePage from './pages/HomePage'
+import SettingsPage from './pages/SettingsPage'
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/feed" replace />} />
+      <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/admin" element={
@@ -59,6 +61,7 @@ export default function App() {
       <Route path="/articles" element={<ProtectedRoute><ArticlesPage /></ProtectedRoute>} />
       <Route path="/live" element={<ProtectedRoute><LivePage /></ProtectedRoute>} />
       <Route path="/reels" element={<ProtectedRoute><ReelsPage /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
     </Routes>
   )
 }
