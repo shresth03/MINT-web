@@ -15,6 +15,10 @@ vi.mock('react-router-dom', async (importOriginal) => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
+vi.mock('../../hooks/useTheme', () => ({
+  useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn() }),
+}))
+
 const renderRegister = () =>
   render(<MemoryRouter><Register /></MemoryRouter>)
 
@@ -108,6 +112,71 @@ describe('Register page', () => {
     fireEvent.click(screen.getByText('CREATE ACCOUNT'))
     await waitFor(() => {
       expect(screen.getByText('Email already in use')).toBeInTheDocument()
+    })
+  })
+
+  // ── Logo (#23) ──────────────────────────────────────────────────────────
+
+  it('renders MINT logo as <img>', () => {
+    renderRegister()
+    expect(screen.getByRole('img', { name: 'MINT' })).toBeInTheDocument()
+  })
+
+  it('dark theme → logo src is logo-dark.png', () => {
+    renderRegister()
+    expect(screen.getByRole('img', { name: 'MINT' }).getAttribute('src')).toContain('logo-dark.png')
+  })
+
+  // ── Account type selector CSS var (#21) ─────────────────────────────────
+
+  it('active account type button background uses CSS variable, not hardcoded hex', () => {
+    renderRegister()
+    const publicBtn = screen.getByText(/PUBLIC/i).closest('button')
+    // CSS variable value should be var(--active-bg), not a raw rgba/hex
+    expect(publicBtn.style.background).toBe('var(--active-bg)')
+  })
+
+  it('inactive account type button has transparent background', () => {
+    renderRegister()
+    const reporterBtn = screen.getByText(/REPORTER/i).closest('button')
+    expect(reporterBtn.style.background).toBe('transparent')
+  })
+
+  // ── Enter key on all fields (#29) ────────────────────────────────────────
+
+  it('pressing Enter on username field submits the form', async () => {
+    renderRegister()
+    fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'alice' } })
+    fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'alice@test.com' } })
+    fireEvent.change(screen.getByPlaceholderText(/Password/i), { target: { value: 'password123' } })
+    fireEvent.keyDown(screen.getByPlaceholderText('Username'), { key: 'Enter' })
+    await waitFor(() => {
+      expect(mockSignUp).toHaveBeenCalledWith('alice@test.com', 'password123', 'alice', 'public')
+    })
+  })
+
+  it('pressing Enter on email field submits the form', async () => {
+    renderRegister()
+    fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'alice' } })
+    fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'alice@test.com' } })
+    fireEvent.change(screen.getByPlaceholderText(/Password/i), { target: { value: 'password123' } })
+    fireEvent.keyDown(screen.getByPlaceholderText('Email address'), { key: 'Enter' })
+    await waitFor(() => {
+      expect(mockSignUp).toHaveBeenCalledWith('alice@test.com', 'password123', 'alice', 'public')
+    })
+  })
+
+  // ── Users table insert error propagation (#28) ───────────────────────────
+
+  it('shows error when username is already taken (users table insert error)', async () => {
+    mockSignUp.mockResolvedValue({ error: { message: 'Username already taken' } })
+    renderRegister()
+    fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'taken_name' } })
+    fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'new@test.com' } })
+    fireEvent.change(screen.getByPlaceholderText(/Password/i), { target: { value: 'password123' } })
+    fireEvent.click(screen.getByText('CREATE ACCOUNT'))
+    await waitFor(() => {
+      expect(screen.getByText('Username already taken')).toBeInTheDocument()
     })
   })
 })
