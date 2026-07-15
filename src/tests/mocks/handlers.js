@@ -4,7 +4,15 @@ import { http, HttpResponse } from 'msw'
 export const anthropicHandlers = [
   http.post('https://api.anthropic.com/v1/messages', async ({ request }) => {
     const body = await request.json()
-    const prompt = body.messages?.[0]?.content || ''
+
+    // Translation request (Haiku, max_tokens: 1024)
+    if (body.model === 'claude-haiku-4-5-20251001') {
+      const src = body.messages?.[0]?.content ?? ''
+      const textLine = src.split('\n').at(-1) ?? ''
+      return HttpResponse.json({
+        content: [{ type: 'text', text: `[translated] ${textLine}` }]
+      })
+    }
 
     // Headline request (max_tokens: 60)
     if (body.max_tokens === 60) {
@@ -17,6 +25,14 @@ export const anthropicHandlers = [
     return HttpResponse.json({
       content: [{ type: 'text', text: 'Indian vessels INS Rajput and INS Vikrant are reportedly advancing toward Chinese positions in the South China Sea near Thailand, sources indicate.' }]
     })
+  }),
+]
+
+// ── Sarvam AI mock ──
+export const sarvamHandlers = [
+  http.post('https://api.sarvam.ai/translate', async ({ request }) => {
+    const body = await request.json()
+    return HttpResponse.json({ translated_text: `[sarvam] ${body.input}` })
   }),
 ]
 
@@ -70,5 +86,5 @@ http.post(
 ),
 ]
 
-export const handlers = [...anthropicHandlers, ...supabaseHandlers]
+export const handlers = [...anthropicHandlers, ...sarvamHandlers, ...supabaseHandlers]
 

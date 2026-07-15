@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { supabase } from '../api/supabase'
 import { useAuth } from './useAuth'
+import { ingest } from '../lib/ingestion/index.js'
 
 export function useStoryComposer() {
   const { user } = useAuth()
@@ -155,6 +156,9 @@ Output only the summary text. No preamble, no labels.`
   }
 
   async function publishStory({ body, tag, region, threadId, headline, summary }) {
+    // Normalise to English for the AI pipeline; original body is stored in the DB.
+    const { text: normalizedBody } = await ingest(body)
+
     // Insert the post, carrying manual_story_id so the trigger skips auto-clustering
     const { data: post, error } = await supabase
       .from('posts')
@@ -218,15 +222,15 @@ Output only the summary text. No preamble, no labels.`
 
     if (!finalHeadline || !finalSummary) {
       // Try Claude first, fall back to DocArrange only if Claude fails
-      const aiHeadline = !finalHeadline ? await generateHeadline([{ users: { username: user?.email?.split('@')[0] || 'analyst' }, body }]) : null
-      const aiSummary = !finalSummary ? await generateSummary(finalHeadline || aiHeadline || body, [{ users: { username: user?.email?.split('@')[0] || 'analyst' }, body }]) : null
-    
+      const aiHeadline = !finalHeadline ? await generateHeadline([{ users: { username: user?.email?.split('@')[0] || 'analyst' }, body: normalizedBody }]) : null
+      const aiSummary = !finalSummary ? await generateSummary(finalHeadline || aiHeadline || normalizedBody, [{ users: { username: user?.email?.split('@')[0] || 'analyst' }, body: normalizedBody }]) : null
+
       if (aiHeadline) finalHeadline = aiHeadline
       if (aiSummary) finalSummary = aiSummary
-    
+
       // Last resort fallback
       if (!finalHeadline || !finalSummary) {
-        const meta = await generateThreadMeta(body, tag, region)
+        const meta = await generateThreadMeta(normalizedBody, tag, region)
         finalHeadline = finalHeadline || meta.headline
         finalSummary = finalSummary || meta.summary
       }
