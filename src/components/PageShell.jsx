@@ -29,7 +29,7 @@ export default function PageShell({ children, title, showBack = true, showToggle
           <img
             src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
             alt="MINT"
-            style={{ height: 36, width: 36, borderRadius: 6, display: 'block' }}
+            style={{ height: 34, width: 'auto', display: 'block' }}
           />
         </div>
 

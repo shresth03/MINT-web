@@ -103,7 +103,7 @@ export default function HomePage() {
             <img
               src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
               alt="MINT"
-              style={{ height: 48, width: 48, borderRadius: 8, display: 'block' }}
+              style={{ height: 44, width: 'auto', display: 'block' }}
             />
           </div>
 

@@ -485,12 +485,8 @@ export default function App() {
             <img
               src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
               alt="MINT"
-              style={{ width: 32, height: 32, borderRadius: 6, flexShrink: 0 }}
+              style={{ height: 38, width: 'auto', display: 'block', flexShrink: 0 }}
             />
-            <div style={{flex:1}}>
-              <div className="logo-text">MINT</div>
-              <div className="logo-sub">OPEN SOURCE INTEL NETWORK</div>
-            </div>
             {isMobile && (
               <button onClick={() => setSidebarOpen(false)}
                 style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:18,padding:4}}>
