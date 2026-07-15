@@ -34,7 +34,7 @@ describe('HomePage — unauthenticated', () => {
 
   it('renders MINT branding', () => {
     renderPage()
-    expect(screen.getAllByText('MINT').length).toBeGreaterThan(0)
+    expect(screen.getByRole('img', { name: 'MINT' })).toBeInTheDocument()
   })
 
   it('renders the hero headline', () => {
@@ -104,8 +104,7 @@ describe('HomePage — unauthenticated', () => {
 
   it('logo click navigates to /', () => {
     renderPage()
-    // The top-bar logo wraps the ⬡ icon and MINT text — click the outer div
-    const logo = screen.getAllByText('MINT')[0].closest('div[style*="cursor: pointer"]')
+    const logo = screen.getByRole('img', { name: 'MINT' }).closest('div')
     fireEvent.click(logo)
     expect(mockNavigate).toHaveBeenCalledWith('/')
   })

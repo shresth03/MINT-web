@@ -482,7 +482,11 @@ export default function App() {
         {/* ── SIDEBAR ── */}
         <div className={`sidebar ${isMobile && sidebarOpen ? 'mobile-open' : ''}`}>
           <div className="logo" onClick={() => navigate('/')} style={{cursor:'pointer'}}>
-            <div className="logo-icon">⬡</div>
+            <img
+              src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+              alt="MINT"
+              style={{ width: 32, height: 32, borderRadius: 6, flexShrink: 0 }}
+            />
             <div style={{flex:1}}>
               <div className="logo-text">MINT</div>
               <div className="logo-sub">OPEN SOURCE INTEL NETWORK</div>

@@ -99,26 +99,12 @@ export default function HomePage() {
           background: 'var(--bg)',
         }}>
           {/* Logo */}
-          <div
-            onClick={() => navigate('/')}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-          >
-            <div style={{
-              width: 40, height: 40,
-              background: 'var(--accent)',
-              clipPath: 'polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, fontWeight: 700, color: 'var(--bg)',
-              fontFamily: 'var(--mono)', flexShrink: 0,
-            }}>
-              ⬡
-            </div>
-            <span style={{
-              fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700,
-              color: 'var(--accent)', letterSpacing: 3,
-            }}>
-              MINT
-            </span>
+          <div onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+            <img
+              src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+              alt="MINT"
+              style={{ height: 48, width: 48, borderRadius: 8, display: 'block' }}
+            />
           </div>
 
           <ThemeToggle theme={theme} onToggle={toggleTheme} />

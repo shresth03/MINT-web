@@ -24,21 +24,13 @@ export default function PageShell({ children, title, showBack = true, showToggle
         {/* MINT logo — always visible, navigates home */}
         <div
           onClick={() => navigate('/')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 7,
-            cursor: 'pointer', flexShrink: 0,
-          }}
+          style={{ cursor: 'pointer', flexShrink: 0 }}
         >
-          <div style={{
-            width: 22, height: 22,
-            background: 'var(--accent)',
-            clipPath: 'polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 10, fontWeight: 700, color: 'var(--bg)', fontFamily: 'var(--mono)',
-          }}>⬡</div>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: 'var(--accent)', letterSpacing: 2 }}>
-            MINT
-          </span>
+          <img
+            src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+            alt="MINT"
+            style={{ height: 36, width: 36, borderRadius: 6, display: 'block' }}
+          />
         </div>
 
         {showBack && (
