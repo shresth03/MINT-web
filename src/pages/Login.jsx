@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../hooks/useTheme'
 
 export default function Login() {
+  const { theme } = useTheme()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -53,17 +55,12 @@ export default function Login() {
         borderRadius: 10, padding: 36, width: 400, maxWidth: '92vw',
       }}>
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28, justifyContent: 'center' }}>
-          <div style={{
-            width: 36, height: 36, background: 'var(--accent)',
-            clipPath: 'polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, fontWeight: 700, color: 'var(--bg)', fontFamily: 'var(--mono)',
-          }}>⬡</div>
-          <div style={{
-            fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700,
-            color: 'var(--accent)', letterSpacing: 3,
-          }}>MINT</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
+          <img
+            src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+            alt="MINT"
+            style={{ height: 36, width: 'auto' }}
+          />
         </div>
 
         {/* Error */}

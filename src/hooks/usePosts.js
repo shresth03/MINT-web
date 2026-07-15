@@ -95,7 +95,14 @@ export function usePosts() {
       .select('*, users(username, role, score)')
       .eq('id', id)
       .single()
-    if (data) setPosts(prev => [data, ...prev])
+    if (!data) return
+
+    const [{ data: likedRow }, { data: savedRow }, { data: repostedRow }] = await Promise.all([
+      supabase.from('likes').select('post_id').eq('user_id', user.id).eq('post_id', id).maybeSingle(),
+      supabase.from('saved_posts').select('post_id').eq('user_id', user.id).eq('post_id', id).maybeSingle(),
+      supabase.from('reposts').select('post_id').eq('user_id', user.id).eq('post_id', id).maybeSingle(),
+    ])
+    setPosts(prev => [{ ...data, _type: 'post', liked: !!likedRow, saved: !!savedRow, reposted: !!repostedRow }, ...prev])
   }
 
   async function createPost(body, mediaUrl = null, region = null, tag = null, postType = 'general') {
@@ -302,14 +309,6 @@ export function usePosts() {
     return { delta }
   }
   
-  async function fetchReplyVotes(postId) {
-    const { data } = await supabase
-      .from('reply_votes')
-      .select('reply_id, vote')
-      .eq('user_id', user.id)
-    return data || []
-  }
-
   async function fetchSavedPosts() {
     const { data, error } = await supabase
       .from('saved_posts')
@@ -342,6 +341,6 @@ export function usePosts() {
     posts, loading, createPost, likePost,
     savePost, repost, createReply, fetchReplies,
     fetchSavedPosts, fetchUserReposts, searchUsers,
-    voteReply, fetchReplyVotes
+    voteReply
   }
 }

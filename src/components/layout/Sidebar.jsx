@@ -2,6 +2,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../api/supabase'
 import { useState, useEffect } from 'react'
+import { useTheme } from '../../hooks/useTheme'
 
 const ROLE_BADGE = {
   osint:    { icon: '◆', label: 'OSINT ANALYST', color: 'var(--verified)' },
@@ -30,6 +31,7 @@ export default function Sidebar({ setShowApply }) {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const { theme } = useTheme()
   const [userRole, setUserRole] = useState('public')
   const [username, setUsername] = useState('')
 
@@ -51,12 +53,12 @@ export default function Sidebar({ setShowApply }) {
 
   return (
     <div className="sidebar">
-      <div className="logo">
-        <div className="logo-icon">⬡</div>
-        <div>
-          <div className="logo-text">MINT</div>
-          <div className="logo-sub">OPEN SOURCE INTEL NETWORK</div>
-        </div>
+      <div className="logo" style={{ padding: '16px 20px' }}>
+        <img
+          src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+          alt="MINT"
+          style={{ height: 28, width: 'auto', display: 'block' }}
+        />
       </div>
 
       <div className="nav">
@@ -109,12 +111,12 @@ export default function Sidebar({ setShowApply }) {
             </div>
           </div>
         </div>
-        <div
+        <button
           onClick={async () => { await signOut(); navigate('/login') }}
-          style={{ marginTop: 10, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', cursor: 'pointer', letterSpacing: 1 }}
+          style={{ marginTop: 10, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', cursor: 'pointer', letterSpacing: 1, background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
         >
           ⊗ SIGN OUT
-        </div>
+        </button>
       </div>
     </div>
   )

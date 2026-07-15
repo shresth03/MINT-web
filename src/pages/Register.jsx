@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../hooks/useTheme'
 
 const ACCOUNT_TYPES = [
   {
@@ -18,6 +19,7 @@ const ACCOUNT_TYPES = [
 ]
 
 export default function Register() {
+  const { theme } = useTheme()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
@@ -58,14 +60,12 @@ export default function Register() {
       }}>
 
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28, justifyContent: 'center' }}>
-          <div style={{
-            width: 36, height: 36, background: 'var(--accent)',
-            clipPath: 'polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, fontWeight: 700, color: 'var(--bg)', fontFamily: 'var(--mono)',
-          }}>⬡</div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 700, color: 'var(--accent)', letterSpacing: 3 }}>MINT</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
+          <img
+            src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+            alt="MINT"
+            style={{ height: 36, width: 'auto' }}
+          />
         </div>
 
         <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: 2, color: 'var(--muted)', textAlign: 'center', marginBottom: 24, textTransform: 'uppercase' }}>
@@ -85,7 +85,7 @@ export default function Register() {
                 style={{
                   flex: 1, padding: '10px 12px', cursor: 'pointer',
                   border: `1px solid ${accountType === t.id ? 'var(--accent)' : 'var(--border)'}`,
-                  background: accountType === t.id ? 'rgba(0,212,255,0.07)' : 'transparent',
+                  background: accountType === t.id ? 'var(--active-bg)' : 'transparent',
                   borderRadius: 6, textAlign: 'left', transition: 'all 0.15s',
                 }}
               >
@@ -111,10 +111,12 @@ export default function Register() {
           </div>
         )}
 
-        <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} style={inputStyle}
+        <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleRegister()} style={inputStyle}
           onFocus={e => e.target.style.borderColor = 'var(--accent)'}
           onBlur={e => e.target.style.borderColor = 'var(--border)'} />
-        <input type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle}
+        <input type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleRegister()} style={inputStyle}
           onFocus={e => e.target.style.borderColor = 'var(--accent)'}
           onBlur={e => e.target.style.borderColor = 'var(--border)'} />
         <input type="password" placeholder="Password (min 6 characters)" value={password} onChange={e => setPassword(e.target.value)}

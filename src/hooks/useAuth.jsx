@@ -29,11 +29,12 @@ export function AuthProvider({ children }) {
     if (error) return { error }
 
     if (data.user) {
-      await supabase.from('users').insert({
+      const { error: profileError } = await supabase.from('users').insert({
         id: data.user.id,
         username,
         role: ['public', 'reporter'].includes(role) ? role : 'public',
       })
+      if (profileError) return { error: profileError }
     }
     return { data }
   }

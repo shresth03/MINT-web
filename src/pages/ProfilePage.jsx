@@ -43,7 +43,7 @@ export default function ProfilePage() {
     const { error } = await updateProfile({ username })
     if (!error) {
       setSaved(true)
-      setTimeout(() => window.location.reload(), 1000)
+      setTimeout(() => setSaved(false), 2000)
     }
     setSaving(false)
   }
