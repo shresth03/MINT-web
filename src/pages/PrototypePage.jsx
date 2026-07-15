@@ -385,6 +385,7 @@ export default function App() {
   const [story, setStory] = useState(STORIES[0])
   const [showApply, setShowApply] = useState(false)
   const [applied, setApplied] = useState(false)
+  const [applyError, setApplyError] = useState('')
   const [mf, setMf] = useState("ALL")
   const [selRegion, setSelRegion] = useState(null)
   const [form, setForm] = useState({channel:"",handle:"",portfolio:"",why:""})
@@ -432,7 +433,7 @@ export default function App() {
       user_id: user.id, channel_name: form.channel, handle: form.handle,
       portfolio: form.portfolio, why: form.why, status: 'pending'
     })
-    if (error) { console.error('Application error:', error.message); alert('Error: ' + error.message); setApplied(false); return }
+    if (error) { setApplyError(error.message); setApplied(false); return }
     setHasApplied(true)
     setTimeout(() => { setShowApply(false); setApplied(false); setForm({channel:"",handle:"",portfolio:"",why:""}) }, 2000)
   }
@@ -973,9 +974,14 @@ export default function App() {
                   <textarea className="form-input form-ta" placeholder={ph} value={form[k]} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} />
                 </div>
               ))}
+              {applyError && (
+                <div style={{ padding: '8px 12px', borderRadius: 6, background: 'rgba(192,64,74,0.1)', border: '1px solid var(--accent2)', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent2)', marginBottom: 8 }}>
+                  {applyError}
+                </div>
+              )}
               <div className="modal-actions">
-                <button className="btn" onClick={()=>setShowApply(false)}>Cancel</button>
-                <button className="btn primary" onClick={doApply}>Submit Application</button>
+                <button className="btn" onClick={() => { setShowApply(false); setApplyError('') }}>Cancel</button>
+                <button className="btn primary" onClick={() => { setApplyError(''); doApply() }}>Submit Application</button>
               </div>
             </>}
           </div>

@@ -117,41 +117,33 @@ Output only the summary text. No preamble, no labels.`
     })
     
     const data = await response.json()
-    console.log('[Claude API response]', JSON.stringify(data)) // ← add this
     return data?.content?.[0]?.text?.trim() ?? null
   }, [])
 
   // Fetches all source posts for a story and regenerates summary via Claude
   async function refreshStorySummary(storyId, currentHeadline) {
-    console.log('[refreshStorySummary] called with storyId:', storyId, 'headline:', currentHeadline)
-    
     const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-    console.log('[refreshStorySummary] apiKey present:', !!apiKey)
     if (!apiKey) return
-  
-    const { data: sources, error: srcError } = await supabase
+
+    const { data: sources } = await supabase
       .from('story_sources')
       .select('post_id, posts(body, users(username))')
       .eq('story_id', storyId)
-  
-    console.log('[refreshStorySummary] sources:', sources, 'error:', srcError)
+
     if (!sources || sources.length === 0) return
-  
+
     const sourcePosts = sources.map(s => ({
       body: s.posts.body,
       users: s.posts.users
     }))
-    console.log('[refreshStorySummary] sourcePosts:', sourcePosts)
-  
+
     const newSummary = await generateSummary(currentHeadline, sourcePosts)
-    console.log('[refreshStorySummary] newSummary from Claude:', newSummary)
-  
+
     if (newSummary) {
-      const { error: updateError } = await supabase
+      await supabase
         .from('stories')
         .update({ summary: newSummary })
         .eq('id', storyId)
-      console.log('[refreshStorySummary] update error:', updateError)
     }
   }
 
@@ -194,13 +186,16 @@ Output only the summary text. No preamble, no labels.`
     }
 
     // ── Auto-cluster path ──
-    // Wait for trigger to create/link story
-    await new Promise(r => setTimeout(r, 1200))
-
-    const { data: newSources } = await supabase
-      .from('story_sources')
-      .select('story_id')
-      .eq('post_id', post.id)
+    // Poll until the Postgres trigger links the post to a story (max 5 × 400ms = 2s)
+    let newSources = null
+    for (let i = 0; i < 5; i++) {
+      await new Promise(r => setTimeout(r, 400))
+      const { data } = await supabase
+        .from('story_sources')
+        .select('story_id')
+        .eq('post_id', post.id)
+      if (data && data.length > 0) { newSources = data; break }
+    }
 
     if (!newSources || newSources.length === 0) return { post, error: null }
 
