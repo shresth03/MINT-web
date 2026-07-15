@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import PageShell from '../components/PageShell'
 import { useLiveStreams, useStreamViewers } from '../hooks/useLiveStreams'
 import { useAuth } from '../hooks/useAuth'
+import { BadgeCheck, PenLine, Play, Radio, Inbox } from 'lucide-react'
 import { supabase } from '../api/supabase'
 
 function timeAgo(dateStr) {
@@ -98,8 +99,8 @@ function StreamRoom({ stream, onEnd, isHost }) {
           <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)' }}>
             @{stream.users?.username}
           </span>
-          {stream.users?.role === 'osint' && <span style={{ color: 'var(--verified)', fontSize: 10 }}>◆ OSINT</span>}
-          {stream.users?.role === 'reporter' && <span style={{ color: 'var(--accent)', fontSize: 10 }}>◈ REPORTER</span>}
+          {stream.users?.role === 'osint' && <span style={{ color: 'var(--verified)', fontSize: 10, display:'flex', alignItems:'center', gap:3 }}><BadgeCheck size={10} /> OSINT</span>}
+          {stream.users?.role === 'reporter' && <span style={{ color: 'var(--accent)', fontSize: 10, display:'flex', alignItems:'center', gap:3 }}><PenLine size={10} /> REPORTER</span>}
           {stream.started_at && (
             <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', marginLeft: 'auto' }}>
               Started {timeAgo(stream.started_at)}
@@ -118,7 +119,7 @@ function StreamRoom({ stream, onEnd, isHost }) {
                   fontSize: 10, fontWeight: 700, letterSpacing: 1, cursor: 'pointer',
                 }}
               >
-                ▶ GO LIVE
+                <Play size={11} style={{display:'inline',verticalAlign:'middle',marginRight:5}} /> GO LIVE
               </button>
             )}
             {stream.status === 'live' && (
@@ -163,7 +164,7 @@ function CreateStreamModal({ onClose, onCreate }) {
         borderRadius: 10, padding: 28, width: 420, maxWidth: '92vw',
       }}>
         <div style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, letterSpacing: 1, color: 'var(--text)', marginBottom: 20 }}>
-          ▶ CREATE BROADCAST
+          <Play size={11} style={{display:'inline',verticalAlign:'middle',marginRight:5}} /> CREATE BROADCAST
         </div>
         <input
           value={title}
@@ -260,7 +261,7 @@ function StreamCard({ stream }) {
         </div>
         <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)' }}>
           @{stream.users?.username}
-          {stream.users?.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 4 }}>◆</span>}
+          {stream.users?.role === 'osint' && <BadgeCheck size={11} style={{ color: 'var(--verified)', marginLeft: 4 }} />}
         </div>
       </div>
     </div>
@@ -300,7 +301,7 @@ export default function LivePage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
           <div>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: 2, marginBottom: 4 }}>
-              ▶ LIVE BROADCASTS
+              <Radio size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5}} /> LIVE BROADCASTS
             </div>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: 1 }}>
               Real-time intel briefings from OSINT analysts and reporters
@@ -347,7 +348,7 @@ export default function LivePage() {
               </div>
             ) : streams.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                <div style={{ fontSize: 32, marginBottom: 16 }}>▶</div>
+                <Radio size={32} style={{ marginBottom: 16 }} />
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
                   No live broadcasts right now
                 </div>
@@ -366,7 +367,7 @@ export default function LivePage() {
                 {liveStreams.length > 0 && (
                   <div style={{ marginBottom: 28 }}>
                     <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 2, color: '#e84848', marginBottom: 12 }}>
-                      ● LIVE NOW
+                      <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',background:'currentColor',marginRight:5,verticalAlign:'middle'}} />LIVE NOW
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
                       {liveStreams.map(s => (

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../api/supabase'
 import { useAuth } from './useAuth'
+import { ShieldCheck, Star, AlertTriangle, Zap } from 'lucide-react'
 
 export const REACTION_TYPES = [
-  { type: 'verified',  icon: '✓', label: 'Verified',  color: 'var(--verified)' },
-  { type: 'confirmed', icon: '★', label: 'Confirmed', color: '#ff9f43' },
-  { type: 'disputed',  icon: '⚠', label: 'Disputed',  color: 'var(--accent2)' },
-  { type: 'breaking',  icon: '⚡', label: 'Breaking',  color: 'var(--accent)' },
+  { type: 'verified',  Icon: ShieldCheck,   label: 'Verified',  color: 'var(--verified)' },
+  { type: 'confirmed', Icon: Star,          label: 'Confirmed', color: '#ff9f43' },
+  { type: 'disputed',  Icon: AlertTriangle, label: 'Disputed',  color: 'var(--accent2)' },
+  { type: 'breaking',  Icon: Zap,           label: 'Breaking',  color: 'var(--accent)' },
 ]
 
 export function useReactions(postId) {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import PageShell from '../components/PageShell'
 import { useStories } from '../hooks/useStories'
 import { useAuth } from '../hooks/useAuth'
+import { MapPin, X, Cpu, BadgeCheck, PenSquare, Newspaper } from 'lucide-react'
 import { supabase } from '../api/supabase'
 
 const TAG_COLORS = {
@@ -49,7 +50,7 @@ function ArticleCard({ story, onClick }) {
         )}
         {story.region && (
           <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', letterSpacing: 1 }}>
-            ◉ {story.region.toUpperCase()}
+            <MapPin size={9} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />{story.region.toUpperCase()}
           </span>
         )}
         {story.confidence != null && (
@@ -120,8 +121,8 @@ function ArticleDetail({ story, onClose }) {
         <button onClick={onClose} style={{
           position: 'absolute', top: 16, right: 16,
           background: 'none', border: 'none', color: 'var(--muted)',
-          fontFamily: 'var(--mono)', fontSize: 14, cursor: 'pointer',
-        }}>✕</button>
+          cursor: 'pointer', display: 'flex', alignItems: 'center',
+        }}><X size={16} /></button>
 
         {/* Tag + meta */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16 }}>
@@ -135,7 +136,7 @@ function ArticleDetail({ story, onClose }) {
           )}
           {story.region && (
             <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', letterSpacing: 1 }}>
-              ◉ {story.region.toUpperCase()}
+              <MapPin size={9} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />{story.region.toUpperCase()}
             </span>
           )}
           {story.confidence != null && (
@@ -193,7 +194,7 @@ function ArticleDetail({ story, onClose }) {
               fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 2,
               color: 'var(--muted)', marginBottom: 14, textTransform: 'uppercase',
             }}>
-              ◈ Intel sources ({story.story_sources.length})
+              <Cpu size={11} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Intel sources ({story.story_sources.length})
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {story.story_sources.map((src, i) => src.posts && (
@@ -210,7 +211,7 @@ function ArticleDetail({ story, onClose }) {
                       onMouseOut={e => e.currentTarget.style.textDecoration = 'none'}
                     >
                       @{src.posts.users?.username || 'unknown'}
-                      {src.posts.users?.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 4 }}>◆</span>}
+                      {src.posts.users?.role === 'osint' && <BadgeCheck size={10} style={{ color: 'var(--verified)', marginLeft: 4 }} />}
                     </span>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)' }}>
                       {timeAgo(src.posts.created_at)}
@@ -278,9 +279,9 @@ function ArticleComposer({ onClose, onPublished }) {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, letterSpacing: 1, color: 'var(--text)' }}>
-            ◈ WRITE ARTICLE
+            <PenSquare size={11} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />WRITE ARTICLE
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 16, cursor: 'pointer' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={16} /></button>
         </div>
 
         {error && (
@@ -369,7 +370,7 @@ export default function ArticlesPage() {
         <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 28 }}>
           <div>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: 2, marginBottom: 6 }}>
-              ◈ INTEL ARTICLES
+              <Newspaper size={13} style={{display:'inline',verticalAlign:'middle',marginRight:6}} />INTEL ARTICLES
             </div>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: 1 }}>
               OSINT intelligence compiled into verified reports

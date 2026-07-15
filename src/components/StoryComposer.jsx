@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useStoryComposer } from '../hooks/useStoryComposer'
+import { X, Check } from 'lucide-react'
 
 const TAGS = ['MILITARY', 'CYBER', 'MARITIME', 'GEOPOLITICAL', 'HUMANITARIAN', 'ECONOMIC', 'ENERGY', 'OTHER']
 const REGIONS = ['Global', 'Middle East', 'Europe', 'Asia Pacific', 'North America', 'South America', 'Africa', 'Arctic']
@@ -177,7 +178,7 @@ export default function StoryComposer({ onClose, onPublished }) {
               STEP {step} OF 3 — {['', 'YOUR STORY', 'ATTACH TO THREAD', 'PREVIEW & PUBLISH'][step]}
             </div>
           </div>
-          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 18, cursor: 'pointer' }}>✕</button>
+          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
         </div>
 
         {/* Step indicators */}
@@ -190,7 +191,7 @@ export default function StoryComposer({ onClose, onPublished }) {
               borderBottom: step === s ? '2px solid #00d4ff' : '2px solid transparent',
               cursor: step > s ? 'pointer' : 'default'
             }}>
-              {step > s ? '✓ ' : `${s}. `}
+              {step > s ? <Check size={11} style={{ display:'inline', verticalAlign:'middle', marginRight:3 }} /> : `${s}. `}
               {['YOUR STORY', 'THREAD', 'PREVIEW'][s - 1]}
             </div>
           ))}
@@ -280,7 +281,7 @@ export default function StoryComposer({ onClose, onPublished }) {
                   </div>
                   <button onClick={() => { setThreadId(null); setThreadObj(null) }}
                     aria-label="Remove thread"
-                    style={{ background: 'none', border: 'none', color: 'var(--warn)', cursor: 'pointer', fontSize: 16 }}>✕</button>
+                    style={{ background: 'none', border: 'none', color: 'var(--warn)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={16} /></button>
                 </div>
               )}
 
@@ -345,7 +346,7 @@ export default function StoryComposer({ onClose, onPublished }) {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 9, color: 'var(--bg)', fontWeight: 700
                       }}>
-                        {selected ? '✓' : ''}
+                        {selected ? <Check size={9} /> : ''}
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600, marginBottom: 4, lineHeight: 1.4 }}>

@@ -94,11 +94,11 @@ describe('SettingsPage', () => {
     })
   })
 
-  it('shows ✓ Saved! confirmation after successful save', async () => {
+  it('shows Saved! confirmation after successful save', async () => {
     renderPage()
     fireEvent.click(screen.getByText('SAVE CHANGES'))
     await waitFor(() => {
-      expect(screen.getByText(/✓ Saved!/i)).toBeInTheDocument()
+      expect(screen.getByText(/Saved!/i)).toBeInTheDocument()
     })
   })
 
@@ -143,10 +143,10 @@ describe('SettingsPage', () => {
     expect(screen.getByText('Breaking events')).toBeInTheDocument()
   })
 
-  it('toggles are enabled by default (● icon)', () => {
+  it('toggles are enabled by default (ToggleRight icon)', () => {
     renderPage()
-    // Each toggle shows ● when enabled; there should be 3
-    const enabled = screen.getAllByText('●')
+    // Each enabled toggle renders with title="Click to disable"; there should be 3
+    const enabled = screen.getAllByTitle('Click to disable')
     expect(enabled.length).toBeGreaterThanOrEqual(3)
   })
 

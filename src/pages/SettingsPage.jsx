@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
+import { ToggleRight, ToggleLeft, BadgeCheck, ShieldAlert, CircleDot, Check } from 'lucide-react'
 import { useTheme } from '../hooks/useTheme'
 import PageShell from '../components/PageShell'
 import ThemeToggle from '../components/ThemeToggle'
@@ -186,7 +187,7 @@ export default function SettingsPage() {
           }}
           title={enabled ? 'Click to disable' : 'Click to enable'}
         >
-          {enabled ? '●' : '○'}
+          {enabled ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
         </button>
       </div>
     )
@@ -231,9 +232,12 @@ export default function SettingsPage() {
                 {profile?.username || user?.email || '—'}
               </div>
               <span style={roleBadgeStyle}>
-                {profile?.role === 'osint' ? '◆ VERIFIED OSINT'
-                  : profile?.role === 'admin' ? '⬡ ADMIN'
-                  : '○ PUBLIC USER'}
+                {profile?.role === 'osint'
+                  ? <><BadgeCheck size={11} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />VERIFIED OSINT</>
+                  : profile?.role === 'admin'
+                  ? <><ShieldAlert size={11} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />ADMIN</>
+                  : <><CircleDot size={11} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />PUBLIC USER</>
+                }
               </span>
             </div>
           </div>
@@ -279,7 +283,7 @@ export default function SettingsPage() {
             </button>
             {saved && (
               <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--verified)' }}>
-                ✓ Saved!
+                <Check size={11} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />Saved!
               </span>
             )}
           </div>
@@ -309,7 +313,7 @@ export default function SettingsPage() {
               borderRadius: 4, padding: '10px 14px', color: 'var(--verified)',
               fontSize: 12, fontFamily: 'var(--sans)',
             }}>
-              ✓ Reset link sent to your inbox.
+              <Check size={11} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />Reset link sent to your inbox.
             </div>
           ) : (
             <button
@@ -492,7 +496,7 @@ export default function SettingsPage() {
           color: 'var(--muted)', letterSpacing: 1,
           marginTop: 8, paddingBottom: 32,
         }}>
-          ◈ MINT · Account Settings · v0.1.0
+          MINT · Account Settings · v0.1.0
         </div>
 
       </div>

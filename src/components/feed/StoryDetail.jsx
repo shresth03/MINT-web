@@ -1,8 +1,10 @@
+import { Cpu, MapPin, Flag, Award } from 'lucide-react'
+
 export default function StoryDetail({ story, onViewMap }) {
     if (!story) {
       return (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "var(--muted)", gap: 12 }}>
-          <div style={{ fontSize: 40, opacity: 0.25 }}>◈</div>
+          <Cpu size={40} style={{ opacity: 0.25 }} />
           <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 1 }}>Select a story</div>
         </div>
       )
@@ -20,7 +22,7 @@ export default function StoryDetail({ story, onViewMap }) {
             onClick={onViewMap}
             style={{ marginLeft: "auto", background: "transparent", border: "1px solid var(--border)", borderRadius: 3, padding: "3px 9px", fontFamily: "var(--mono)", fontSize: 8, color: "var(--muted)", cursor: "pointer", letterSpacing: 1 }}
           >
-            ◉ VIEW ON MAP
+            <MapPin size={9} style={{ display:'inline', verticalAlign:'middle', marginRight:4 }} /> VIEW ON MAP
           </button>
         </div>
   
@@ -39,14 +41,14 @@ export default function StoryDetail({ story, onViewMap }) {
             <span key={i} style={{ display: "contents" }}>
               {i > 0 && <span className="tl-arrow">→</span>}
               <div className={`tl-event ${i === 0 ? "first" : ""}`}>
-                {i === 0 ? "⚑ FIRST: " : `+${s.t.replace("T+", "")}: `}{s.name}
+                {i === 0 ? <><Flag size={9} style={{ display:'inline', verticalAlign:'middle', marginRight:3 }} />FIRST: </> : `+${s.t.replace("T+", "")}: `}{s.name}
               </div>
             </span>
           ))}
         </div>
   
         <div className="detail-summary" style={{ marginTop: 16 }}>
-          <div className="detail-summary-label">◈ AI-SYNTHESISED SUMMARY</div>
+          <div className="detail-summary-label"><Cpu size={10} style={{ display:'inline', verticalAlign:'middle', marginRight:5 }} />AI-SYNTHESISED SUMMARY</div>
           {story.summary}
         </div>
   
@@ -64,11 +66,11 @@ export default function StoryDetail({ story, onViewMap }) {
                 <div className="source-name">{s.name}</div>
                 <div className="source-handle">{s.handle}</div>
               </div>
-              <div className="score-badge">◆ {s.score} / 100</div>
+              <div className="score-badge"><Award size={10} style={{ display:'inline', verticalAlign:'middle', marginRight:3 }} />{s.score} / 100</div>
             </div>
             <div className="source-post-body">{s.body}</div>
             <div className="source-post-time">
-              {s.first && <span className="first-report">⚑ First to report</span>}
+              {s.first && <span className="first-report"><Flag size={9} style={{ display:'inline', verticalAlign:'middle', marginRight:3 }} />First to report</span>}
               <span>{s.t === "T+0" ? "First post" : `Posted ${s.t} after breaking`}</span>
             </div>
           </div>

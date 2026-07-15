@@ -2,20 +2,11 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
+import { CircleDot, PenLine } from 'lucide-react'
 
 const ACCOUNT_TYPES = [
-  {
-    id: 'public',
-    label: 'Public',
-    icon: '○',
-    desc: 'Read intel, follow analysts, join discussions',
-  },
-  {
-    id: 'reporter',
-    label: 'Reporter',
-    icon: '◈',
-    desc: 'Access articles, publish live broadcasts & reels',
-  },
+  { id: 'public',   label: 'Public',   Icon: CircleDot, desc: 'Read intel, follow analysts, join discussions' },
+  { id: 'reporter', label: 'Reporter', Icon: PenLine,   desc: 'Access articles, publish live broadcasts & reels' },
 ]
 
 export default function Register() {
@@ -90,7 +81,7 @@ export default function Register() {
                 }}
               >
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: accountType === t.id ? 'var(--accent)' : 'var(--text)', marginBottom: 4 }}>
-                  {t.icon} {t.label.toUpperCase()}
+                  <t.Icon size={11} style={{ display:'inline', verticalAlign:'middle', marginRight:5 }} />{t.label.toUpperCase()}
                 </div>
                 <div style={{ fontFamily: 'var(--sans)', fontSize: 10, color: 'var(--muted)', lineHeight: 1.4 }}>
                   {t.desc}

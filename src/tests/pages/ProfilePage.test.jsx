@@ -87,11 +87,11 @@ describe('ProfilePage', () => {
     expect(reloadSpy).not.toHaveBeenCalled()
   })
 
-  it('shows ✓ Saved! banner after successful save', async () => {
+  it('shows Saved! banner after successful save', async () => {
     renderPage()
     fireEvent.click(screen.getByText('SAVE CHANGES'))
     await waitFor(() => {
-      expect(screen.getByText(/✓ Saved!/i)).toBeInTheDocument()
+      expect(screen.getByText(/Saved!/i)).toBeInTheDocument()
     })
   })
 
@@ -99,7 +99,7 @@ describe('ProfilePage', () => {
     const timeoutSpy = vi.spyOn(globalThis, 'setTimeout')
     renderPage()
     fireEvent.click(screen.getByText('SAVE CHANGES'))
-    await waitFor(() => expect(screen.getByText(/✓ Saved!/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/Saved!/i)).toBeInTheDocument())
     expect(timeoutSpy).toHaveBeenCalledWith(expect.any(Function), 2000)
     timeoutSpy.mockRestore()
   })
@@ -119,6 +119,6 @@ describe('ProfilePage', () => {
     renderPage()
     fireEvent.click(screen.getByText('SAVE CHANGES'))
     await waitFor(() => expect(mockUpdateProfile).toHaveBeenCalled())
-    expect(screen.queryByText(/✓ Saved!/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Saved!/i)).not.toBeInTheDocument()
   })
 })

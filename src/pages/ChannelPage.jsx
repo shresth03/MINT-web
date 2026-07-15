@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useChannel } from '../hooks/useChannel'
 import { useAuth } from '../hooks/useAuth'
 import { useFollow } from '../hooks/useFollow'
+import { Inbox, BadgeCheck, ShieldAlert, CircleDot, Check, Heart, MessageCircle, Repeat2, UserCheck, UserPlus } from 'lucide-react'
 import { useMessages } from '../hooks/useMessages'
 import { useCredibility } from '../hooks/useCredibility'
 import PageShell from '../components/PageShell'
@@ -39,7 +40,7 @@ export default function ChannelPage() {
   if (!channel) return (
     <PageShell title="MINT — CHANNEL">
       <div style={{ textAlign: 'center', padding: '80px 24px' }}>
-        <div style={{ fontSize: 32, marginBottom: 16, color: 'var(--border)' }}>◇</div>
+        <Inbox size={32} style={{ marginBottom: 16, color: 'var(--border)' }} />
         <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)', letterSpacing: 2 }}>
           CHANNEL NOT FOUND
         </div>
@@ -78,7 +79,7 @@ export default function ChannelPage() {
               <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: 'var(--text)', fontFamily: 'var(--sans)' }}>
                 {channel.username}
                 {channel.role === 'osint' && (
-                  <span style={{ color: 'var(--verified)', fontSize: 16, marginLeft: 8 }}>◆</span>
+                  <BadgeCheck size={18} style={{ color: 'var(--verified)', marginLeft: 8 }} />
                 )}
               </div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>
@@ -98,9 +99,12 @@ export default function ChannelPage() {
                   : channel.role === 'admin' ? 'var(--accent)'
                   : 'var(--border)'}`
               }}>
-                {channel.role === 'osint' ? '◆ VERIFIED OSINT'
-                  : channel.role === 'admin' ? '⬡ ADMIN'
-                  : '○ PUBLIC USER'}
+                {channel.role === 'osint'
+                  ? <><BadgeCheck size={11} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />VERIFIED OSINT</>
+                  : channel.role === 'admin'
+                  ? <><ShieldAlert size={11} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />ADMIN</>
+                  : <><CircleDot size={11} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />PUBLIC USER</>
+                }
               </span>
             </div>
           </div>
@@ -119,7 +123,10 @@ export default function ChannelPage() {
                   color: following ? 'var(--bg)' : 'var(--accent)',
                 }}
               >
-                {following ? '✓ FOLLOWING' : '+ FOLLOW'}
+                {following
+                  ? <><UserCheck size={12} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />FOLLOWING</>
+                  : <><UserPlus size={12} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />FOLLOW</>
+                }
               </button>
               <button
                 onClick={async () => {
@@ -252,7 +259,7 @@ export default function ChannelPage() {
                   )}
                   {(breakdown.positiveReactions ?? 0) > 0 && (
                     <div style={{ marginTop: 6, padding: '6px 10px', background: 'rgba(48,216,128,0.06)', border: '1px solid rgba(48,216,128,0.2)', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--verified)' }}>
-                      ✓ {breakdown.positiveReactions} verified/confirmed reaction{breakdown.positiveReactions !== 1 ? 's' : ''}
+                      <Check size={10} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />{breakdown.positiveReactions} verified/confirmed reaction{breakdown.positiveReactions !== 1 ? 's' : ''}
                     </div>
                   )}
                 </>
@@ -308,9 +315,9 @@ export default function ChannelPage() {
               </div>
               <div style={{ display: 'flex', gap: 12, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
                 <span>{timeAgo(post.created_at)}</span>
-                <span>♡ {post.likes || 0}</span>
-                <span>↩ {post.reply_count || 0}</span>
-                <span>⟳ {post.repost_count || 0}</span>
+                <span style={{display:'flex',alignItems:'center',gap:3}}><Heart size={11} /> {post.likes || 0}</span>
+                <span style={{display:'flex',alignItems:'center',gap:3}}><MessageCircle size={11} /> {post.reply_count || 0}</span>
+                <span style={{display:'flex',alignItems:'center',gap:3}}><Repeat2 size={11} /> {post.repost_count || 0}</span>
                 {post.tag && (
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1, padding: '2px 8px', borderRadius: 10, border: '1px solid var(--border)', color: 'var(--muted)' }}>
                     {post.tag}

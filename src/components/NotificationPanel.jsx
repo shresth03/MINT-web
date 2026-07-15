@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Heart, CornerUpLeft, Repeat2, UserPlus, Mail, AtSign, BadgeCheck, Gauge, Bell, Inbox } from 'lucide-react'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -11,15 +12,15 @@ function timeAgo(dateStr) {
 
 function notifIcon(type) {
     switch(type) {
-      case 'like':                 return { icon: '♥', color: '#e05577' }
-      case 'reply':                return { icon: '↩', color: 'var(--accent)' }
-      case 'repost':               return { icon: '⟳', color: 'var(--verified)' }
-      case 'follow':               return { icon: '+', color: 'var(--warn)' }
-      case 'message':              return { icon: '✉', color: '#a78bfa' }
-      case 'mention':              return { icon: '@', color: 'var(--accent)' }
-      case 'application_approved': return { icon: '◆', color: 'var(--verified)' }
-      case 'score_override':       return { icon: '◈', color: 'var(--accent)' }
-      default:                     return { icon: '●', color: 'var(--muted)' }
+      case 'like':                 return { Icon: Heart,       color: '#e05577' }
+      case 'reply':                return { Icon: CornerUpLeft, color: 'var(--accent)' }
+      case 'repost':               return { Icon: Repeat2,     color: 'var(--verified)' }
+      case 'follow':               return { Icon: UserPlus,    color: 'var(--warn)' }
+      case 'message':              return { Icon: Mail,        color: '#a78bfa' }
+      case 'mention':              return { Icon: AtSign,      color: 'var(--accent)' }
+      case 'application_approved': return { Icon: BadgeCheck,  color: 'var(--verified)' }
+      case 'score_override':       return { Icon: Gauge,       color: 'var(--accent)' }
+      default:                     return { Icon: Bell,        color: 'var(--muted)' }
     }
   }
   
@@ -129,12 +130,12 @@ export default function NotificationPanel({ notifications, unreadCount, onMarkAl
             fontFamily: 'var(--mono)', fontSize: 11,
             color: 'var(--muted)', letterSpacing: 1
           }}>
-            <div style={{ fontSize: 24, marginBottom: 12, opacity: 0.3 }}>◇</div>
+            <Inbox size={24} style={{ marginBottom: 12, opacity: 0.3 }} />
             No notifications yet
           </div>
         ) : (
           notifications.map(n => {
-            const { icon, color } = notifIcon(n.type)
+            const { Icon: NotifIcon, color } = notifIcon(n.type)
             return (
               <div
                 key={n.id}
@@ -154,9 +155,9 @@ export default function NotificationPanel({ notifications, unreadCount, onMarkAl
                   background: `${color}22`,
                   border: `1px solid ${color}44`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 14, color, flexShrink: 0
+                  color, flexShrink: 0
                 }}>
-                  {icon}
+                  <NotifIcon size={15} />
                 </div>
 
                 {/* Content */}

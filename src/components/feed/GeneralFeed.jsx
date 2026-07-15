@@ -7,6 +7,7 @@ import { useNotifications } from '../../hooks/useNotifications'
 import { useLocation } from 'react-router-dom'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { useReactions, REACTION_TYPES } from '../../hooks/useReactions'
+import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck } from 'lucide-react'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -53,7 +54,7 @@ function ReactionBar({ postId }) {
             onMouseOver={e => { e.currentTarget.style.borderColor = r.color; e.currentTarget.style.color = r.color }}
             onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)' }}
           >
-            <span>{r.icon}</span>
+            <r.Icon size={11} />
           </button>
         ))}
       </div>
@@ -76,7 +77,7 @@ function ReactionBar({ postId }) {
             transition: 'all 0.15s',
           }}
         >
-          <span>{r.icon}</span>
+          <r.Icon size={11} />
           {counts[r.type] > 0 && <span>{counts[r.type]}</span>}
         </button>
       ))}
@@ -118,13 +119,14 @@ function AddReactionButton({ onSelect }) {
               title={r.label}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: 14, padding: '2px 4px', borderRadius: 4,
+                display: 'flex', alignItems: 'center',
+                padding: '2px 4px', borderRadius: 4,
                 color: r.color, transition: 'transform 0.1s',
               }}
               onMouseOver={e => e.currentTarget.style.transform = 'scale(1.3)'}
               onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
             >
-              {r.icon}
+              <r.Icon size={15} />
             </button>
           ))}
         </div>
@@ -257,7 +259,7 @@ function MentionTextarea({ value, onChange, placeholder, rows = 2, onKeyDown, au
                     : u.role === 'admin' ? 'var(--accent)' : 'var(--text)'
                 }}>
                   @{u.username}
-                  {u.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 4, fontSize: 9 }}>◆</span>}
+                  {u.role === 'osint' && <BadgeCheck size={10} style={{ color: 'var(--verified)', marginLeft: 4, display: 'inline', verticalAlign: 'middle' }} />}
                 </div>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)' }}>
                   {u.role.toUpperCase()}
@@ -348,7 +350,7 @@ function ReplyNode({ node, depth = 0, postId, createReply, createNotification, p
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: collapsed ? 0 : 4 }}>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: usernameColor }}>
             {node.users?.username || 'Unknown'}
-            {node.users?.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 4, fontSize: 10 }}>◆</span>}
+            {node.users?.role === 'osint' && <BadgeCheck size={11} style={{ color: 'var(--verified)', marginLeft: 4, display: 'inline', verticalAlign: 'middle' }} />}
           </span>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
             · {timeAgo(node.created_at)}
@@ -426,7 +428,7 @@ function ReplyNode({ node, depth = 0, postId, createReply, createNotification, p
                 onMouseOver={e => e.currentTarget.style.background = 'var(--surface2)'}
                 onMouseOut={e => e.currentTarget.style.background = 'none'}
               >
-                ↩ Reply
+                <MessageCircle size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Reply
               </button>
 
               <button
@@ -726,7 +728,10 @@ function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaP
                     transition: 'all 0.15s',
                   }}
                 >
-                  {t === 'news' ? '◆ NEWS' : '○ GENERAL'}
+                  {t === 'news'
+                    ? <><BadgeCheck size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} /> NEWS</>
+                    : 'GENERAL'
+                  }
                 </button>
               ))}
             </div>
@@ -891,7 +896,8 @@ export default function GeneralFeed() {
               fontFamily:'var(--mono)', fontSize:11, letterSpacing:2,
               color:'var(--accent)', marginBottom:16
             }}>
-              {repostModal.reposted ? '⟳ UNDO REPOST' : '⟳ REPOST'}
+              <Repeat2 size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+              {repostModal.reposted ? 'UNDO REPOST' : 'REPOST'}
             </div>
             <div style={{
               background:'var(--bg)', border:'1px solid var(--border)',
@@ -950,7 +956,7 @@ export default function GeneralFeed() {
                   fontFamily:'var(--mono)', fontSize:10, fontWeight:700, cursor:'pointer'
                 }}
               >
-                {repostModal.reposted ? 'UNDO REPOST' : '⟳ REPOST'}
+                {repostModal.reposted ? 'UNDO REPOST' : 'REPOST'}
               </button>
             </div>
           </div>
@@ -1176,7 +1182,7 @@ export default function GeneralFeed() {
           if (displayPosts.length === 0) {
             return (
               <div style={{ padding: 40, textAlign: 'center' }}>
-                <div style={{ fontSize: 28, marginBottom: 12, color: 'var(--border)' }}>◇</div>
+                <Inbox size={28} style={{ marginBottom: 12, color: 'var(--border)' }} />
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)', letterSpacing: 1, marginBottom: 8 }}>
                   {feedTab === 'following'
                     ? followedIds.length === 0
@@ -1231,7 +1237,7 @@ export default function GeneralFeed() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)',
                 }}>
-                  <span style={{ color: 'var(--verified)' }}>⟳</span>
+                  <Repeat2 size={13} style={{ color: 'var(--verified)' }} />
                   <span
                     onClick={() => navigate(`/channel/${post._reposter?.username}`)}
                     style={{ cursor: 'pointer', color: 'var(--verified)', fontWeight: 600 }}
@@ -1271,10 +1277,10 @@ export default function GeneralFeed() {
                           {post.users?.username || 'Unknown'}
                         </span>
                         {post.users?.role === 'osint' && (
-                          <span style={{ color: 'var(--verified)', marginLeft: 4, fontSize: 10 }}>◆</span>
+                          <BadgeCheck size={12} style={{ color: 'var(--verified)', marginLeft: 4, display: 'inline', verticalAlign: 'middle' }} />
                         )}
                         {post.users?.role === 'reporter' && (
-                          <span style={{ color: 'var(--accent)', marginLeft: 4, fontSize: 10 }}>◈</span>
+                          <BadgeCheck size={12} style={{ color: 'var(--accent)', marginLeft: 4, display: 'inline', verticalAlign: 'middle' }} />
                         )}
                       </span>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
@@ -1355,7 +1361,7 @@ export default function GeneralFeed() {
                           padding: 0, transition: 'color 0.15s',
                         }}
                       >
-                        {post.liked ? '♥' : '♡'} {post.likes || 0}
+                        <Heart size={14} fill={post.liked ? 'currentColor' : 'none'} /> {post.likes || 0}
                       </button>
                       <button
                         onClick={() => toggleThread(post.id)}
@@ -1367,7 +1373,8 @@ export default function GeneralFeed() {
                           padding: 0, transition: 'color 0.15s',
                         }}
                       >
-                        ↩ {post.reply_count || 0}{openThreads.has(post.id) ? ' ▲' : ' ▼'}
+                        <MessageCircle size={14} /> {post.reply_count || 0}
+                        {openThreads.has(post.id) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                       </button>
                       <button
                         onClick={() => { setRepostModal(post); setQuoteBody('') }}
@@ -1379,7 +1386,7 @@ export default function GeneralFeed() {
                           padding: 0, transition: 'color 0.15s',
                         }}
                       >
-                        ⟳ {post.repost_count || 0}
+                        <Repeat2 size={14} /> {post.repost_count || 0}
                       </button>
                       <button
                         onClick={() => savePost(post.id)}
@@ -1391,7 +1398,7 @@ export default function GeneralFeed() {
                           padding: 0, transition: 'color 0.15s', marginLeft: 'auto',
                         }}
                       >
-                        {post.saved ? '◈' : '◇'}
+                        <Bookmark size={14} fill={post.saved ? 'currentColor' : 'none'} />
                       </button>
                     </div>
                   </div>

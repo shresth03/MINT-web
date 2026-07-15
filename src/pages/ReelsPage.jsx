@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import PageShell from '../components/PageShell'
 import { useVideos } from '../hooks/useVideos'
 import { useAuth } from '../hooks/useAuth'
+import { Heart, BadgeCheck, PenLine } from 'lucide-react'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -95,7 +96,7 @@ function VideoReel({ video, isActive, onLike, onView }) {
             onMouseOver={e => e.currentTarget.style.transform = 'scale(1.2)'}
             onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
           >
-            {video._liked ? '♥' : '♡'}
+            <Heart size={22} fill={video._liked ? 'currentColor' : 'none'} />
           </button>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#fff' }}>
             {video.likes || 0}
@@ -130,8 +131,8 @@ function VideoReel({ video, isActive, onLike, onView }) {
           style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 4, cursor: 'pointer' }}
         >
           @{video.users?.username}
-          {video.users?.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 6 }}>◆</span>}
-          {video.users?.role === 'reporter' && <span style={{ color: 'var(--accent)', marginLeft: 6 }}>◈</span>}
+          {video.users?.role === 'osint' && <BadgeCheck size={13} style={{ color: 'var(--verified)', marginLeft: 6 }} />}
+          {video.users?.role === 'reporter' && <PenLine size={13} style={{ color: 'var(--accent)', marginLeft: 6 }} />}
         </div>
         {video.title && (
           <div style={{ fontFamily: 'var(--sans)', fontSize: 13, color: '#fff', lineHeight: 1.4, marginBottom: 4 }}>

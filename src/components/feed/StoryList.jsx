@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { BadgeCheck, Gauge, ChevronUp, ChevronDown, AlertTriangle } from 'lucide-react'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -83,12 +84,15 @@ export default function StoryList({ stories, activeStory, onSelect, loading }) {
                         {src.name || src.posts?.users?.username || 'Source'}
                       </span>
                       {(src.posts?.users?.role === 'osint' || src.score) &&
-                        <span style={{ color:'var(--verified)', fontSize:8, marginLeft:2 }}>◆</span>
+                        <BadgeCheck size={9} style={{ color:'var(--verified)', marginLeft:2, display:'inline', verticalAlign:'middle' }} />
                       }
                     </div>
                   ))}
                   <span style={{ fontSize:9, color: sources.length === 1 ? 'var(--warn)' : 'var(--muted)' }}>
-                    {sources.length === 1 ? '△ 1 source' : `${sources.length} sources`}
+                    {sources.length === 1
+                      ? <><AlertTriangle size={9} style={{ display:'inline', verticalAlign:'middle', marginRight:2 }} />1 source</>
+                      : `${sources.length} sources`
+                    }
                   </span>
                 </div>
 
@@ -102,7 +106,10 @@ export default function StoryList({ stories, activeStory, onSelect, loading }) {
                       padding:'2px 6px', letterSpacing:1, flexShrink:0
                     }}
                   >
-                    {isExpanded ? 'HIDE ▲' : `STORIES ▼`}
+                    {isExpanded
+                      ? <><ChevronUp size={10} style={{ display:'inline', verticalAlign:'middle', marginRight:3 }} />HIDE</>
+                      : <><ChevronDown size={10} style={{ display:'inline', verticalAlign:'middle', marginRight:3 }} />STORIES</>
+                    }
                   </button>
                 )}
               </div>
@@ -137,7 +144,7 @@ export default function StoryList({ stories, activeStory, onSelect, loading }) {
                             }}
                           >
                             @{post.users?.username || 'Unknown'}
-                            {post.users?.role === 'osint' && <span style={{ color:'var(--verified)', marginLeft:3, fontSize:8 }}>◆</span>}
+                            {post.users?.role === 'osint' && <BadgeCheck size={9} style={{ color:'var(--verified)', marginLeft:3, display:'inline', verticalAlign:'middle' }} />}
                           </span>
                           {post.users?.score != null && (
                             <span style={{
@@ -145,7 +152,7 @@ export default function StoryList({ stories, activeStory, onSelect, loading }) {
                               color: post.users.score >= 75 ? 'var(--verified)' : post.users.score >= 50 ? 'var(--accent)' : 'var(--warn)',
                               padding:'1px 5px', border:'1px solid var(--border)', borderRadius:3
                             }}>
-                              ◈ {post.users.score}
+                              <Gauge size={8} style={{ display:'inline', verticalAlign:'middle', marginRight:2 }} />{post.users.score}
                             </span>
                           )}
                           <span style={{ fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)', marginLeft:'auto' }}>

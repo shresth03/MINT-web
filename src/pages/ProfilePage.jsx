@@ -3,6 +3,7 @@ import { useUser } from '../hooks/useUser'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../api/supabase'
+import { BadgeCheck, ShieldAlert, CircleDot, Bookmark, Check } from 'lucide-react'
 import { usePosts } from '../hooks/usePosts'
 import PageShell from '../components/PageShell'
 
@@ -114,9 +115,12 @@ export default function ProfilePage() {
                   : profile?.role === 'admin' ? 'var(--accent)'
                   : 'var(--border)'}`,
               }}>
-                {profile?.role === 'osint' ? '◆ VERIFIED OSINT'
-                  : profile?.role === 'admin' ? '⬡ ADMIN'
-                  : '○ PUBLIC USER'}
+                {profile?.role === 'osint'
+                  ? <><BadgeCheck size={10} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />VERIFIED OSINT</>
+                  : profile?.role === 'admin'
+                  ? <><ShieldAlert size={10} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />ADMIN</>
+                  : <><CircleDot size={10} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />PUBLIC USER</>
+                }
               </span>
             </div>
           </div>
@@ -129,7 +133,7 @@ export default function ProfilePage() {
               borderRadius: 8, padding: '16px 20px',
               display: 'flex', alignItems: 'center', gap: 12,
             }}>
-              <div style={{ fontSize: 24, color: 'var(--verified)' }}>◆</div>
+              <BadgeCheck size={24} style={{ color: 'var(--verified)' }} />
               <div>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--verified)', fontWeight: 600, marginBottom: 3 }}>
                   VERIFIED OSINT CHANNEL
@@ -197,7 +201,7 @@ export default function ProfilePage() {
               onMouseOut={e => e.currentTarget.style.opacity = '1'}
             >
               <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
-                {s.posts?.users?.username || 'Unknown'} · ◈ saved
+                {s.posts?.users?.username || 'Unknown'} · <Bookmark size={9} style={{display:'inline',verticalAlign:'middle',marginRight:2}} />saved
               </div>
               <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, fontFamily: 'var(--sans)' }}>
                 {s.posts?.body || ''}
@@ -255,7 +259,7 @@ export default function ProfilePage() {
             </button>
             {saved && (
               <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--verified)' }}>
-                ✓ Saved! Refreshing...
+                <Check size={10} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />Saved!
               </span>
             )}
           </div>

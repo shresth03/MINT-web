@@ -104,7 +104,7 @@ describe('LivePage', () => {
     fireEvent.change(screen.getByPlaceholderText(/Stream title/i), {
       target: { value: 'My Intel Briefing' },
     })
-    fireEvent.click(screen.getByText('CREATE BROADCAST'))
+    fireEvent.click(screen.getByRole('button', { name: /CREATE BROADCAST/i }))
     await waitFor(() => {
       expect(mockCreateStream).toHaveBeenCalledWith('My Intel Briefing', '')
     })

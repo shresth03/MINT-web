@@ -3,38 +3,15 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
 import ThemeToggle from '../components/ThemeToggle'
+import { Cpu, Globe2, BadgeCheck, Radio, MessageSquareText, TrendingUp } from 'lucide-react'
 
 const FEATURES = [
-  {
-    icon: '◈',
-    title: 'Intel Stories',
-    desc: 'Multi-source OSINT reports compiled by verified analysts. Track unfolding events with confidence scores.',
-  },
-  {
-    icon: '◉',
-    title: 'Global Event Map',
-    desc: 'Interactive globe showing active conflict zones, cyber incidents and geopolitical flashpoints in real time.',
-  },
-  {
-    icon: '◆',
-    title: 'Verified Channels',
-    desc: 'Follow verified OSINT analysts. Every analyst has a credibility score based on accuracy and peer corroboration.',
-  },
-  {
-    icon: '●',
-    title: 'Live Broadcasts',
-    desc: 'Real-time live streams from the field. Go live directly from your verified channel.',
-  },
-  {
-    icon: '◎',
-    title: 'Community Notes',
-    desc: 'Challenge or support claims with sourced notes. The community decides what holds up.',
-  },
-  {
-    icon: '↑',
-    title: 'Trending & Reels',
-    desc: 'Short-form intel clips and trending analysis. Fast takes on fast-moving events.',
-  },
+  { Icon: Cpu,              title: 'Intel Stories',    desc: 'Multi-source OSINT reports compiled by verified analysts. Track unfolding events with confidence scores.' },
+  { Icon: Globe2,           title: 'Global Event Map', desc: 'Interactive globe showing active conflict zones, cyber incidents and geopolitical flashpoints in real time.' },
+  { Icon: BadgeCheck,       title: 'Verified Channels',desc: 'Follow verified OSINT analysts. Every analyst has a credibility score based on accuracy and peer corroboration.' },
+  { Icon: Radio,            title: 'Live Broadcasts',  desc: 'Real-time live streams from the field. Go live directly from your verified channel.' },
+  { Icon: MessageSquareText,title: 'Community Notes',  desc: 'Challenge or support claims with sourced notes. The community decides what holds up.' },
+  { Icon: TrendingUp,       title: 'Trending & Reels', desc: 'Short-form intel clips and trending analysis. Fast takes on fast-moving events.' },
 ]
 
 const STEPS = [
@@ -224,8 +201,8 @@ export default function HomePage() {
                 onMouseOver={e => e.currentTarget.style.borderColor = 'var(--accent)'}
                 onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
               >
-                <div style={{ fontSize: 24, color: 'var(--accent)', marginBottom: 12 }}>
-                  {f.icon}
+                <div style={{ color: 'var(--accent)', marginBottom: 12 }}>
+                  <f.Icon size={24} />
                 </div>
                 <div style={{
                   fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600,

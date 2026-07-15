@@ -18,6 +18,11 @@ import ThemeToggle from '../components/ThemeToggle'
 import EditNoteSection from '../components/EditNoteSection'
 import SourceNoteButton from '../components/SourceNoteButton'
 import WorldMap from '../components/map/WorldMap'
+import {
+  Rss, Search, TrendingUp, Globe2, BadgeCheck, Plus, Clock,
+  MessageSquare, Bell, User, Settings, ShieldAlert, MapPin,
+  Cpu, Flag, Award, Inbox, Film, X, Radio,
+} from 'lucide-react'
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');`;
 
@@ -443,28 +448,28 @@ export default function App() {
   const hottest = REGIONS.reduce((a,b) => a.count > b.count ? a : b)
 
   const navItems = [
-    {id:"feed",    label:"Intel Feed",        icon:"◈", section:"Feed"},
-    {id:"search",  label:"Search",            icon:"◎"},
-    {id:"trending",label:"Trending",          icon:"↑", badge:"12"},
-    {id:"map",     label:"Event Map",         icon:"◉"},
-    {id:"verified",label:"Verified Sources",  icon:"◆", badge:"47", bc:"green", section:"OSINT Channels"},
-    ...(profile?.role === 'public' && !hasApplied ? [{id:"apply", label:"Apply to Join", icon:"⊕"}] : []),
-    ...(profile?.role === 'public' && hasApplied  ? [{id:"status", label:"Application Pending", icon:"◌"}] : []),
-    {id:"messages",      label:"Messages",      icon:"◻", section:"Account", badge: msgUnreadCount > 0 ? String(msgUnreadCount) : null, bc:"orange"},
-    {id:"notifications", label:"Notifications", icon:"◎", badge: unreadCount > 0 ? String(unreadCount) : null, bc:"orange"},
-    {id:"profile",       label:"My Profile",    icon:"○"},
-    {id: 'feedback', label: 'Give Feedback', icon: '◈', section: 'Account' },
-    {id:"settings",      label:"Settings",      icon:"≡"},
-    ...(profile?.role === 'admin' ? [{id:"admin", label:"Admin Dashboard", icon:"⬡", section:"Admin"}] : []),
+    {id:"feed",    label:"Intel Feed",        Icon:Rss,          section:"Feed"},
+    {id:"search",  label:"Search",            Icon:Search},
+    {id:"trending",label:"Trending",          Icon:TrendingUp,   badge:"12"},
+    {id:"map",     label:"Event Map",         Icon:Globe2},
+    {id:"verified",label:"Verified Sources",  Icon:BadgeCheck,   badge:"47", bc:"green", section:"OSINT Channels"},
+    ...(profile?.role === 'public' && !hasApplied ? [{id:"apply",  label:"Apply to Join",        Icon:Plus}] : []),
+    ...(profile?.role === 'public' && hasApplied  ? [{id:"status", label:"Application Pending",  Icon:Clock}] : []),
+    {id:"messages",      label:"Messages",      Icon:MessageSquare, section:"Account", badge: msgUnreadCount > 0 ? String(msgUnreadCount) : null, bc:"orange"},
+    {id:"notifications", label:"Notifications", Icon:Bell,          badge: unreadCount > 0 ? String(unreadCount) : null, bc:"orange"},
+    {id:"profile",       label:"My Profile",    Icon:User},
+    {id:"feedback",      label:"Give Feedback", Icon:MessageSquare, section:"Account"},
+    {id:"settings",      label:"Settings",      Icon:Settings},
+    ...(profile?.role === 'admin' ? [{id:"admin", label:"Admin Dashboard", Icon:ShieldAlert, section:"Admin"}] : []),
   ]
 
   // Bottom nav items (mobile) — just the 5 most important
   const bottomNavItems = [
-    {id:"feed",          icon:"◈", label:"Feed"},
-    {id:"map",           icon:"◉", label:"Map"},
-    {id:"search",        icon:"◎", label:"Search"},
-    {id:"messages",      icon:"◻", label:"DMs",   badge: msgUnreadCount > 0 ? msgUnreadCount : null},
-    {id:"notifications", icon:"●", label:"Alerts", badge: unreadCount > 0 ? unreadCount : null},
+    {id:"feed",          Icon:Rss,          label:"Feed"},
+    {id:"map",           Icon:Globe2,       label:"Map"},
+    {id:"search",        Icon:Search,       label:"Search"},
+    {id:"messages",      Icon:MessageSquare,label:"DMs",   badge: msgUnreadCount > 0 ? msgUnreadCount : null},
+    {id:"notifications", Icon:Bell,         label:"Alerts",badge: unreadCount > 0 ? unreadCount : null},
   ]
 
   return (
@@ -490,8 +495,8 @@ export default function App() {
             />
             {isMobile && (
               <button onClick={() => setSidebarOpen(false)}
-                style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:18,padding:4}}>
-                ✕
+                style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',padding:4,display:'flex',alignItems:'center'}}>
+                <X size={18} />
               </button>
             )}
           </div>
@@ -513,7 +518,7 @@ export default function App() {
                     setNavAndSave(n.id)
                   }}
                 >
-                  <span style={{fontSize:12}}>{n.icon}</span> {n.label}
+                  <n.Icon size={14} /> {n.label}
                   {n.badge && <span className={`nav-badge ${n.bc||""}`}>{n.badge}</span>}
                 </div>
               </span>
@@ -530,7 +535,7 @@ export default function App() {
                       {s.username?.[0]?.toUpperCase()}
                     </div>
                     <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--verified)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{s.username} ◆</div>
+                      <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--verified)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:3}}>{s.username} <BadgeCheck size={9} /></div>
                       <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)'}}>Score: {s.score || 0}</div>
                     </div>
                   </div>
@@ -545,7 +550,7 @@ export default function App() {
               </div>
             </div>
             <div onClick={handleSignOut} style={{marginTop:10, fontFamily:'var(--mono)', fontSize:10, color:'var(--muted)', cursor:'pointer', letterSpacing:1}}>
-              ⊗ SIGN OUT
+              <X size={10} style={{ display:'inline', verticalAlign:'middle', marginRight:4 }} /> SIGN OUT
             </div>
           </div>
         </div>
@@ -570,17 +575,17 @@ export default function App() {
               {!isMobile && <ThemeToggle theme={theme} onToggle={toggleTheme} />}
               {profile?.role === 'public' && !hasApplied && !isMobile && (
                 <button onClick={() => setShowApply(true)} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:'transparent',border:'1px solid var(--verified)',borderRadius:6,fontFamily:'var(--mono)',fontSize:10,color:'var(--verified)',cursor:'pointer',letterSpacing:1}}>
-                  <span style={{fontSize:12}}>◆</span> APPLY AS ANALYST
+                  <BadgeCheck size={13} /> APPLY AS ANALYST
                 </button>
               )}
               {profile?.role === 'public' && hasApplied && !isMobile && (
                 <div style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:'rgba(74,96,128,0.15)',border:'1px solid var(--border)',borderRadius:6,fontFamily:'var(--mono)',fontSize:10,color:'var(--muted)',letterSpacing:1}}>
-                  <span>◌</span> PENDING
+                  <Clock size={13} /> PENDING
                 </div>
               )}
               {profile?.role === 'osint' && (
                 <div style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:'rgba(0,255,136,0.08)',border:'1px solid rgba(0,255,136,0.3)',borderRadius:6,fontFamily:'var(--mono)',fontSize:isMobile?9:10,color:'var(--verified)',letterSpacing:1}}>
-                  <span>◆</span> {isMobile ? 'ANALYST' : 'VERIFIED ANALYST'}
+                  <BadgeCheck size={13} /> {isMobile ? 'ANALYST' : 'VERIFIED ANALYST'}
                 </div>
               )}
             </div>
@@ -599,7 +604,7 @@ export default function App() {
               <div style={{position:"relative",flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
                 {dbRegions.length === 0 ? (
                   <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,fontFamily:"var(--mono)",fontSize:11,color:"var(--muted)"}}>
-                    <div style={{fontSize:24,animation:"pulse 1.5s ease-in-out infinite"}}>◉</div>
+                    <Globe2 size={24} style={{animation:"pulse 1.5s ease-in-out infinite"}} />
                     <div style={{letterSpacing:2}}>LOADING MAP DATA...</div>
                   </div>
                 ) : (
@@ -676,7 +681,7 @@ export default function App() {
           {nav === "trending" && (
             <div style={{flex:1, overflow:"hidden", display:"flex", flexDirection:"column"}}>
               <div className="section-header">
-                <span className="section-label">↑ Trending Now</span>
+                <span className="section-label"><TrendingUp size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Trending Now</span>
                 <span className="count-badge">Last 24 hours</span>
               </div>
               <div style={{overflow:"auto", flex:1}}>
@@ -696,7 +701,7 @@ export default function App() {
                         </div>
                         <div className="story-headline">{s.headline}</div>
                         <div style={{display:"flex", alignItems:"center", gap:8, marginTop:6}}>
-                          <span style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--accent)"}}>◆ {(s.sources||s.story_sources||[]).length} sources</span>
+                          <span style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--accent)", display:'flex', alignItems:'center', gap:3}}><BadgeCheck size={9} />{(s.sources||s.story_sources||[]).length} sources</span>
                           <span style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--muted)"}}>{s.confidence || s.confidence === 0 ? `${s.confidence}% confidence` : ''}</span>
                         </div>
                       </div>
@@ -710,7 +715,7 @@ export default function App() {
           {nav === "verified" && (
             <div style={{flex:1, overflow:"hidden", display:"flex", flexDirection:"column"}}>
               <div className="section-header">
-                <span className="section-label">◆ Verified OSINT Channels</span>
+                <span className="section-label"><BadgeCheck size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Verified OSINT Channels</span>
                 <span className="count-badge">{suggestions.length} active</span>
               </div>
               <div style={{overflow:"auto", flex:1, padding:"12px 16px"}}>
@@ -724,7 +729,7 @@ export default function App() {
                       <div style={{width:36, height:36, borderRadius:"50%", background:"linear-gradient(135deg,#1e3a5f,#0d6efd)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"white", margin:"0 auto 8px"}}>
                         {suggestions[1].username?.[0]?.toUpperCase()}
                       </div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:10, color:"var(--verified)", marginBottom:4}}>{suggestions[1].username} ◆</div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:10, color:"var(--verified)", marginBottom:4, display:'flex', alignItems:'center', gap:3}}>{suggestions[1].username} <BadgeCheck size={9} /></div>
                       <div style={{fontFamily:"var(--mono)", fontSize:18, fontWeight:700, color:"#7a9bbf"}}>{suggestions[1].score}</div>
                     </div>
                     {/* 1st place */}
@@ -734,7 +739,7 @@ export default function App() {
                       <div style={{width:42, height:42, borderRadius:"50%", background:"linear-gradient(135deg,#7a3f00,#ff9f43)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"white", margin:"0 auto 8px", border:"2px solid #ff9f43"}}>
                         {suggestions[0].username?.[0]?.toUpperCase()}
                       </div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:11, color:"#ff9f43", marginBottom:4}}>{suggestions[0].username} ◆</div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:11, color:"#ff9f43", marginBottom:4, display:'flex', alignItems:'center', gap:3}}>{suggestions[0].username} <BadgeCheck size={9} /></div>
                       <div style={{fontFamily:"var(--mono)", fontSize:22, fontWeight:700, color:"#ff9f43"}}>{suggestions[0].score}</div>
                       <div style={{fontFamily:"var(--mono)", fontSize:8, color:"#ff9f43", letterSpacing:1, marginTop:2}}>TOP ANALYST</div>
                     </div>
@@ -775,7 +780,7 @@ export default function App() {
                       <div style={{flex:1, minWidth:0}}>
                         <div style={{display:"flex", alignItems:"center", gap:6}}>
                           <span style={{fontSize:13, fontWeight:600, color:"var(--text)"}}>{ch.username}</span>
-                          <span style={{color:"var(--verified)", fontSize:10}}>◆</span>
+                          <BadgeCheck size={10} style={{color:"var(--verified)"}} />
                         </div>
                         <div style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--muted)", marginTop:2}}>
                           @{ch.username}
@@ -809,11 +814,11 @@ export default function App() {
 
                 {tab==="intel" && <>
                   <div className="section-header">
-                    <span className="section-label">⬡ Multi-Source Stories</span>
+                    <span className="section-label"><Cpu size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Multi-Source Stories</span>
                     <span className="count-badge">{STORIES.length} threads</span>
                     {(profile?.role === 'osint' || profile?.role === 'admin') && (
                       <button onClick={() => setShowComposer(true)} style={{marginLeft:8,padding:'4px 10px',background:'rgba(0,255,136,0.1)',border:'1px solid rgba(0,255,136,0.3)',borderRadius:4,fontFamily:'var(--mono)',fontSize:9,color:'var(--verified)',cursor:'pointer',letterSpacing:1}}>
-                        ◆ NEW
+                        <BadgeCheck size={10} style={{display:'inline',verticalAlign:'middle',marginRight:3}} /> NEW
                       </button>
                     )}
                   </div>
@@ -854,7 +859,7 @@ export default function App() {
                       <span className="story-tag">{story.tag}</span>
                       <span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--muted)"}}>First reported {story.time}</span>
                       {!isMobile && (
-                        <button onClick={()=>setNav("map")} style={{marginLeft:"auto",background:"transparent",border:"1px solid var(--border)",borderRadius:3,padding:"3px 9px",fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",cursor:"pointer",letterSpacing:1}}>◉ VIEW ON MAP</button>
+                        <button onClick={()=>setNav("map")} style={{marginLeft:"auto",background:"transparent",border:"1px solid var(--border)",borderRadius:3,padding:"3px 9px",fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",cursor:"pointer",letterSpacing:1, display:'flex',alignItems:'center',gap:4}}><MapPin size={8} /> VIEW ON MAP</button>
                       )}
                     </div>
                     <div className="detail-headline">{story.headline}</div>
@@ -868,14 +873,14 @@ export default function App() {
                         <span key={i} style={{display:"contents"}}>
                           {i>0 && <span className="tl-arrow">→</span>}
                           <div className={`tl-event ${i===0?"first":""}`}>
-                            {i===0?"⚑ FIRST: ":`+${(s.t||'').replace("T+","")}: `}
+                            {i===0?<><Flag size={9} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />FIRST: </>:`+${(s.t||'').replace("T+","")}: `}
                             {s.name || s.posts?.users?.username || 'Source'}
                           </div>
                         </span>
                       ))}
                     </div>
                     <div className="detail-summary" style={{marginTop:16}}>
-                      <div className="detail-summary-label">◈ AI-SYNTHESISED SUMMARY</div>
+                      <div className="detail-summary-label"><Cpu size={10} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />AI-SYNTHESISED SUMMARY</div>
                       {story.summary}
                     </div>
                     <div className="src-title">
@@ -892,11 +897,11 @@ export default function App() {
                             <div className="source-name">{s.name || s.posts?.users?.username || 'Source'}</div>
                             <div className="source-handle">{s.handle || `@${s.posts?.users?.username || 'unknown'}`}</div>
                           </div>
-                          <div className="score-badge">◆ {s.score || s.posts?.users?.score || '??'} / 100</div>
+                          <div className="score-badge"><Award size={10} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />{s.score || s.posts?.users?.score || '??'} / 100</div>
                         </div>
                         <div className="source-post-body">{s.body || s.posts?.body || ''}</div>
                         <div className="source-post-time">
-                          {s.first && <span className="first-report">⚑ First to report</span>}
+                          {s.first && <span className="first-report"><Flag size={9} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />First to report</span>}
                           <span>{s.t==="T+0" ? "First post" : s.t ? `Posted ${s.t} after breaking` : ''}</span>
                         </div>
                         {s.posts?.id && <SourceNoteButton post={s.posts} user={user} />}
@@ -910,7 +915,7 @@ export default function App() {
               {/* Empty state on desktop */}
               {!isMobile && !story && (
                 <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:"var(--muted)",gap:12}}>
-                  <div style={{fontSize:40,opacity:0.25}}>◈</div>
+                  <Cpu size={40} style={{opacity:0.25}} />
                   <div style={{fontFamily:"var(--mono)",fontSize:11,letterSpacing:1}}>Select a story</div>
                 </div>
               )}
@@ -933,7 +938,7 @@ export default function App() {
               }}
             >
               {item.badge > 0 && <span className="bn-badge">{item.badge}</span>}
-              <span className="bn-item-icon">{item.icon}</span>
+              <span className="bn-item-icon"><item.Icon size={18} /></span>
               <span>{item.label}</span>
             </button>
           ))}
@@ -946,18 +951,18 @@ export default function App() {
           <div className="modal">
             {applied ? (
               <div style={{textAlign:"center",padding:"24px 0"}}>
-                <div style={{fontSize:40,marginBottom:12,color:"var(--verified)"}}>◆</div>
+                <BadgeCheck size={40} style={{marginBottom:12,color:"var(--verified)"}} />
                 <div style={{fontFamily:"var(--mono)",color:"var(--verified)",fontSize:14,marginBottom:8}}>APPLICATION SUBMITTED</div>
                 <div style={{fontSize:12,color:"var(--muted)"}}>Your application is under review. You'll be notified within 72 hours.</div>
               </div>
             ) : <>
-              <div className="modal-title">◈ Apply for OSINT Channel Status</div>
+              <div className="modal-title"><BadgeCheck size={13} style={{display:'inline',verticalAlign:'middle',marginRight:6}} />Apply for OSINT Channel Status</div>
               <div className="modal-sub">Verified OSINT channels gain exclusive access to post in the Intel Stories section. Applications are evaluated on a rolling basis.</div>
               <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:2,marginBottom:8}}>EVALUATION CRITERIA</div>
               <div className="crit-list">
-                {[["◆","Accuracy Score","Historical post accuracy, weighted by severity"],["⚑","Breaking Speed","Time-to-first-report vs other sources"],["◉","Source Quality","Evidence grade: satellite, AIS, intercepts, human OSINT"],["▣","Track Record","90+ days active, 50+ verified posts minimum"]].map(([ic,lbl,txt],i)=>(
+                {[[Award,"Accuracy Score","Historical post accuracy, weighted by severity"],[Flag,"Breaking Speed","Time-to-first-report vs other sources"],[Globe2,"Source Quality","Evidence grade: satellite, AIS, intercepts, human OSINT"],[BadgeCheck,"Track Record","90+ days active, 50+ verified posts minimum"]].map(([Ic,lbl,txt],i)=>(
                   <div key={i} className="crit-item">
-                    <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--accent)"}}>{ic}</span>
+                    <Ic size={13} style={{color:"var(--accent)",flexShrink:0}} />
                     <div><strong style={{color:"var(--text)",fontSize:11}}>{lbl}</strong><br/>{txt}</div>
                   </div>
                 ))}

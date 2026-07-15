@@ -3,6 +3,7 @@ import { supabase } from '../api/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import PageShell from '../components/PageShell'
+import { Check, X, Cpu, ChevronUp, ChevronDown, BadgeCheck, Flag, Clock, RefreshCw, CircleDot } from 'lucide-react'
 import { computeScore } from '../hooks/useCredibility'
 
 const FEATURES_META = {
@@ -333,9 +334,9 @@ export default function AdminDashboard() {
                   <div style={{ marginBottom: 8 }}><div style={fieldLabel}>User ID</div><div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>{app.user_id}</div></div>
                   <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
                     <button style={actionBtn('approve')} disabled={processing === app.id} onClick={() => handleApprove(app)}>
-                      {processing === app.id ? 'PROCESSING...' : '✓ APPROVE'}
+                      {processing === app.id ? 'PROCESSING...' : <><Check size={10} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />APPROVE</>}
                     </button>
-                    <button style={actionBtn('reject')} disabled={processing === app.id} onClick={() => handleReject(app)}>✕ REJECT</button>
+                    <button style={actionBtn('reject')} disabled={processing === app.id} onClick={() => handleReject(app)}><X size={10} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />REJECT</button>
                   </div>
                 </div>
               ))
@@ -343,7 +344,7 @@ export default function AdminDashboard() {
 
             {reviewed.length > 0 && (
               <>
-                <div style={{ ...sectionTitle, marginTop: 32 }}>◈ Previously Reviewed ({reviewed.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
+                <div style={{ ...sectionTitle, marginTop: 32 }}><Cpu size={12} style={{display:'inline',verticalAlign:'middle',marginRight:6}} />Previously Reviewed ({reviewed.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
                 {reviewed.map(app => (
                   <div key={app.id} style={{ ...card, opacity: 0.7 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -416,14 +417,22 @@ export default function AdminDashboard() {
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {['verified', 'false', 'developing', 'reversed'].map(status => (
                       <button key={status} style={actionBtn(status)} disabled={processing === claim.id} onClick={() => handleResolveClaim(claim.id, status)}>
-                        {processing === claim.id ? '...' : { verified: '✓ VERIFIED', false: '✗ FALSE', developing: '◎ DEVELOPING', reversed: '⟳ REVERSED' }[status]}
+                        {processing === claim.id ? '...' : {
+                          verified:   <><Check size={9} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />VERIFIED</>,
+                          false:      <><X size={9} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />FALSE</>,
+                          developing: <><Clock size={9} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />DEVELOPING</>,
+                          reversed:   <><RefreshCw size={9} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />REVERSED</>,
+                        }[status]}
                       </button>
                     ))}
                     <button
                       onClick={() => loadClaimNotes(claim.id, claim.post_id)}
                       style={{ marginLeft: 'auto', padding: '7px 14px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 10, cursor: 'pointer' }}
                     >
-                      {expandedClaim === claim.id ? '▲ HIDE NOTES' : '▼ VIEW NOTES'}
+                      {expandedClaim === claim.id
+                        ? <><ChevronUp size={10} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />HIDE NOTES</>
+                        : <><ChevronDown size={10} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />VIEW NOTES</>
+                      }
                     </button>
                   </div>
 
@@ -437,7 +446,7 @@ export default function AdminDashboard() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 600, color: note.users?.role === 'osint' ? 'var(--verified)' : 'var(--text)' }}>
                               {note.users?.username || 'Unknown'}
-                              {note.users?.role === 'osint' && <span style={{ marginLeft: 4, fontSize: 9 }}>◆</span>}
+                              {note.users?.role === 'osint' && <BadgeCheck size={10} style={{ marginLeft: 4, display:'inline', verticalAlign:'middle' }} />}
                             </span>
                             <span style={{
                               padding: '2px 8px', borderRadius: 3, fontFamily: 'var(--mono)', fontSize: 9,
@@ -445,7 +454,10 @@ export default function AdminDashboard() {
                               color: note.stance === 'challenges' ? '#ff4757' : 'var(--verified)',
                               border: `1px solid ${note.stance === 'challenges' ? '#ff475733' : 'rgba(48,216,128,0.2)'}`,
                             }}>
-                              {note.stance === 'challenges' ? '⚑ CHALLENGES' : '✓ SUPPORTS'}
+                              {note.stance === 'challenges'
+                                ? <><Flag size={9} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />CHALLENGES</>
+                                : <><Check size={9} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />SUPPORTS</>
+                              }
                             </span>
                             <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)' }}>wt:{note.weight}</span>
                             {note.accuracy_rating && (
@@ -454,13 +466,16 @@ export default function AdminDashboard() {
                                 background: note.accuracy_rating === 'accurate' ? 'rgba(48,216,128,0.1)' : 'rgba(255,71,87,0.12)',
                                 color: note.accuracy_rating === 'accurate' ? 'var(--verified)' : '#ff4757',
                               }}>
-                                {note.accuracy_rating === 'accurate' ? '✓ ACCURATE' : '✗ INACCURATE'}
+                                {note.accuracy_rating === 'accurate'
+                                  ? <><Check size={9} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />ACCURATE</>
+                                  : <><X size={9} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />INACCURATE</>
+                                }
                               </span>
                             )}
                             <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
                               {[
-                                { rating: 'accurate',   label: '✓ ACCURATE',   color: 'var(--verified)' },
-                                { rating: 'inaccurate', label: '✗ INACCURATE', color: '#ff4757' },
+                                { rating: 'accurate',   label: 'ACCURATE',   color: 'var(--verified)' },
+                                { rating: 'inaccurate', label: 'INACCURATE', color: '#ff4757' },
                               ].map(r => (
                                 <button key={r.rating}
                                   disabled={processing === `note-${note.id}` || note.accuracy_rating === r.rating}
@@ -490,7 +505,7 @@ export default function AdminDashboard() {
 
             {resolvedClaims.length > 0 && (
               <>
-                <div style={{ ...sectionTitle, marginTop: 32 }}>◈ Resolved Claims ({resolvedClaims.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
+                <div style={{ ...sectionTitle, marginTop: 32 }}><Cpu size={12} style={{display:'inline',verticalAlign:'middle',marginRight:6}} />Resolved Claims ({resolvedClaims.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
                 {resolvedClaims.map(claim => {
                   const cs = CLAIM_LABELS[claim.status] || {}
                   return (
@@ -532,7 +547,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div style={sectionTitle}>◈ OSINT Analysts ({osintUsers.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
+            <div style={sectionTitle}><BadgeCheck size={12} style={{display:'inline',verticalAlign:'middle',marginRight:6}} />OSINT Analysts ({osintUsers.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
 
             {loading ? <div style={emptyState}>LOADING...</div>
               : osintUsers.length === 0 ? <div style={emptyState}>No OSINT analysts yet</div>
@@ -547,7 +562,7 @@ export default function AdminDashboard() {
                   <div style={{ flex: 1, minWidth: 120 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600, color: 'var(--verified)' }}>{u.username}</span>
-                      <span style={{ fontSize: 9, color: 'var(--verified)' }}>◆</span>
+                      <BadgeCheck size={10} style={{ color: 'var(--verified)' }} />
                     </div>
                     <div style={{ fontFamily: 'var(--mono)', fontSize: 20, fontWeight: 700, color: scoreColor(u.score), marginTop: 2 }}>
                       {u.score ?? '—'}<span style={{ fontSize: 11, color: 'var(--muted)' }}>/100</span>
@@ -588,7 +603,7 @@ export default function AdminDashboard() {
         {/* ══ REPORTERS ══ */}
         {activeTab === 'reporters' && (
           <>
-            <div style={sectionTitle}>◈ Active Reporters ({reporters.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
+            <div style={sectionTitle}><Cpu size={12} style={{display:'inline',verticalAlign:'middle',marginRight:6}} />Active Reporters ({reporters.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
             {reporters.length === 0
               ? <div style={emptyState}>No reporters yet</div>
               : reporters.map(u => (
@@ -596,7 +611,7 @@ export default function AdminDashboard() {
                   <div style={{ ...avatarStyle, width: 32, height: 32, fontSize: 12 }}>{u.username?.[0]?.toUpperCase()}</div>
                   <div style={{ flex: 1 }}>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{u.username}</span>
-                    <span style={{ marginLeft: 6, fontSize: 9, color: 'var(--accent)' }}>◈ REPORTER</span>
+                    <span style={{ marginLeft: 6, fontSize: 9, color: 'var(--accent)', display:'flex', alignItems:'center', gap:3 }}><Cpu size={9} />REPORTER</span>
                   </div>
                   <button onClick={() => assignRole(u.id, 'public')} disabled={processing === u.id} style={{ padding: '5px 12px', background: 'transparent', border: '1px solid var(--accent2)', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent2)', cursor: 'pointer' }}>
                     REVOKE
@@ -605,7 +620,7 @@ export default function AdminDashboard() {
               ))
             }
 
-            <div style={{ ...sectionTitle, marginTop: 28 }}>○ Public Users — Assign Reporter ({publicUsers.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
+            <div style={{ ...sectionTitle, marginTop: 28 }}><CircleDot size={12} style={{display:'inline',verticalAlign:'middle',marginRight:6}} />Public Users — Assign Reporter ({publicUsers.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
             {publicUsers.length === 0
               ? <div style={emptyState}>No public users</div>
               : publicUsers.map(u => (
@@ -643,7 +658,7 @@ export default function AdminDashboard() {
               })}
             </div>
 
-            <div style={sectionTitle}>◈ Submissions ({feedback.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
+            <div style={sectionTitle}><Cpu size={12} style={{display:'inline',verticalAlign:'middle',marginRight:6}} />Submissions ({feedback.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
 
             {loading ? <div style={emptyState}>LOADING...</div>
               : feedback.length === 0 ? <div style={emptyState}>No feedback submitted yet</div>

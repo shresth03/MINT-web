@@ -71,14 +71,16 @@ describe('GeneralFeed', () => {
     expect(screen.getByText('Great intel here')).toBeInTheDocument()
   })
 
-  it('shows repost modal on ⟳ click', () => {
+  it('shows repost modal on repost button click', () => {
     renderFeed()
-    const repostBtns = screen.getAllByText(/⟳/)
-    fireEvent.click(repostBtns[0])
-    // Modal header is a div with exact text '⟳ REPOST'
+    // Repost button renders <Repeat2 SVG> + count; find all action buttons, click the repost one
+    // The repost count for post-1 is 1 — find the button whose text content is "1" in the action bar
+    const allButtons = screen.getAllByRole('button')
+    // The repost button contains only an SVG + a number; find by matching text "1" sibling
+    const repostBtn = allButtons.find(b => b.textContent.trim() === '1' && b.querySelector('svg'))
+    fireEvent.click(repostBtn)
     const repostHeaders = screen.getAllByText(/REPOST/i)
     expect(repostHeaders.length).toBeGreaterThan(0)
-    // Confirm the cancel button is visible — proves modal is open
     expect(screen.getByText('CANCEL')).toBeInTheDocument()
   })
 

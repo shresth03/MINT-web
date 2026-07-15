@@ -3,28 +3,33 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../api/supabase'
 import { useState, useEffect } from 'react'
 import { useTheme } from '../../hooks/useTheme'
+import {
+  Rss, Globe, TrendingUp, Newspaper, Radio, Film,
+  Search, MessageSquare, User, Plus, LogOut,
+  BadgeCheck, PenLine, ShieldAlert, CircleDot,
+} from 'lucide-react'
 
 const ROLE_BADGE = {
-  osint:    { icon: '◆', label: 'OSINT ANALYST', color: 'var(--verified)' },
-  reporter: { icon: '◈', label: 'REPORTER',       color: 'var(--accent)' },
-  admin:    { icon: '⬡', label: 'ADMIN',           color: '#ff9f43' },
-  public:   { icon: '○', label: 'PUBLIC',          color: 'var(--muted)' },
+  osint:    { Icon: BadgeCheck,  label: 'OSINT ANALYST', color: 'var(--verified)' },
+  reporter: { Icon: PenLine,     label: 'REPORTER',       color: 'var(--accent)' },
+  admin:    { Icon: ShieldAlert, label: 'ADMIN',           color: '#ff9f43' },
+  public:   { Icon: CircleDot,   label: 'PUBLIC',          color: 'var(--muted)' },
 }
 
 const NAV = [
   { section: 'Feed' },
-  { id: 'feed',     path: '/feed',     label: 'Intel Feed',   icon: '◈' },
-  { id: 'general',  path: '/feed',     label: 'General',      icon: '◇' },
-  { id: 'trending', path: '/feed',     label: 'Trending',     icon: '↑' },
+  { id: 'feed',     path: '/feed',     label: 'Intel Feed',   Icon: Rss },
+  { id: 'general',  path: '/feed',     label: 'General',      Icon: Globe },
+  { id: 'trending', path: '/feed',     label: 'Trending',     Icon: TrendingUp },
   { section: 'Media' },
-  { id: 'articles', path: '/articles', label: 'Articles',     icon: '◎' },
-  { id: 'live',     path: '/live',     label: 'Live',         icon: '▶', accent: '#e84848' },
-  { id: 'reels',    path: '/reels',    label: 'Reels',        icon: '▲' },
+  { id: 'articles', path: '/articles', label: 'Articles',     Icon: Newspaper },
+  { id: 'live',     path: '/live',     label: 'Live',         Icon: Radio, accent: '#e84848' },
+  { id: 'reels',    path: '/reels',    label: 'Reels',        Icon: Film },
   { section: 'OSINT' },
-  { id: 'search',   path: '/search',   label: 'Search',       icon: '⊙' },
-  { id: 'messages', path: '/messages', label: 'Messages',     icon: '✉' },
+  { id: 'search',   path: '/search',   label: 'Search',       Icon: Search },
+  { id: 'messages', path: '/messages', label: 'Messages',     Icon: MessageSquare },
   { section: 'Account' },
-  { id: 'profile',  path: '/profile',  label: 'My Profile',   icon: '○' },
+  { id: 'profile',  path: '/profile',  label: 'My Profile',   Icon: User },
 ]
 
 export default function Sidebar({ setShowApply }) {
@@ -76,7 +81,7 @@ export default function Sidebar({ setShowApply }) {
               onClick={() => handleNav(n)}
               style={n.accent && active ? { color: n.accent } : undefined}
             >
-              <span style={{ fontSize: 12, color: n.accent && active ? n.accent : undefined }}>{n.icon}</span>
+              <n.Icon size={14} color={n.accent && active ? n.accent : undefined} />
               {n.label}
               {n.id === 'live' && (
                 <span style={{
@@ -94,7 +99,7 @@ export default function Sidebar({ setShowApply }) {
           <>
             <div className="nav-section">OSINT</div>
             <div className="nav-item" onClick={() => setShowApply?.(true)}>
-              <span style={{ fontSize: 12 }}>⊕</span>
+              <Plus size={14} />
               Apply for OSINT
             </div>
           </>
@@ -106,8 +111,8 @@ export default function Sidebar({ setShowApply }) {
           <div className="avatar">{username?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}</div>
           <div>
             <div className="user-name">{username || user?.email || 'User'}</div>
-            <div className="user-role" style={{ color: badge.color }}>
-              {badge.icon} {badge.label}
+            <div className="user-role" style={{ color: badge.color, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <badge.Icon size={10} /> {badge.label}
             </div>
           </div>
         </div>
@@ -115,7 +120,7 @@ export default function Sidebar({ setShowApply }) {
           onClick={async () => { await signOut(); navigate('/login') }}
           style={{ marginTop: 10, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', cursor: 'pointer', letterSpacing: 1, background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
         >
-          ⊗ SIGN OUT
+          <LogOut size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} /> SIGN OUT
         </button>
       </div>
     </div>

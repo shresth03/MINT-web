@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useSearch } from '../hooks/useSearch'
 import PageShell from '../components/PageShell'
+import { X, Heart, MessageCircle, BadgeCheck, ShieldAlert, Inbox } from 'lucide-react'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -154,7 +155,7 @@ export default function SearchPage() {
                 background: 'none', border: 'none',
                 color: 'var(--muted)', cursor: 'pointer', fontSize: 18,
               }}
-            >×</button>
+            style={{display:'flex',alignItems:'center'}}><X size={16} /></button>
           )}
         </div>
         <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: 1, marginBottom: 16 }}>
@@ -213,7 +214,7 @@ export default function SearchPage() {
                 fontFamily: 'var(--mono)', fontSize: 9,
               }}>
                 #{tagFilter}
-                <button onClick={() => applyTagFilter(tagFilter)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
+                <button onClick={() => applyTagFilter(tagFilter)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, display:'flex', alignItems:'center' }}><X size={12} /></button>
               </span>
             )}
             {dateFilter !== 'all' && (
@@ -224,7 +225,7 @@ export default function SearchPage() {
                 fontFamily: 'var(--mono)', fontSize: 9,
               }}>
                 {DATE_OPTIONS.find(d => d.id === dateFilter)?.label}
-                <button onClick={() => applyDateFilter('all')} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
+                <button onClick={() => applyDateFilter('all')} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, display:'flex', alignItems:'center' }}><X size={12} /></button>
               </span>
             )}
           </div>
@@ -330,7 +331,7 @@ export default function SearchPage() {
                       }}
                     >
                       {p.users?.username || 'Unknown'}
-                      {p.users?.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 4 }}>◆</span>}
+                      {p.users?.role === 'osint' && <BadgeCheck size={11} style={{ color: 'var(--verified)', marginLeft: 4, display:'inline', verticalAlign:'middle' }} />}
                     </span>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
                       {timeAgo(p.created_at)}
@@ -352,8 +353,8 @@ export default function SearchPage() {
                     {highlight(p.body, query)}
                   </div>
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>♡ {p.likes || 0}</span>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>↩ {p.reply_count || 0}</span>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', display:'flex', alignItems:'center', gap:4 }}><Heart size={11} /> {p.likes || 0}</span>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', display:'flex', alignItems:'center', gap:4 }}><MessageCircle size={11} /> {p.reply_count || 0}</span>
                   </div>
                 </div>
               ))
@@ -383,8 +384,8 @@ export default function SearchPage() {
                         }}>
                           {highlight(u.username, query)}
                         </span>
-                        {u.role === 'osint' && <span style={{ color: 'var(--verified)', fontSize: 10, fontFamily: 'var(--mono)' }}>◆ VERIFIED</span>}
-                        {u.role === 'admin' && <span style={{ color: 'var(--accent)', fontSize: 10, fontFamily: 'var(--mono)' }}>⬡ ADMIN</span>}
+                        {u.role === 'osint' && <span style={{ color: 'var(--verified)', fontSize: 10, fontFamily: 'var(--mono)', display:'flex', alignItems:'center', gap:3 }}><BadgeCheck size={10} /> VERIFIED</span>}
+                        {u.role === 'admin' && <span style={{ color: 'var(--accent)', fontSize: 10, fontFamily: 'var(--mono)', display:'flex', alignItems:'center', gap:3 }}><ShieldAlert size={10} /> ADMIN</span>}
                       </div>
                       <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>
                         @{u.username} · Score: {u.score || 0}/100
@@ -400,7 +401,7 @@ export default function SearchPage() {
         {/* Initial state */}
         {!hasQuery && !tagFilter && (
           <div style={{ ...emptyState, marginTop: 48 }}>
-            <div style={{ fontSize: 32, marginBottom: 16, opacity: 0.3 }}>◈</div>
+            <Inbox size={32} style={{ marginBottom: 16, opacity: 0.3 }} />
             <div>Start typing to search intel stories, posts and channels</div>
             <div style={{ marginTop: 8, fontSize: 9 }}>Search #hashtags · Filter by topic · Filter by date</div>
           </div>
@@ -409,7 +410,7 @@ export default function SearchPage() {
         {/* No results */}
         {hasQuery && !loading && !hasResults && (
           <div style={{ ...emptyState, marginTop: 48 }}>
-            <div style={{ fontSize: 32, marginBottom: 16, opacity: 0.3 }}>◇</div>
+            <Inbox size={32} style={{ marginBottom: 16, opacity: 0.3 }} />
             <div>No results found for "{query}"</div>
             <div style={{ marginTop: 8, fontSize: 9 }}>Try different keywords or remove filters</div>
           </div>

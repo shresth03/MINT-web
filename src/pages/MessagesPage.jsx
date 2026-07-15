@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useMessages } from '../hooks/useMessages'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../api/supabase'
+import { MessageSquare, BadgeCheck, Inbox } from 'lucide-react'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 function timeAgo(dateStr) {
@@ -103,7 +104,7 @@ export default function MessagesPage() {
         display: 'flex', alignItems: 'center',
         padding: '0 24px', gap: 16, flexShrink: 0,
       }}>
-        <span style={{ fontSize: 20, color: 'var(--accent)' }}>⬡</span>
+        <MessageSquare size={20} style={{ color: 'var(--accent)' }} />
         <span style={{ fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: 2, color: 'var(--accent)' }}>
           {isMobile && activeConv
             ? otherUser?.username?.toUpperCase() || 'MESSAGES'
@@ -191,7 +192,7 @@ export default function MessagesPage() {
                         color: other?.role === 'osint' ? 'var(--verified)' : 'var(--text)'
                       }}>
                         {other?.username || 'Unknown'}
-                        {other?.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 3 }}>◆</span>}
+                        {other?.role === 'osint' && <BadgeCheck size={10} style={{ color: 'var(--verified)', marginLeft: 3 }} />}
                       </div>
                     </div>
                   ) : (
@@ -202,7 +203,7 @@ export default function MessagesPage() {
                           color: other?.role === 'osint' ? 'var(--verified)' : 'var(--text)'
                         }}>
                           {other?.username || 'Unknown'}
-                          {other?.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 3 }}>◆</span>}
+                          {other?.role === 'osint' && <BadgeCheck size={10} style={{ color: 'var(--verified)', marginLeft: 3 }} />}
                         </div>
                         <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
                           {timeAgo(conv.last_message_at)}
@@ -231,7 +232,7 @@ export default function MessagesPage() {
               alignItems: 'center', justifyContent: 'center',
               color: 'var(--muted)', gap: 12,
             }}>
-              <div style={{ fontSize: 32, opacity: 0.2 }}>◇</div>
+              <Inbox size={32} style={{ opacity: 0.2 }} />
               <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: 1 }}>
                 Select a conversation
               </div>
@@ -257,7 +258,7 @@ export default function MessagesPage() {
                       color: otherUser?.role === 'osint' ? 'var(--verified)' : 'var(--text)'
                     }}>
                       {otherUser?.username || 'Unknown'}
-                      {otherUser?.role === 'osint' && <span style={{ color: 'var(--verified)', marginLeft: 4 }}>◆</span>}
+                      {otherUser?.role === 'osint' && <BadgeCheck size={10} style={{ color: 'var(--verified)', marginLeft: 4 }} />}
                     </div>
                     <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', marginTop: 2 }}>
                       {otherUser?.role?.toUpperCase() || 'USER'}

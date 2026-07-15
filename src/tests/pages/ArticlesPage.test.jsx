@@ -79,7 +79,7 @@ describe('ArticlesPage', () => {
     fireEvent.click(screen.getByText('Indian Vessels Advance Toward Disputed Waters'))
     // Summary appears in both card and modal after click — at least one instance
     expect(screen.getAllByText('Multiple sources confirm movement of Indian naval vessels near disputed maritime zones.').length).toBeGreaterThan(0)
-    expect(screen.getByText('◈ Intel sources (1)')).toBeInTheDocument()
+    expect(screen.getByText(/Intel sources \(1\)/i)).toBeInTheDocument()
   })
 
   it('shows source post body in article detail', () => {
@@ -88,10 +88,13 @@ describe('ArticlesPage', () => {
     expect(screen.getByText('Vessels spotted at grid 14N')).toBeInTheDocument()
   })
 
-  it('closes article detail when ✕ is clicked', () => {
+  it('closes article detail when close button is clicked', () => {
     renderPage()
     fireEvent.click(screen.getByText('Indian Vessels Advance Toward Disputed Waters'))
-    fireEvent.click(screen.getByText('✕'))
+    // Close button now renders <X SVG /> — find by role within the modal
+    const allButtons = screen.getAllByRole('button')
+    const closeBtn = allButtons.find(b => b.querySelector('svg') && b.style.position === 'absolute')
+    fireEvent.click(closeBtn)
     expect(screen.queryByText('Vessels spotted at grid 14N')).not.toBeInTheDocument()
   })
 

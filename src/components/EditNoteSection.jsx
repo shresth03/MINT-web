@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Flag, Check } from 'lucide-react'
 
 export default function EditNoteSection({ userNote, updateNote, deleteNote }) {
   const [editing, setEditing] = useState(false)
@@ -31,7 +32,10 @@ export default function EditNoteSection({ userNote, updateNote, deleteNote }) {
           background: userNote.stance === 'challenges' ? 'rgba(255,71,87,0.12)' : 'rgba(0,255,136,0.1)',
           color: userNote.stance === 'challenges' ? '#ff4757' : 'var(--verified)'
         }}>
-          {userNote.stance === 'challenges' ? '⚑ CHALLENGING' : '✓ SUPPORTING'}
+          {userNote.stance === 'challenges'
+            ? <><Flag size={10} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />CHALLENGING</>
+            : <><Check size={10} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />SUPPORTING</>
+          }
         </span>
         <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
           <button onClick={() => setEditing(true)} style={{ padding:'4px 10px', background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:4, fontFamily:'var(--mono)', fontSize:9, cursor:'pointer' }}>EDIT</button>
@@ -57,7 +61,10 @@ export default function EditNoteSection({ userNote, updateNote, deleteNote }) {
             color: stance===s ? (s==='challenges' ? '#ff4757' : 'var(--verified)') : 'var(--muted)',
             cursor:'pointer', letterSpacing:1
           }}>
-            {s==='challenges' ? '⚑ CHALLENGES' : '✓ SUPPORTS'}
+            {s==='challenges'
+              ? <><Flag size={10} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />CHALLENGES</>
+              : <><Check size={10} style={{display:'inline',verticalAlign:'middle',marginRight:3}} />SUPPORTS</>
+            }
           </button>
         ))}
       </div>

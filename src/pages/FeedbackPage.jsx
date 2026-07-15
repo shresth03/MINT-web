@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useUser } from '../hooks/useUser'
 import { supabase } from '../api/supabase'
 import { useNavigate } from 'react-router-dom'
+import { MessageSquareDashed, Loader2, Send } from 'lucide-react'
 import PageShell from '../components/PageShell'
 
 const FEATURES = [
@@ -93,13 +94,13 @@ export default function FeedbackPage() {
   }
 
   if (submitted) return (
-    <PageShell title="◆ Feedback Terminal">
+    <PageShell title="Feedback Terminal">
       <div style={{
         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexDirection: 'column', gap: 16, minHeight: 'calc(100vh - 52px)',
         fontFamily: 'var(--mono)'
       }}>
-        <div style={{ fontSize: 40, color: 'var(--verified)' }}>◆</div>
+        <MessageSquareDashed size={40} style={{ color: 'var(--verified)' }} />
         <div style={{ fontSize: 14, letterSpacing: 2, color: 'var(--verified)' }}>REPORT SUBMITTED</div>
         <div style={{ fontSize: 11, color: 'var(--muted)', maxWidth: 320, textAlign: 'center', lineHeight: 1.7 }}>
           Your feedback has been logged and will directly shape what gets built next.
@@ -120,7 +121,7 @@ export default function FeedbackPage() {
   )
 
   return (
-    <PageShell title="◆ Feedback Terminal">
+    <PageShell title="Feedback Terminal">
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 24px' }}>
 
         {/* Intro */}
@@ -132,7 +133,7 @@ export default function FeedbackPage() {
           fontSize: 10, color: 'var(--muted)',
           lineHeight: 1.8, letterSpacing: 0.5
         }}>
-          ◈ Rate each feature you've used. You don't need to rate everything — skip what you haven't tried.
+          <MessageSquareDashed size={11} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Rate each feature you've used. You don't need to rate everything — skip what you haven't tried.
           Use the field next to each rating to add specific feedback.
         </div>
 
@@ -334,7 +335,10 @@ export default function FeedbackPage() {
             transition: 'all 0.15s'
           }}
         >
-          {submitting ? '⟳ SUBMITTING...' : '◆ SUBMIT INTELLIGENCE REPORT'}
+          {submitting
+            ? <><Loader2 size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5,animation:'spin 1s linear infinite'}} />SUBMITTING...</>
+            : <><Send size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />SUBMIT INTELLIGENCE REPORT</>
+          }
         </button>
 
         <div style={{ height: 40 }} />
