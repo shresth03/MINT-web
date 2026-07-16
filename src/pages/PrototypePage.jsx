@@ -14,7 +14,6 @@ import { useMessages } from '../hooks/useMessages'
 import StoryComposer from '../components/StoryComposer'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useTheme } from '../hooks/useTheme'
-import ThemeToggle from '../components/ThemeToggle'
 import ThemeRipple from '../components/ThemeRipple'
 import EditNoteSection from '../components/EditNoteSection'
 import SourceNoteButton from '../components/SourceNoteButton'
@@ -216,14 +215,14 @@ const styles = `
   .detail-summary-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--accent); margin-bottom:6px; }
   .src-title { font-family:var(--mono); font-size:10px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
   .src-title::after { content:''; flex:1; height:1px; background:var(--border); }
-  .source-post { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:14px; margin-bottom:10px; transition:border-color 0.15s; }
+  .source-post { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:18px; margin-bottom:14px; transition:border-color 0.15s; }
   .source-post:hover { border-color:var(--accent); }
-  .source-post-hd { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  .source-name { font-size:13px; font-weight:600; color:var(--text); font-family:var(--sans); }
-  .source-handle { font-size:10px; color:var(--muted); font-family:var(--mono); }
-  .score-badge { margin-left:auto; display:flex; align-items:center; gap:4px; font-family:var(--mono); font-size:9px; padding:2px 8px; border-radius:3px; border:1px solid var(--verified); color:var(--verified); }
-  .source-post-body { font-size:12px; line-height:1.6; color:var(--muted); font-family:var(--sans); }
-  .source-post-time { margin-top:8px; font-family:var(--mono); font-size:9px; color:var(--muted); display:flex; align-items:center; gap:10px; }
+  .source-post-hd { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .source-name { font-size:14px; font-weight:600; color:var(--text); font-family:var(--sans); }
+  .source-handle { font-size:10px; color:var(--muted); font-family:var(--mono); margin-top:2px; }
+  .score-badge { margin-left:auto; display:flex; align-items:center; gap:4px; font-family:var(--mono); font-size:9px; padding:4px 10px; border-radius:4px; border:1px solid var(--verified); color:var(--verified); white-space:nowrap; }
+  .source-post-body { font-size:13px; line-height:1.7; color:var(--text); font-family:var(--sans); }
+  .source-post-time { margin-top:12px; padding-top:10px; border-top:1px solid var(--border); font-family:var(--mono); font-size:9px; color:var(--muted); display:flex; align-items:center; gap:12px; }
   .first-report { color:var(--accent2); }
   .conf-bar { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
   .conf-label { font-family:var(--mono); font-size:9px; color:var(--muted); white-space:nowrap; }
@@ -478,7 +477,7 @@ export default function App() {
     {id:"messages",      label:"Messages",      Icon:MessageSquare, section:"Account", badge: msgUnreadCount > 0 ? String(msgUnreadCount) : null, bc:"orange"},
     {id:"notifications", label:"Notifications", Icon:Bell,          badge: unreadCount > 0 ? String(unreadCount) : null, bc:"orange"},
     {id:"profile",       label:"My Profile",    Icon:User},
-    {id:"feedback",      label:"Give Feedback", Icon:MessageSquare, section:"Account"},
+    {id:"feedback",      label:"Give Feedback", Icon:MessageSquare},
     {id:"settings",      label:"Settings",      Icon:Settings},
     ...(profile?.role === 'admin' ? [{id:"admin", label:"Admin Dashboard", Icon:ShieldAlert, section:"Admin"}] : []),
   ]
@@ -611,7 +610,6 @@ export default function App() {
                 : `${(dbStories.length > 0 ? dbStories : STORIES).length} stories`}
             </span>
             <div className="ml-auto" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {!isMobile && <ThemeToggle theme={theme} onToggle={toggleTheme} />}
               {profile?.role === 'public' && !hasApplied && !isMobile && (
                 <button onClick={() => setShowApply(true)} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:'transparent',border:'1px solid var(--verified)',borderRadius:6,fontFamily:'var(--mono)',fontSize:10,color:'var(--verified)',cursor:'pointer',letterSpacing:1}}>
                   <BadgeCheck size={13} /> APPLY AS ANALYST
