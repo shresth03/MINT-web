@@ -167,7 +167,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       g.append('text').attr('x', cx).attr('y', cy + 1)
         .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
         .attr('fill', '#fff').attr('font-size', bR > 14 ? 10 : 8)
-        .attr('font-family', "'IBM Plex Mono',monospace").attr('font-weight', '700')
+        .attr('font-family', "var(--mono)").attr('font-weight', '700')
         .attr('pointer-events', 'none').text(reg.count)
 
       circle
@@ -332,7 +332,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       .attr('x', mX).attr('y', c3y + mR * 0.17)
       .attr('text-anchor', 'middle').attr('fill', '#00d4ff')
       .attr('font-size', Math.max(5.5, mR * 0.088))
-      .attr('font-family', "'IBM Plex Mono',monospace").attr('font-weight', '600')
+      .attr('font-family', "var(--mono)").attr('font-weight', '600')
       .attr('pointer-events', 'none')
       .text('CHANDRAYAAN-3')
 
@@ -340,7 +340,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       .attr('x', mX).attr('y', c3y + mR * 0.27)
       .attr('text-anchor', 'middle').attr('fill', '#9a9278')
       .attr('font-size', Math.max(4.5, mR * 0.064))
-      .attr('font-family', "'IBM Plex Mono',monospace")
+      .attr('font-family', "var(--mono)")
       .attr('pointer-events', 'none')
       .text('SOUTH POLE · 2023')
 
@@ -349,7 +349,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       .attr('x', mX).attr('y', mY - mR - 7)
       .attr('text-anchor', 'middle').attr('fill', '#c8c0a8')
       .attr('font-size', Math.max(7, mR * 0.10))
-      .attr('font-family', "'IBM Plex Mono',monospace").attr('letter-spacing', 2)
+      .attr('font-family', "var(--mono)").attr('letter-spacing', 2)
       .attr('pointer-events', 'none')
       .text('MOON')
 
@@ -358,7 +358,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       .attr('x', mX).attr('y', mY - mR - 15)
       .attr('text-anchor', 'middle').attr('fill', '#3a5068')
       .attr('font-size', 6)
-      .attr('font-family', "'IBM Plex Mono',monospace")
+      .attr('font-family', "var(--mono)")
       .attr('pointer-events', 'none')
       .text('[ CLICK ]')
   }
@@ -440,7 +440,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
           >
             {/* Header */}
             <div style={{
-              fontFamily: "'IBM Plex Mono',monospace",
+              fontFamily: "var(--mono)",
               color: '#00d4ff', letterSpacing: 3, fontSize: 9,
               marginBottom: 14, textTransform: 'uppercase',
             }}>
@@ -469,7 +469,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
             {/* Caption */}
             <div style={{
               marginTop: 12, display: 'flex', justifyContent: 'space-between',
-              fontFamily: "'IBM Plex Mono',monospace", fontSize: 9,
+              fontFamily: "var(--mono)", fontSize: 9,
             }}>
               <span style={{ color: '#5a7a9a' }}>Pragyan rover · photographed by Vikram lander</span>
               <span style={{ color: '#3a5a6a' }}>ISRO 2023</span>
@@ -482,7 +482,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
                 position: 'absolute', top: 4, right: -4,
                 background: 'none', border: 'none',
                 color: '#4a6a8a', cursor: 'pointer',
-                fontSize: 16, fontFamily: 'monospace', padding: '4px 8px',
+                fontSize: 16, fontFamily: 'var(--mono)', padding: '4px 8px',
               }}
             >✕</button>
           </div>

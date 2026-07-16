@@ -922,7 +922,7 @@ export default function GeneralFeed() {
                     width:'100%', background:'var(--bg)',
                     border:'1px solid var(--border)', borderRadius:6,
                     padding:'10px 12px', color:'var(--text)',
-                    fontFamily:'IBM Plex Sans, sans-serif', fontSize:13,
+                    fontFamily:'var(--sans)', fontSize:13,
                     resize:'none', outline:'none', marginBottom:12,
                     boxSizing:'border-box'
                   }}

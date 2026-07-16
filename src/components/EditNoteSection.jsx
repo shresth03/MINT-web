@@ -71,7 +71,7 @@ export default function EditNoteSection({ userNote, updateNote, deleteNote }) {
       <textarea
         value={body} onChange={e => setBody(e.target.value)}
         maxLength={500} rows={3}
-        style={{ width:'100%', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, padding:'10px 12px', color:'var(--text)', fontFamily:'IBM Plex Sans, sans-serif', fontSize:12, resize:'none', outline:'none', boxSizing:'border-box', marginBottom:8 }}
+        style={{ width:'100%', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, padding:'10px 12px', color:'var(--text)', fontFamily:'var(--sans)', fontSize:12, resize:'none', outline:'none', boxSizing:'border-box', marginBottom:8 }}
         onFocus={e => e.target.style.borderColor='var(--accent)'}
         onBlur={e => e.target.style.borderColor='var(--border)'}
       />

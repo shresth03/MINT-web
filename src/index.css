@@ -61,8 +61,16 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--sans);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   transition: background 0.4s ease, color 0.3s ease;
+}
+
+input, button, textarea, select {
+  font-family: inherit;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--sans);
 }
 
 /* Radar sweep transition */

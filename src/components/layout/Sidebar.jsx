@@ -58,7 +58,7 @@ export default function Sidebar({ setShowApply }) {
 
   return (
     <div className="sidebar">
-      <div className="logo" style={{ padding: '16px 20px' }}>
+      <div className="logo" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'center' }}>
         <img
           src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
           alt="MINT"

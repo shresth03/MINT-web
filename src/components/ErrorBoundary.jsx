@@ -24,7 +24,7 @@ export default class ErrorBoundary extends Component {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          fontFamily: "'IBM Plex Mono', monospace",
+          fontFamily: "var(--mono)",
           color: '#4a6080'
         }}>
           <div style={{ fontSize: 40, marginBottom: 16, color: '#1e2d3d' }}>⬡</div>
@@ -42,7 +42,7 @@ export default class ErrorBoundary extends Component {
               border: '1px solid #1e2d3d',
               color: '#4a6080',
               borderRadius: 4,
-              fontFamily: "'IBM Plex Mono', monospace",
+              fontFamily: "var(--mono)",
               fontSize: 10,
               cursor: 'pointer',
               letterSpacing: 1
