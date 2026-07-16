@@ -667,17 +667,17 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                    {STORIES.filter(s=>s.region===selRegion.id).length > 0 ? (
+                    {dbStories.filter(s=>s.region===selRegion.id).length > 0 ? (
                       <>
                         <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:2,color:"var(--muted)",marginBottom:6}}>LINKED INTEL STORIES</div>
-                        {STORIES.filter(s=>s.region===selRegion.id).map(s=>(
+                        {dbStories.filter(s=>s.region===selRegion.id).map(s=>(
                           <div key={s.id}
                             style={{padding:"8px 10px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:4,marginBottom:6,cursor:"pointer",fontSize:11,lineHeight:1.4,color:"var(--text)"}}
                             onClick={()=>{setStory(s);setNav("feed");if(isMobile)setMobileDetail(true)}}>
-                            {s.breaking && <span className="breaking-tag" style={{fontSize:7,marginRight:5}}>BREAKING</span>}
+                            {(s.breaking||s.is_breaking) && <span className="breaking-tag" style={{fontSize:7,marginRight:5}}>BREAKING</span>}
                             {s.headline}
                             <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",marginTop:4}}>
-                              {s.sources.length} source{s.sources.length!==1?"s":""} · {s.time}
+                              {(s.story_sources||[]).length} source{(s.story_sources||[]).length!==1?"s":""} · {s.time || 'recent'}
                             </div>
                           </div>
                         ))}
@@ -834,7 +834,7 @@ export default function App() {
                 {tab==="intel" && <>
                   <div className="section-header">
                     <span className="section-label"><Cpu size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Multi-Source Stories</span>
-                    <span className="count-badge">{STORIES.length} threads</span>
+                    <span className="count-badge">{dbStories.length} threads</span>
                     {(profile?.role === 'osint' || profile?.role === 'admin') && (
                       <button onClick={() => setShowComposer(true)} style={{marginLeft:8,padding:'4px 10px',background:'rgba(0,255,136,0.1)',border:'1px solid rgba(0,255,136,0.3)',borderRadius:4,fontFamily:'var(--mono)',fontSize:9,color:'var(--verified)',cursor:'pointer',letterSpacing:1}}>
                         <BadgeCheck size={10} style={{display:'inline',verticalAlign:'middle',marginRight:3}} /> NEW
