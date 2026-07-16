@@ -135,7 +135,7 @@ const styles = `
     .main { width: 100vw !important; }
   }
 
-  .logo { padding: 20px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .logo { padding: 20px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 10px; }
   .logo-icon { width: 32px; height: 32px; background: var(--accent); clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--bg); font-family: var(--mono); }
   .logo-text { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 2px; }
   .logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 1px; font-family: var(--mono); }
@@ -533,7 +533,7 @@ export default function App() {
             />
             {isMobile && (
               <button onClick={() => setSidebarOpen(false)}
-                style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',padding:4,display:'flex',alignItems:'center'}}>
+                style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',padding:4,display:'flex',alignItems:'center',marginLeft:'auto'}}>
                 <X size={18} />
               </button>
             )}
