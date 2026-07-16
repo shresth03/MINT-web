@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useStoryComposer } from '../hooks/useStoryComposer'
 import { X, Check } from 'lucide-react'
-
-const TAGS = ['MILITARY', 'CYBER', 'MARITIME', 'GEOPOLITICAL', 'HUMANITARIAN', 'ECONOMIC', 'ENERGY', 'OTHER']
-const REGIONS = ['Global', 'Middle East', 'Europe', 'Asia Pacific', 'North America', 'South America', 'Africa', 'Arctic']
+import { COMPOSER_TAGS as TAGS, REGIONS_LIST as REGIONS } from '../constants'
 
 export default function StoryComposer({ onClose, onPublished }) {
   const { publishStory, searchThreads, getRecentThreads, generateHeadline, generateSummary } = useStoryComposer()

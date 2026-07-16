@@ -5,6 +5,7 @@ import { useStories } from '../hooks/useStories'
 import { useAuth } from '../hooks/useAuth'
 import { MapPin, X, Cpu, BadgeCheck, PenSquare, Newspaper } from 'lucide-react'
 import { supabase } from '../api/supabase'
+import { STORY_TAGS as TAGS, REGIONS_LIST as REGIONS } from '../constants'
 
 const TAG_COLORS = {
   CONFLICT: '#e84848', CYBER: '#00d4ff', GEOPOLITICS: '#ff9f43',
@@ -230,8 +231,6 @@ function ArticleDetail({ story, onClose }) {
   )
 }
 
-const TAGS = ['CONFLICT', 'CYBER', 'GEOPOLITICS', 'MILITARY', 'HUMANITARIAN', 'NUCLEAR', 'MARITIME', 'INTELLIGENCE', 'BREAKING', 'SECURITY', 'OTHER']
-const REGIONS = ['Global', 'North America', 'South America', 'Europe', 'Middle East', 'Africa', 'Asia Pacific', 'Central Asia', 'Eastern Europe']
 
 function ArticleComposer({ onClose, onPublished }) {
   const { user } = useAuth()

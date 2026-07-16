@@ -1,8 +1,9 @@
 import { useUser } from '../hooks/useUser'
 import { useRegions } from '../hooks/useRegions'
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../api/supabase'
+import { MAP_FILTERS } from '../constants'
 import GeneralFeed from '../components/feed/GeneralFeed'
 import { useNavigate } from 'react-router-dom'
 import { useStories } from '../hooks/useStories'
@@ -302,42 +303,6 @@ const styles = `
   }
 `
 
-// ─── DATA ────────────────────────────────────────────────────────────────────
-
-const REGIONS = [
-  { id:"hormuz",    name:"Strait of Hormuz",       lat:26.5, lng:56.5,  count:14, breaking:true,  color:"#ff6b35", tags:["CONFLICT","MARITIME"] },
-  { id:"ukraine",   name:"Eastern Ukraine",         lat:49.0, lng:37.5,  count:22, breaking:true,  color:"#ff6b35", tags:["CONFLICT","MILITARY"] },
-  { id:"israel",    name:"Gaza / Israel",           lat:31.5, lng:34.5,  count:18, breaking:true,  color:"#ff6b35", tags:["CONFLICT","HUMANITARIAN"] },
-  { id:"southchin", name:"South China Sea",         lat:14.0, lng:113.0, count:11, breaking:false, color:"#ffcc00", tags:["TERRITORIAL","NAVAL"] },
-  { id:"taiwan",    name:"Taiwan Strait",           lat:24.5, lng:120.5, count:9,  breaking:false, color:"#ffcc00", tags:["GEOPOLITICS","NAVAL"] },
-  { id:"reddtrade", name:"Red Sea",                 lat:14.0, lng:43.0,  count:8,  breaking:false, color:"#ffcc00", tags:["MARITIME","SECURITY"] },
-  { id:"sahel",     name:"Sahel Region",            lat:14.0, lng:2.0,   count:7,  breaking:false, color:"#ffcc00", tags:["CONFLICT","GOVERNANCE"] },
-  { id:"cyber_eu",  name:"EU Cyber Infrastructure", lat:51.0, lng:10.0,  count:5,  breaking:false, color:"#00d4ff", tags:["CYBER","INFRASTRUCTURE"] },
-  { id:"pakistan",  name:"Pakistan / Afghanistan",  lat:33.0, lng:68.0,  count:5,  breaking:false, color:"#00d4ff", tags:["SECURITY","GEOPOLITICS"] },
-  { id:"myanmar",   name:"Myanmar",                 lat:19.0, lng:96.5,  count:6,  breaking:false, color:"#ffcc00", tags:["CONFLICT","HUMAN RIGHTS"] },
-  { id:"korea",     name:"Korean Peninsula",        lat:38.5, lng:127.5, count:4,  breaking:false, color:"#00d4ff", tags:["MILITARY","NUCLEAR"] },
-  { id:"venezuela", name:"Venezuela",               lat:7.5,  lng:-66.0, count:3,  breaking:false, color:"#4a6080", tags:["GOVERNANCE","ECONOMICS"] },
-];
-
-const STORIES = [
-  { id:1, breaking:true,  tag:"CONFLICT",    headline:"Multiple explosions near port infrastructure in Strait of Hormuz", summary:"Three verified OSINT sources corroborate large detonations near shipping lanes approx. 12km south of Bandar Abbas. AIS signals for 4 vessels went dark.", time:"4m ago", confidence:82, region:"hormuz",
-    sources:[
-      {name:"StratSentinel",    handle:"@StratSentinel",   score:94, av:"#1a3a5c", ini:"SS", t:"T+0",  first:true,  body:"⚠️ AIS anomaly cluster near Bandar Abbas. 4 vessels lost transponder signal within 8-min window. Grid: 27.1°N 56.8°E."},
-      {name:"MaritimeWatch",    handle:"@MW_Intel",         score:89, av:"#1a4a3c", ini:"MW", t:"T+3m", first:false, body:"Corroborating StratSentinel. Local source reports 2 distinct detonations from Qeshm Island. Timing consistent with AIS blackout."},
-      {name:"GulfWatcher",      handle:"@GulfWatcher_OS",   score:78, av:"#3a2a1a", ini:"GW", t:"T+6m", first:false, body:"Sentinel-6 pass from 40min prior shows no obstructions. Smoke plume approx 14km offshore at 0847 local."},
-    ]},
-  { id:2, breaking:false, tag:"CYBER",       headline:"SCADA systems targeted in coordinated EU infrastructure intrusion", summary:"Two threat intelligence sources identify overlapping TTPs in attacks on water treatment and power grid SCADA systems across DE, NL, PL.", time:"31m ago", confidence:67, region:"cyber_eu",
-    sources:[
-      {name:"CyberSentinel_EU", handle:"@CyberSentinel_EU", score:91, av:"#1c1a3c", ini:"CS", t:"T+0",  first:true,  body:"SCADA intrusions in DE, NL, PL share identical C2 infrastructure. Dropper uses modified Industroyer2 variant. Yara rules published."},
-      {name:"OT_Threat_Intel",  handle:"@OTThreatIntel",    score:86, av:"#2a1a3c", ini:"OT", t:"T+14m",first:false, body:"Power grid HMI probing from same ASN block (AS48832). Pattern consistent with SANDSTORM cluster activity from Q1."},
-    ]},
-  { id:3, breaking:false, tag:"GEOPOLITICS", headline:"Mechanized troop movement observed along northern border — satellite analysis underway", summary:"Single verified source reporting significant mechanized column movement. Awaiting corroboration from additional OSINT channels.", time:"1h ago", confidence:41, region:"ukraine",
-    sources:[
-      {name:"GeoIntelysis",     handle:"@GeoIntelysis",     score:88, av:"#1a2a3c", ini:"GI", t:"T+0",  first:true,  body:"Planet Labs imagery: 40+ vehicles (APCs + logistics) heading N on Route M-4. Annotated thread below."},
-    ]},
-];
-
-const ALL_FILTERS = ["ALL","CONFLICT","MARITIME","CYBER","MILITARY","GEOPOLITICS","NUCLEAR","SECURITY"];
 
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
@@ -364,6 +329,23 @@ export default function App() {
 
   useEffect(() => { getFollowedUserIds().then(ids => setFollowedIds(ids)) }, [user])
 
+  // Set the first story from DB once loaded
+  useEffect(() => {
+    if (dbStories.length > 0 && !story) setStory(dbStories[0])
+  }, [dbStories]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Dynamic nav badge counts
+  const [trendingCount, setTrendingCount] = useState(null)
+  const [verifiedCount, setVerifiedCount] = useState(null)
+  useEffect(() => {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    supabase.from('stories').select('id', { count: 'exact', head: true })
+      .gte('created_at', since)
+      .then(({ count }) => setTrendingCount(count))
+    supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'osint')
+      .then(({ count }) => setVerifiedCount(count))
+  }, [])
+
   const [suggestions, setSuggestions] = useState([])
   useEffect(() => {
     supabase.from('users').select('id, username, role, score').eq('role', 'osint')
@@ -387,7 +369,7 @@ export default function App() {
   }, [])
 
   const [tab, setTab] = useState("intel")
-  const [story, setStory] = useState(STORIES[0])
+  const [story, setStory] = useState(null)
   const [showApply, setShowApply] = useState(false)
   const [applied, setApplied] = useState(false)
   const [applyError, setApplyError] = useState('')
@@ -462,16 +444,16 @@ export default function App() {
     setTimeout(() => { setShowApply(false); setApplied(false); setForm({channel:"",handle:"",portfolio:"",why:""}) }, 2000)
   }
 
-  const totalEv = REGIONS.reduce((a,r) => a+r.count, 0)
-  const breakZones = REGIONS.filter(r => r.breaking).length
-  const hottest = REGIONS.reduce((a,b) => a.count > b.count ? a : b)
+  const totalEv = dbRegions.reduce((a, r) => a + (r.count || 0), 0)
+  const breakZones = dbRegions.filter(r => r.breaking).length
+  const hottest = dbRegions.length > 0 ? dbRegions.reduce((a, b) => (a.count || 0) > (b.count || 0) ? a : b) : null
 
   const navItems = [
     {id:"feed",    label:"Intel Feed",        Icon:Rss,          section:"Feed"},
     {id:"search",  label:"Search",            Icon:Search},
-    {id:"trending",label:"Trending",          Icon:TrendingUp,   badge:"12"},
+    {id:"trending",label:"Trending",          Icon:TrendingUp,   badge: trendingCount != null ? String(trendingCount) : null},
     {id:"map",     label:"Event Map",         Icon:Globe2},
-    {id:"verified",label:"Verified Sources",  Icon:BadgeCheck,   badge:"47", bc:"green", section:"OSINT Channels"},
+    {id:"verified",label:"Verified Sources",  Icon:BadgeCheck,   badge: verifiedCount != null ? String(verifiedCount) : null, bc:"green", section:"OSINT Channels"},
     ...(profile?.role === 'public' && !hasApplied ? [{id:"apply",  label:"Apply to Join",        Icon:Plus}] : []),
     ...(profile?.role === 'public' && hasApplied  ? [{id:"status", label:"Application Pending",  Icon:Clock}] : []),
     {id:"messages",      label:"Messages",      Icon:MessageSquare, section:"Account", badge: msgUnreadCount > 0 ? String(msgUnreadCount) : null, bc:"orange"},
@@ -606,8 +588,8 @@ export default function App() {
             <div className="live-indicator"><div className="live-dot" />LIVE</div>
             <span className="topbar-stats" style={{fontSize:10,color:"var(--muted)",fontFamily:"var(--mono)"}}>
               {nav==="map"
-                ? `${REGIONS.length} regions · ${totalEv} events`
-                : `${(dbStories.length > 0 ? dbStories : STORIES).length} stories`}
+                ? `${dbRegions.length} regions · ${totalEv} events`
+                : `${dbStories.length} stories`}
             </span>
             <div className="ml-auto" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               {profile?.role === 'public' && !hasApplied && !isMobile && (
@@ -634,7 +616,7 @@ export default function App() {
             <div className="map-wrap">
               <div className="map-filters">
                 <span style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",letterSpacing:2,whiteSpace:"nowrap"}}>FILTER:</span>
-                {ALL_FILTERS.map(f => (
+                {MAP_FILTERS.map(f => (
                   <button key={f} className={`mf-btn ${mf===f?"on":""}`} onClick={() => { setMf(f); setSelRegion(null); }}>{f}</button>
                 ))}
               </div>
@@ -652,7 +634,7 @@ export default function App() {
                     <div className="stat-card">
                       <div className="stat-label">Total Events</div>
                       <div className="stat-val" style={{color:"var(--accent)"}}>{totalEv}</div>
-                      <div className="stat-sub">{REGIONS.length} active regions</div>
+                      <div className="stat-sub">{dbRegions.length} active regions</div>
                     </div>
                     <div className="stat-card">
                       <div className="stat-label">Breaking Zones</div>
@@ -661,8 +643,8 @@ export default function App() {
                     </div>
                     <div className="stat-card">
                       <div className="stat-label">Hottest Region</div>
-                      <div className="stat-val" style={{fontSize:11,lineHeight:1.3,color:"var(--warn)",marginTop:3}}>{hottest.name}</div>
-                      <div className="stat-sub">{hottest.count} events</div>
+                      <div className="stat-val" style={{fontSize:11,lineHeight:1.3,color:"var(--warn)",marginTop:3}}>{hottest?.name ?? '—'}</div>
+                      <div className="stat-sub">{hottest?.count ?? 0} events</div>
                     </div>
                   </div>
                 )}
@@ -722,8 +704,8 @@ export default function App() {
                 <span className="count-badge">Last 24 hours</span>
               </div>
               <div style={{overflow:"auto", flex:1}}>
-                {(dbStories.length > 0 ? dbStories : STORIES)
-                  .slice().sort((a,b) => (b.sources||b.story_sources||[]).length - (a.sources||a.story_sources||[]).length)
+                {dbStories
+                  .slice().sort((a,b) => (b.story_sources||[]).length - (a.story_sources||[]).length)
                   .map((s, i) => (
                     <div key={s.id} className="story-card" onClick={() => { handleSelectStory(s); setNav("feed") }}
                       style={{display:"flex", alignItems:"flex-start", gap:12}}>
@@ -867,7 +849,7 @@ export default function App() {
                     ))}
                   </div>
                   <StoryList
-                    stories={(dbStories.length > 0 ? dbStories : STORIES).filter(s => {
+                    stories={dbStories.filter(s => {
                       if (feedTab === 'all') return true
                       if (followedIds.length === 0) return false
                       const sources = s.sources || s.story_sources || []

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useSearch } from '../hooks/useSearch'
 import PageShell from '../components/PageShell'
 import { X, Heart, MessageCircle, BadgeCheck, ShieldAlert, Inbox } from 'lucide-react'
+import { STORY_TAGS as TOPIC_TAGS, DATE_OPTIONS } from '../constants'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -12,17 +13,6 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
-const TOPIC_TAGS = [
-  'CONFLICT', 'CYBER', 'GEOPOLITICS', 'MILITARY', 'HUMANITARIAN',
-  'NUCLEAR', 'MARITIME', 'INTELLIGENCE', 'BREAKING', 'SECURITY',
-]
-
-const DATE_OPTIONS = [
-  { id: 'all', label: 'All Time' },
-  { id: '1h',  label: 'Past Hour' },
-  { id: '24h', label: 'Past 24h' },
-  { id: '7d',  label: 'Past Week' },
-]
 
 export default function SearchPage() {
   const navigate = useNavigate()
