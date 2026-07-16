@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../../hooks/useNotifications'
 import { useLocation } from 'react-router-dom'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import { useReactions, REACTION_TYPES } from '../../hooks/useReactions'
 import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck } from 'lucide-react'
 
 function timeAgo(dateStr) {
@@ -35,105 +34,6 @@ function RichBody({ text, navigate }) {
   })
 }
 
-function ReactionBar({ postId }) {
-  const { counts, userReaction, total, toggle } = useReactions(postId)
-  if (total === 0 && !userReaction) {
-    return (
-      <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
-        {REACTION_TYPES.map(r => (
-          <button
-            key={r.type}
-            onClick={() => toggle(r.type)}
-            title={r.label}
-            style={{
-              background: 'none', border: '1px solid var(--border)', borderRadius: 12,
-              padding: '2px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-              fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)',
-              transition: 'all 0.15s',
-            }}
-            onMouseOver={e => { e.currentTarget.style.borderColor = r.color; e.currentTarget.style.color = r.color }}
-            onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)' }}
-          >
-            <r.Icon size={11} />
-          </button>
-        ))}
-      </div>
-    )
-  }
-  return (
-    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
-      {REACTION_TYPES.filter(r => counts[r.type] > 0 || userReaction === r.type).map(r => (
-        <button
-          key={r.type}
-          onClick={() => toggle(r.type)}
-          title={r.label}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 4,
-            padding: '2px 8px', borderRadius: 12, cursor: 'pointer',
-            fontFamily: 'var(--mono)', fontSize: 10,
-            border: `1px solid ${userReaction === r.type ? r.color : 'var(--border)'}`,
-            background: userReaction === r.type ? `${r.color}18` : 'transparent',
-            color: userReaction === r.type ? r.color : 'var(--muted)',
-            transition: 'all 0.15s',
-          }}
-        >
-          <r.Icon size={11} />
-          {counts[r.type] > 0 && <span>{counts[r.type]}</span>}
-        </button>
-      ))}
-      {/* Add reaction button when some reactions already exist */}
-      {REACTION_TYPES.filter(r => counts[r.type] === 0 && userReaction !== r.type).length > 0 && (
-        <div style={{ position: 'relative' }}>
-          <AddReactionButton onSelect={toggle} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-function AddReactionButton({ onSelect }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div>
-      <button
-        onClick={() => setOpen(v => !v)}
-        style={{
-          background: 'none', border: '1px solid var(--border)', borderRadius: 12,
-          padding: '2px 8px', cursor: 'pointer',
-          fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)',
-        }}
-      >
-        +
-      </button>
-      {open && (
-        <div style={{
-          position: 'absolute', bottom: '120%', left: 0,
-          background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: 8, padding: '6px 8px', display: 'flex', gap: 4,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.2)', zIndex: 50,
-        }}>
-          {REACTION_TYPES.map(r => (
-            <button
-              key={r.type}
-              onClick={() => { onSelect(r.type); setOpen(false) }}
-              title={r.label}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                display: 'flex', alignItems: 'center',
-                padding: '2px 4px', borderRadius: 4,
-                color: r.color, transition: 'transform 0.1s',
-              }}
-              onMouseOver={e => e.currentTarget.style.transform = 'scale(1.3)'}
-              onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              <r.Icon size={15} />
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 function buildTree(replies) {
   const map = {}
@@ -1402,8 +1302,6 @@ export default function GeneralFeed() {
                       </button>
                     </div>
                   </div>
-                  {/* Reactions */}
-                  <ReactionBar postId={post.id} />
                 </div>
               </div>
             {/* Reply Thread */}
