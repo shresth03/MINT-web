@@ -21,11 +21,8 @@ export default function PageShell({ children, title, showBack = true, showToggle
         padding: '0 20px', gap: 16,
         position: 'sticky', top: 0, zIndex: 10,
       }}>
-        {/* MINT logo — always visible, navigates home */}
-        <div
-          onClick={() => navigate('/')}
-          style={{ cursor: 'pointer', flexShrink: 0 }}
-        >
+        {/* MINT logo */}
+        <div style={{ flexShrink: 0 }}>
           <img
             src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
             alt="MINT"

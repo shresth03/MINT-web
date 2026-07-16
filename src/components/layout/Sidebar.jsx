@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../api/supabase'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTheme } from '../../hooks/useTheme'
+import ThemeRipple from '../ThemeRipple'
 import {
   Rss, Globe, TrendingUp, Newspaper, Radio, Film,
   Search, MessageSquare, User, Plus, LogOut,
@@ -32,92 +33,6 @@ const NAV = [
   { id: 'profile',  path: '/profile',  label: 'My Profile',   Icon: User },
 ]
 
-function ThemeRipple({ origin, theme, holding, onSwitch }) {
-  const HOLD_DURATION = 3000
-  const rafRef = useRef(null)
-  const startRef = useRef(null)
-  const [radius, setRadius] = useState(0)
-  const [phase, setPhase] = useState('expand') // 'expand' | 'collapse'
-  const maxR = Math.hypot(window.innerWidth, window.innerHeight)
-  const switched = useRef(false)
-  const peakRadius = useRef(0)
-
-  useEffect(() => {
-    if (phase === 'expand') {
-      // Expand while held — tracks real time held
-      function tick(ts) {
-        if (!startRef.current) startRef.current = ts
-        const elapsed = ts - startRef.current
-        const p = Math.min(elapsed / HOLD_DURATION, 1)
-        const r = maxR * p
-        peakRadius.current = r
-        setRadius(r)
-
-        if (p >= 1) {
-          // Held full 3s — switch theme then collapse
-          if (!switched.current) {
-            switched.current = true
-            onSwitch()
-          }
-          setPhase('collapse')
-          startRef.current = null
-        } else if (holding.current) {
-          rafRef.current = requestAnimationFrame(tick)
-        } else {
-          // Released early — collapse from current radius
-          setPhase('collapse')
-          startRef.current = null
-        }
-      }
-      rafRef.current = requestAnimationFrame(tick)
-    }
-
-    if (phase === 'collapse') {
-      const collapseFrom = peakRadius.current
-      function tick(ts) {
-        if (!startRef.current) startRef.current = ts
-        const elapsed = ts - startRef.current
-        const collapseDuration = (collapseFrom / maxR) * 800
-        const p = Math.min(elapsed / collapseDuration, 1)
-        setRadius(collapseFrom * (1 - p))
-        if (p < 1) rafRef.current = requestAnimationFrame(tick)
-      }
-      rafRef.current = requestAnimationFrame(tick)
-    }
-
-    return () => cancelAnimationFrame(rafRef.current)
-  }, [phase]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // When holding stops mid-expand, kick into collapse
-  useEffect(() => {
-    if (!holding.current && phase === 'expand') {
-      cancelAnimationFrame(rafRef.current)
-      setPhase('collapse')
-      startRef.current = null
-    }
-  })
-
-  const nextBg = theme === 'dark' ? '#f8f7f5' : '#000000'
-  const rings = [1, 0.72, 0.48, 0.28]
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none', overflow: 'hidden' }}>
-      {rings.map((scale, i) => (
-        <div key={i} style={{
-          position: 'absolute',
-          left: origin.x, top: origin.y,
-          width: radius * 2 * scale,
-          height: radius * 2 * scale,
-          borderRadius: '50%',
-          transform: 'translate(-50%, -50%)',
-          background: i === 0 ? nextBg : 'transparent',
-          border: i > 0 ? `1.5px solid ${nextBg}` : 'none',
-          opacity: i === 0 ? 0.95 : 0.25 - i * 0.05,
-        }} />
-      ))}
-    </div>
-  )
-}
 
 export default function Sidebar({ setShowApply }) {
   const { user, signOut } = useAuth()
@@ -141,7 +56,9 @@ export default function Sidebar({ setShowApply }) {
   const badge = ROLE_BADGE[userRole] || ROLE_BADGE.public
   const currentPath = location.pathname
 
-  const startHold = useCallback((e) => {
+  const holdTimer = useRef(null)
+
+  const startHold = useCallback(() => {
     if (ripple) return
     const rect = logoRef.current?.getBoundingClientRect()
     const origin = {
@@ -149,12 +66,11 @@ export default function Sidebar({ setShowApply }) {
       y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
     }
     holding.current = true
-    setRipple({ origin, theme })
-  }, [theme, ripple])
+    toggleTheme()                   // switch theme immediately
+    setRipple({ origin, theme })    // theme = OLD theme (for mask color)
+  }, [theme, ripple, toggleTheme])
 
-  const cancelHold = useCallback(() => {
-    holding.current = false
-  }, [])
+  const cancelHold = useCallback(() => { holding.current = false }, [])
 
   const handleNav = (item) => {
     if (item.id === 'apply') { setShowApply?.(true); return }
@@ -168,14 +84,11 @@ export default function Sidebar({ setShowApply }) {
           origin={ripple.origin}
           theme={ripple.theme}
           holding={holding}
-          onSwitch={() => {
-            toggleTheme()
-            setTimeout(() => setRipple(null), 900)
-          }}
+          onDone={() => setRipple(null)}
+          onRevert={() => { toggleTheme(); setRipple(null) }}
         />
       )}
       <div
-        className="logo"
         ref={logoRef}
         style={{ padding: '16px 20px', display: 'flex', justifyContent: 'center', cursor: 'pointer', userSelect: 'none' }}
         onMouseDown={startHold}

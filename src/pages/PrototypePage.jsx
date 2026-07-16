@@ -1,6 +1,6 @@
 import { useUser } from '../hooks/useUser'
 import { useRegions } from '../hooks/useRegions'
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../api/supabase'
 import GeneralFeed from '../components/feed/GeneralFeed'
@@ -15,6 +15,7 @@ import StoryComposer from '../components/StoryComposer'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useTheme } from '../hooks/useTheme'
 import ThemeToggle from '../components/ThemeToggle'
+import ThemeRipple from '../components/ThemeRipple'
 import EditNoteSection from '../components/EditNoteSection'
 import SourceNoteButton from '../components/SourceNoteButton'
 import WorldMap from '../components/map/WorldMap'
@@ -394,6 +395,25 @@ export default function App() {
   const [mf, setMf] = useState("ALL")
   const [selRegion, setSelRegion] = useState(null)
   const [form, setForm] = useState({channel:"",handle:"",portfolio:"",why:""})
+  const [ripple, setRipple] = useState(null)
+  const holding = useRef(false)
+  const logoRef = useRef(null)
+
+  const holdTimer = useRef(null)
+
+  const startHold = useCallback(() => {
+    if (ripple) return
+    const rect = logoRef.current?.getBoundingClientRect()
+    const origin = {
+      x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
+      y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
+    }
+    holding.current = true
+    toggleTheme()                   // switch theme immediately
+    setRipple({ origin, theme })    // theme = OLD theme (for mask color)
+  }, [theme, ripple, toggleTheme])
+
+  const cancelHold = useCallback(() => { holding.current = false }, [])
 
   const handleSelectStory = (s) => { setStory(s); if (isMobile) setMobileDetail(true) }
 
@@ -477,6 +497,16 @@ export default function App() {
       <style>{FONTS + styles}</style>
       <div className="app">
 
+        {ripple && (
+          <ThemeRipple
+            origin={ripple.origin}
+            theme={ripple.theme}
+            holding={holding}
+            onDone={() => setRipple(null)}
+            onRevert={() => { toggleTheme(); setRipple(null) }}
+          />
+        )}
+
         {/* ── MOBILE SIDEBAR OVERLAY ── */}
         {isMobile && (
           <div
@@ -487,7 +517,16 @@ export default function App() {
 
         {/* ── SIDEBAR ── */}
         <div className={`sidebar ${isMobile && sidebarOpen ? 'mobile-open' : ''}`}>
-          <div className="logo" onClick={() => navigate('/')} style={{cursor:'pointer'}}>
+          <div
+            className="logo"
+            ref={logoRef}
+            style={{ cursor: 'pointer', userSelect: 'none' }}
+            onMouseDown={startHold}
+            onMouseUp={cancelHold}
+            onMouseLeave={cancelHold}
+            onTouchStart={startHold}
+            onTouchEnd={cancelHold}
+          >
             <img
               src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
               alt="MINT"

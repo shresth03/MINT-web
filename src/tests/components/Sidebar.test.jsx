@@ -24,8 +24,9 @@ vi.mock('../../hooks/useAuth', () => ({
   }),
 }))
 
+const mockToggleTheme = vi.fn()
 vi.mock('../../hooks/useTheme', () => ({
-  useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn() }),
+  useTheme: () => ({ theme: 'dark', toggleTheme: mockToggleTheme }),
 }))
 
 const renderSidebar = (props = {}) =>
@@ -41,6 +42,30 @@ describe('Sidebar', () => {
     mockSupabase.single.mockResolvedValue({
       data: { role: 'public', username: 'alice' }, error: null,
     })
+  })
+
+  // ── Logo hold-to-switch theme ────────────────────────────────────────────
+
+  it('logo click does NOT navigate to /', () => {
+    renderSidebar()
+    fireEvent.click(screen.getByRole('img', { name: 'MINT' }))
+    expect(mockNavigate).not.toHaveBeenCalledWith('/')
+  })
+
+  it('logo mousedown triggers toggleTheme (hold starts immediately)', () => {
+    renderSidebar()
+    const logoWrapper = screen.getByRole('img', { name: 'MINT' }).parentElement
+    fireEvent.mouseDown(logoWrapper)
+    expect(mockToggleTheme).toHaveBeenCalled()
+  })
+
+  it('logo mouseup cancels hold without toggling again', () => {
+    renderSidebar()
+    const logoWrapper = screen.getByRole('img', { name: 'MINT' }).parentElement
+    fireEvent.mouseDown(logoWrapper)
+    fireEvent.mouseUp(logoWrapper)
+    // toggleTheme called once on press, not again on release
+    expect(mockToggleTheme).toHaveBeenCalledTimes(1)
   })
 
   // ── Logo (#24) ──────────────────────────────────────────────────────────
