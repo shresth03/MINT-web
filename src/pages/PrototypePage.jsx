@@ -347,10 +347,14 @@ export default function App() {
   }, [])
 
   const [suggestions, setSuggestions] = useState([])
+  const [analysts, setAnalysts] = useState([])
   useEffect(() => {
     supabase.from('users').select('id, username, role, score').eq('role', 'osint')
-      .order('score', { ascending: false }).limit(3)
-      .then(({ data }) => setSuggestions(data || []))
+      .order('score', { ascending: false })
+      .then(({ data }) => {
+        setAnalysts(data || [])
+        setSuggestions((data || []).slice(0, 3))
+      })
   }, [])
 
   useEffect(() => {
@@ -735,51 +739,51 @@ export default function App() {
             <div style={{flex:1, overflow:"hidden", display:"flex", flexDirection:"column"}}>
               <div className="section-header">
                 <span className="section-label"><BadgeCheck size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Verified OSINT Channels</span>
-                <span className="count-badge">{suggestions.length} active</span>
+                <span className="count-badge">{analysts.length} active</span>
               </div>
               <div style={{overflow:"auto", flex:1, padding:"12px 16px"}}>
                 {/* Top 3 podium */}
-                {suggestions.length >= 3 && (
+                {analysts.length >= 3 && (
                   <div style={{display:"flex", gap:10, marginBottom:16, alignItems:"flex-end"}}>
                     {/* 2nd place */}
                     <div style={{flex:1, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, padding:"12px", textAlign:"center", cursor:"pointer"}}
-                      onClick={() => navigate(`/channel/${suggestions[1].username}`)}>
+                      onClick={() => navigate(`/channel/${analysts[1].username}`)}>
                       <div style={{fontFamily:"var(--mono)", fontSize:20, color:"#7a9bbf", marginBottom:4}}>②</div>
                       <div style={{width:36, height:36, borderRadius:"50%", background:"linear-gradient(135deg,#1e3a5f,#0d6efd)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"white", margin:"0 auto 8px"}}>
-                        {suggestions[1].username?.[0]?.toUpperCase()}
+                        {analysts[1].username?.[0]?.toUpperCase()}
                       </div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:10, color:"var(--verified)", marginBottom:4, display:'flex', alignItems:'center', gap:3}}>{suggestions[1].username} <BadgeCheck size={9} /></div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:18, fontWeight:700, color:"#7a9bbf"}}>{suggestions[1].score}</div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:10, color:"var(--verified)", marginBottom:4, display:'flex', alignItems:'center', gap:3}}>{analysts[1].username} <BadgeCheck size={9} /></div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:18, fontWeight:700, color:"#7a9bbf"}}>{analysts[1].score}</div>
                     </div>
                     {/* 1st place */}
                     <div style={{flex:1, background:"rgba(255,159,67,0.08)", border:"1px solid #ff9f43", borderRadius:8, padding:"14px", textAlign:"center", cursor:"pointer"}}
-                      onClick={() => navigate(`/channel/${suggestions[0].username}`)}>
+                      onClick={() => navigate(`/channel/${analysts[0].username}`)}>
                       <div style={{fontFamily:"var(--mono)", fontSize:22, color:"#ff9f43", marginBottom:4}}>①</div>
                       <div style={{width:42, height:42, borderRadius:"50%", background:"linear-gradient(135deg,#7a3f00,#ff9f43)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"white", margin:"0 auto 8px", border:"2px solid #ff9f43"}}>
-                        {suggestions[0].username?.[0]?.toUpperCase()}
+                        {analysts[0].username?.[0]?.toUpperCase()}
                       </div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:11, color:"#ff9f43", marginBottom:4, display:'flex', alignItems:'center', gap:3}}>{suggestions[0].username} <BadgeCheck size={9} /></div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:22, fontWeight:700, color:"#ff9f43"}}>{suggestions[0].score}</div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:11, color:"#ff9f43", marginBottom:4, display:'flex', alignItems:'center', gap:3}}>{analysts[0].username} <BadgeCheck size={9} /></div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:22, fontWeight:700, color:"#ff9f43"}}>{analysts[0].score}</div>
                       <div style={{fontFamily:"var(--mono)", fontSize:8, color:"#ff9f43", letterSpacing:1, marginTop:2}}>TOP ANALYST</div>
                     </div>
                     {/* 3rd place */}
                     <div style={{flex:1, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, padding:"12px", textAlign:"center", cursor:"pointer"}}
-                      onClick={() => navigate(`/channel/${suggestions[2].username}`)}>
+                      onClick={() => navigate(`/channel/${analysts[2].username}`)}>
                       <div style={{fontFamily:"var(--mono)", fontSize:20, color:"#8a6a2a", marginBottom:4}}>③</div>
                       <div style={{width:36, height:36, borderRadius:"50%", background:"linear-gradient(135deg,#1e3a5f,#0d6efd)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"white", margin:"0 auto 8px"}}>
-                        {suggestions[2].username?.[0]?.toUpperCase()}
+                        {analysts[2].username?.[0]?.toUpperCase()}
                       </div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:10, color:"var(--verified)", marginBottom:4}}>{suggestions[2].username} ◆</div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:18, fontWeight:700, color:"#8a6a2a"}}>{suggestions[2].score}</div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:10, color:"var(--verified)", marginBottom:4}}>{analysts[2].username} ◆</div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:18, fontWeight:700, color:"#8a6a2a"}}>{analysts[2].score}</div>
                     </div>
                   </div>
                 )}
 
                 {/* Full ranked list */}
                 <div style={{fontFamily:"var(--mono)", fontSize:9, letterSpacing:2, color:"var(--muted)", marginBottom:10}}>FULL RANKINGS</div>
-                {suggestions.length === 0 ? (
+                {analysts.length === 0 ? (
                   <div style={{textAlign:"center", padding:40, fontFamily:"var(--mono)", fontSize:11, color:"var(--muted)"}}>No verified analysts yet</div>
-                ) : suggestions.map((ch, i) => {
+                ) : analysts.map((ch, i) => {
                   const scoreColor = ch.score >= 75 ? 'var(--verified)' : ch.score >= 50 ? 'var(--accent)' : ch.score >= 0 ? 'var(--warn)' : '#ff4757'
                   return (
                     <div key={ch.id} style={{background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, padding:"14px 16px", marginBottom:8, cursor:"pointer", display:"flex", alignItems:"center", gap:12, transition:"border-color 0.15s"}}
