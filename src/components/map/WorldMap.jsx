@@ -13,10 +13,11 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
   const lastPos   = useRef(null)
   const rafRef    = useRef(null)
 
-  const [tooltip,   setTooltip]   = useState(null)
-  const [topoData,  setTopoData]  = useState(null)
-  const [dims,      setDims]      = useState({ w: 900, h: 520 })
-  const [showRover, setShowRover] = useState(false)
+  const [tooltip,    setTooltip]   = useState(null)
+  const [topoData,   setTopoData]  = useState(null)
+  const [indiaData,  setIndiaData] = useState(null)
+  const [dims,       setDims]      = useState({ w: 900, h: 520 })
+  const [showRover,  setShowRover] = useState(false)
 
   const allRegions = propRegions || []
   const regions    = filter === 'ALL' ? allRegions : allRegions.filter(r => r.tags.includes(filter))
@@ -34,6 +35,12 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
   useEffect(() => {
     fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
       .then(r => r.json()).then(setTopoData).catch(() => {})
+  }, [])
+
+  // Fetch correct India boundary (Survey of India compliant — includes PoK & Aksai Chin)
+  useEffect(() => {
+    fetch('/india-boundary.json')
+      .then(r => r.json()).then(setIndiaData).catch(() => {})
   }, [])
 
   // Inject topojson lib if missing
@@ -63,7 +70,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     }
     rafRef.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [dims, regions, topoData]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dims, regions, topoData, indiaData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function draw() {
     const svg = d3.select(svgRef.current)
@@ -128,8 +135,18 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       .attr('fill', 'none').attr('stroke', '#0d1e2e').attr('stroke-width', 0.5)
 
     if (topoData && window.topojson) {
+      // Draw all countries except India (356) — India is drawn separately with correct boundaries
+      const countries = window.topojson.feature(topoData, topoData.objects.countries).features
       svg.append('g').selectAll('path')
-        .data(window.topojson.feature(topoData, topoData.objects.countries).features)
+        .data(countries.filter(f => f.id !== '356'))
+        .join('path').attr('d', path)
+        .attr('fill', '#0c1a26').attr('stroke', '#1a2d40').attr('stroke-width', 0.4)
+    }
+
+    // Draw India with correct boundaries (PoK + Aksai Chin as Indian territory)
+    if (indiaData) {
+      svg.append('g').selectAll('path')
+        .data(indiaData.features)
         .join('path').attr('d', path)
         .attr('fill', '#0c1a26').attr('stroke', '#1a2d40').attr('stroke-width', 0.4)
     }
@@ -399,7 +416,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       el.removeEventListener('touchmove',  onMove)
       el.removeEventListener('touchend',   onEnd)
     }
-  }, [dims, regions, topoData]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dims, regions, topoData, indiaData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div ref={wrapRef} className="map-body" style={{ cursor: dragRef.current ? 'grabbing' : 'grab' }}>
