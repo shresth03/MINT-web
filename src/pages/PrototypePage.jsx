@@ -549,23 +549,6 @@ export default function App() {
             ))}
           </div>
           <div className="sidebar-bottom">
-            {!isMobile && suggestions.length > 0 && (
-              <div style={{padding:'12px 0', borderTop:'1px solid var(--border)'}}>
-                <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:2, color:'var(--muted)', marginBottom:10}}>SUGGESTED</div>
-                {suggestions.map(s => (
-                  <div key={s.id} onClick={() => navigate(`/channel/${s.username}`)}
-                    style={{display:'flex', alignItems:'center', gap:8, padding:'6px 0', cursor:'pointer', borderBottom:'1px solid var(--border)'}}>
-                    <div style={{width:24, height:24, borderRadius:'50%', background:'linear-gradient(135deg,#1e3a5f,#0d6efd)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white', flexShrink:0}}>
-                      {s.username?.[0]?.toUpperCase()}
-                    </div>
-                    <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--verified)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:3}}>{s.username} <BadgeCheck size={9} /></div>
-                      <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)'}}>Score: {s.score || 0}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
             <div className="user-card">
               <div className="avatar">{user?.email?.[0].toUpperCase() || 'U'}</div>
               <div>
@@ -821,6 +804,29 @@ export default function App() {
                     </div>
                   )
                 })}
+
+                {/* Suggested to Follow */}
+                {suggestions.length > 0 && (
+                  <div style={{marginTop:24, paddingTop:16, borderTop:'1px solid var(--border)'}}>
+                    <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:2, color:'var(--muted)', marginBottom:12}}>SUGGESTED TO FOLLOW</div>
+                    <div style={{display:'flex', gap:10}}>
+                      {suggestions.map(s => (
+                        <div key={s.id} onClick={() => navigate(`/channel/${s.username}`)}
+                          style={{flex:1, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'12px', textAlign:'center', cursor:'pointer', transition:'border-color 0.15s'}}
+                          onMouseOver={e => e.currentTarget.style.borderColor='var(--accent)'}
+                          onMouseOut={e => e.currentTarget.style.borderColor='var(--border)'}>
+                          <div style={{width:36, height:36, borderRadius:'50%', background:'linear-gradient(135deg,#1e3a5f,#0d6efd)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'white', margin:'0 auto 8px'}}>
+                            {s.username?.[0]?.toUpperCase()}
+                          </div>
+                          <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--verified)', display:'flex', alignItems:'center', justifyContent:'center', gap:3, marginBottom:2}}>
+                            {s.username} <BadgeCheck size={9} />
+                          </div>
+                          <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)'}}>{s.score}/100</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
