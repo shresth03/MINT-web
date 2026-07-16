@@ -550,9 +550,9 @@ export default function App() {
           </div>
           <div className="sidebar-bottom">
             <div className="user-card">
-              <div className="avatar">{user?.email?.[0].toUpperCase() || 'U'}</div>
+              <div className="avatar">{(profile?.username || user?.email)?.[0]?.toUpperCase() || 'U'}</div>
               <div>
-                <div className="user-name" style={{fontSize:11, maxWidth:130, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{user?.email || 'User'}</div>
+                <div className="user-name" style={{fontSize:11, maxWidth:130, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{profile?.username || user?.email || 'User'}</div>
                 <div className="user-role">{profile?.role?.toUpperCase() || 'PUBLIC'}_USER</div>
               </div>
             </div>
