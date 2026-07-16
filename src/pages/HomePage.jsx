@@ -2,7 +2,6 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
-import ThemeToggle from '../components/ThemeToggle'
 import { Cpu, Globe2, BadgeCheck, Radio, MessageSquareText, TrendingUp } from 'lucide-react'
 
 const FEATURES = [
@@ -34,7 +33,7 @@ const STEPS = [
 
 export default function HomePage() {
   const { user } = useAuth()
-  const { theme, toggleTheme } = useTheme()
+  const { theme } = useTheme()
   const navigate = useNavigate()
 
   const btnBase = {
@@ -84,7 +83,6 @@ export default function HomePage() {
             />
           </div>
 
-          <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </div>
 
         {/* Hero center */}

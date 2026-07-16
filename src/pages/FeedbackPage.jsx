@@ -39,7 +39,7 @@ const FEATURES = [
   { id: 'mobile',            label: 'Mobile Experience',       desc: 'Using MINT on a phone or tablet' },
   { id: 'performance',       label: 'Speed & Performance',     desc: 'Load times, lag, responsiveness' },
   { id: 'design',            label: 'Design & UI',             desc: 'Visual design, layout, readability' },
-  { id: 'dark_theme',        label: 'Dark / Light Theme',      desc: 'Ghost and Void theme switching' },
+  { id: 'dark_theme',        label: 'Dark / Light Theme',      desc: 'Dark and light theme switching' },
   { id: 'overall',           label: 'Overall Experience',      desc: 'MINT as a whole — usefulness, uniqueness, trust' },
 ]
 

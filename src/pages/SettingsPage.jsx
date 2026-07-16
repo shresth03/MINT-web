@@ -6,7 +6,6 @@ import { useUser } from '../hooks/useUser'
 import { ToggleRight, ToggleLeft, BadgeCheck, ShieldAlert, CircleDot, Check } from 'lucide-react'
 import { useTheme } from '../hooks/useTheme'
 import PageShell from '../components/PageShell'
-import ThemeToggle from '../components/ThemeToggle'
 
 export default function SettingsPage() {
   const { user, signOut, resetPassword } = useAuth()
@@ -350,10 +349,20 @@ export default function SettingsPage() {
                 Theme
               </div>
               <div style={{ fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--muted)' }}>
-                Toggle between Ghost (light) and Void (dark) themes.
+                Toggle between light and dark themes.
               </div>
             </div>
-            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            <button
+              onClick={toggleTheme}
+              style={{
+                fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: 1,
+                padding: '5px 14px', borderRadius: 4, cursor: 'pointer',
+                background: 'transparent', border: '1px solid var(--border)',
+                color: 'var(--muted)', flexShrink: 0,
+              }}
+            >
+              {theme === 'dark' ? 'LIGHT' : 'DARK'}
+            </button>
           </div>
         </div>
 

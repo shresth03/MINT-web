@@ -1,9 +1,8 @@
 import { useTheme } from '../hooks/useTheme'
-import ThemeToggle from './ThemeToggle'
 import { useNavigate } from 'react-router-dom'
 
-export default function PageShell({ children, title, showBack = true, showToggle = true }) {
-  const { theme, toggleTheme } = useTheme()
+export default function PageShell({ children, title, showBack = true }) {
+  const { theme } = useTheme()
   const navigate = useNavigate()
 
   return (
@@ -53,9 +52,7 @@ export default function PageShell({ children, title, showBack = true, showToggle
             {title}
           </span>
         )}
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-          {showToggle && <ThemeToggle theme={theme} onToggle={toggleTheme} />}
-        </div>
+        <div style={{ marginLeft: 'auto' }} />
       </div>
 
       {/* Page content */}
