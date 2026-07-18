@@ -3,10 +3,12 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../../api/supabase'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTheme } from '../../hooks/useTheme'
+import { useNotifications } from '../../hooks/useNotifications'
 import ThemeRipple from '../ThemeRipple'
+import NotificationPanel from '../NotificationPanel'
 import {
   Rss, Globe, TrendingUp, Newspaper, Radio, Film,
-  Search, MessageSquare, User, Plus, LogOut,
+  Search, MessageSquare, Bell, User, Plus, LogOut,
   BadgeCheck, PenLine, ShieldAlert, CircleDot,
 } from 'lucide-react'
 
@@ -27,8 +29,9 @@ const NAV = [
   { id: 'live',     path: '/live',     label: 'Live',         Icon: Radio, accent: '#e84848' },
   { id: 'reels',    path: '/reels',    label: 'Reels',        Icon: Film },
   { section: 'OSINT' },
-  { id: 'search',   path: '/search',   label: 'Search',       Icon: Search },
-  { id: 'messages', path: '/messages', label: 'Messages',     Icon: MessageSquare },
+  { id: 'search',        path: '/search',   label: 'Search',        Icon: Search },
+  { id: 'messages',      path: '/messages', label: 'Messages',      Icon: MessageSquare },
+  { id: 'notifications', label: 'Notifications', Icon: Bell },
   { section: 'Account' },
   { id: 'profile',  path: '/profile',  label: 'My Profile',   Icon: User },
 ]
@@ -39,6 +42,8 @@ export default function Sidebar({ setShowApply }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { theme, toggleTheme } = useTheme()
+  const { notifications, unreadCount, markAllRead, markRead } = useNotifications()
+  const [showNotifs, setShowNotifs] = useState(false)
   const [userRole, setUserRole] = useState('public')
   const [username, setUsername] = useState('')
   const [ripple, setRipple] = useState(null)
@@ -111,6 +116,31 @@ export default function Sidebar({ setShowApply }) {
               <div key={`sec-${i}`} className="nav-section">{n.section}</div>
             )
           }
+          if (n.id === 'notifications') {
+            return (
+              <div
+                key="notifications"
+                className={`nav-item ${showNotifs ? 'active' : ''}`}
+                onMouseDown={(e) => { e.stopPropagation(); setShowNotifs(v => !v) }}
+                style={{ cursor: 'pointer' }}
+              >
+                <Bell size={14} />
+                Notifications
+                {unreadCount > 0 && (
+                  <span style={{
+                    marginLeft: 'auto', minWidth: 18, height: 16,
+                    background: 'var(--accent2)', color: '#fff',
+                    fontSize: 9, borderRadius: 10,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 700, padding: '0 5px',
+                  }}>
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+            )
+          }
+
           const active = currentPath === n.path || (n.path !== '/feed' && currentPath.startsWith(n.path))
           return (
             <div
@@ -161,6 +191,17 @@ export default function Sidebar({ setShowApply }) {
           <LogOut size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} /> SIGN OUT
         </button>
       </div>
+
+      {showNotifs && (
+        <NotificationPanel
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkAllRead={markAllRead}
+          onMarkRead={markRead}
+          onClose={() => setShowNotifs(false)}
+          style={{ position: 'fixed', left: 220, top: 60, right: 'auto' }}
+        />
+      )}
     </div>
   )
 }

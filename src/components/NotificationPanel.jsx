@@ -39,7 +39,7 @@ function notifIcon(type) {
     }
   }
 
-export default function NotificationPanel({ notifications, unreadCount, onMarkAllRead, onMarkRead, onClose }) {
+export default function NotificationPanel({ notifications, unreadCount, onMarkAllRead, onMarkRead, onClose, style: styleOverride = {} }) {
   const panelRef = useRef(null)
   const navigate = useNavigate()
 
@@ -82,7 +82,8 @@ export default function NotificationPanel({ notifications, unreadCount, onMarkAl
         zIndex: 1000,
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        ...styleOverride,
       }}
     >
       {/* Header */}
