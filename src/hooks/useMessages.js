@@ -29,7 +29,7 @@ export function useMessages() {
   async function fetchConversations() {
     const { data } = await supabase
       .from('conversations')
-      .select('*')
+      .select('id, participant_1, participant_2, last_message, last_message_at')
       .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`)
       .order('last_message_at', { ascending: false })
 
@@ -62,7 +62,7 @@ export function useMessages() {
     // Check both participant orderings
     const { data: existing1 } = await supabase
       .from('conversations')
-      .select('*')
+      .select('id, participant_1, participant_2, last_message, last_message_at')
       .eq('participant_1', user.id)
       .eq('participant_2', otherUserId)
       .maybeSingle()
@@ -71,7 +71,7 @@ export function useMessages() {
 
     const { data: existing2 } = await supabase
       .from('conversations')
-      .select('*')
+      .select('id, participant_1, participant_2, last_message, last_message_at')
       .eq('participant_1', otherUserId)
       .eq('participant_2', user.id)
       .maybeSingle()
@@ -92,7 +92,7 @@ export function useMessages() {
   async function fetchMessages(conversationId) {
     const { data } = await supabase
       .from('messages')
-      .select('*')
+      .select('id, conversation_id, sender_id, body, read, created_at')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true })
       .limit(100)

@@ -50,7 +50,7 @@ export function useNotifications() {
   async function fetchNotifications() {
     const { data } = await supabase
       .from('notifications')
-      .select('*')
+      .select('id, to_user_id, from_user_id, post_id, type, read, created_at')
       .eq('to_user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(30)
@@ -66,7 +66,7 @@ export function useNotifications() {
   async function fetchSingleNotification(id) {
     const { data } = await supabase
       .from('notifications')
-      .select('*')
+      .select('id, to_user_id, from_user_id, post_id, type, read, created_at')
       .eq('id', id)
       .single()
 

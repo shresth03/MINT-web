@@ -18,7 +18,7 @@ export function useChannel(username) {
     // Fetch user profile
     const { data: userData } = await supabase
       .from('users')
-      .select('*')
+      .select('id, username, role, score, created_at')
       .eq('username', username)
       .single()
 
@@ -28,7 +28,7 @@ export function useChannel(username) {
     // Fetch their posts
     const { data: postsData } = await supabase
       .from('posts')
-      .select('*')
+      .select('id, body, tag, region, likes, reply_count, repost_count, created_at, post_type, is_osint')
       .eq('author_id', userData.id)
       .order('created_at', { ascending: false })
       .limit(20)

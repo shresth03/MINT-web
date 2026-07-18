@@ -19,7 +19,7 @@ export function useUser() {
     setLoading(true)
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select('id, username, role, score')
       .eq('id', user.id)
       .single()
     if (!error && data) setProfile(data)
