@@ -5,14 +5,19 @@ import React from 'react'
 // vi.mock is hoisted — use vi.hoisted so the fns are available inside the factory
 const {
   mockAuthSignUp, mockAuthSignIn, mockAuthSignOut,
-  mockAuthGetSession, mockAuthOnChange, mockAuthResetPw, mockInsert,
+  mockAuthGetSession, mockAuthOnChange, mockAuthResetPw, mockAuthResend, mockInsert,
 } = vi.hoisted(() => ({
   mockAuthSignUp: vi.fn(),
   mockAuthSignIn: vi.fn(),
   mockAuthSignOut: vi.fn(),
   mockAuthGetSession: vi.fn().mockResolvedValue({ data: { session: null } }),
-  mockAuthOnChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+  // Call the callback immediately so onAuthStateChange sets loading=false
+  mockAuthOnChange: vi.fn((cb) => {
+    cb('INITIAL_SESSION', null)
+    return { data: { subscription: { unsubscribe: vi.fn() } } }
+  }),
   mockAuthResetPw: vi.fn().mockResolvedValue({ error: null }),
+  mockAuthResend: vi.fn().mockResolvedValue({ error: null }),
   mockInsert: vi.fn(),
 }))
 
@@ -25,6 +30,7 @@ vi.mock('../../api/supabase', () => ({
       signInWithPassword: mockAuthSignIn,
       signOut: mockAuthSignOut,
       resetPasswordForEmail: mockAuthResetPw,
+      resend: mockAuthResend,
     },
     from: () => ({ insert: mockInsert }),
   },
@@ -46,7 +52,10 @@ describe('useAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockAuthGetSession.mockResolvedValue({ data: { session: null } })
-    mockAuthOnChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } })
+    mockAuthOnChange.mockImplementation((cb) => {
+      cb('INITIAL_SESSION', null)
+      return { data: { subscription: { unsubscribe: vi.fn() } } }
+    })
   })
 
   // ── signUp (#28) ─────────────────────────────────────────────────────────

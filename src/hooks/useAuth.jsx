@@ -8,18 +8,17 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get current session on load
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    // Listen for auth changes
+    // onAuthStateChange fires immediately with the current session,
+    // so we use it as the single source of truth for both initial load and changes.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null)
+        setLoading(false)
       }
     )
+
+    // Fallback: if onAuthStateChange never fires (e.g. network error), unblock the UI
+    supabase.auth.getSession().catch(() => setLoading(false))
 
     return () => subscription.unsubscribe()
   }, [])
