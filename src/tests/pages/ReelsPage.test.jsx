@@ -4,6 +4,11 @@ import { MemoryRouter } from 'react-router-dom'
 import '../mocks/supabase.js'
 import ReelsPage from '../../pages/ReelsPage'
 
+vi.mock('../../hooks/useTheme', () => ({
+  useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn(), followSystem: vi.fn() }),
+  ThemeProvider: ({ children }) => children,
+}))
+
 const mockUploadVideo = vi.fn()
 const mockLikeVideo = vi.fn()
 const mockIncrementView = vi.fn()

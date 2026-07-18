@@ -4,6 +4,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { mockSupabase } from '../mocks/supabase.js'
 import LivePage from '../../pages/LivePage'
 
+vi.mock('../../hooks/useTheme', () => ({
+  useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn(), followSystem: vi.fn() }),
+  ThemeProvider: ({ children }) => children,
+}))
+
 const mockCreateStream = vi.fn()
 const mockGoLive = vi.fn()
 const mockEndStream = vi.fn()

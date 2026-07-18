@@ -3,6 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import ArticlesPage from '../../pages/ArticlesPage'
 
+vi.mock('../../hooks/useTheme', () => ({
+  useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn(), followSystem: vi.fn() }),
+  ThemeProvider: ({ children }) => children,
+}))
+
 const mockStories = [
   {
     id: 's1',

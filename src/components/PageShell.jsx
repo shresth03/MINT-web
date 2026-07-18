@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import MobileBottomNav from './layout/MobileBottomNav'
 
 export default function PageShell({ children, title, showBack = true }) {
-  const { theme } = useTheme()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
   return (
@@ -60,6 +60,18 @@ export default function PageShell({ children, title, showBack = true }) {
           </span>
         )}
         <div style={{ marginLeft: 'auto' }} />
+        <button
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to Ghost' : 'Switch to Void'}
+          style={{
+            background: 'none', border: '1px solid var(--border)',
+            borderRadius: 4, padding: '5px 8px', cursor: 'pointer',
+            color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 9,
+            letterSpacing: 1, flexShrink: 0,
+          }}
+        >
+          {theme === 'dark' ? '☀ GHOST' : '☾ VOID'}
+        </button>
       </div>
 
       {/* Page content — gets bottom padding on mobile so nav doesn't cover it */}

@@ -575,6 +575,20 @@ export default function App() {
                 : `${dbStories.length} stories`}
             </span>
             <div className="ml-auto" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {isMobile && (
+                <button
+                  onClick={toggleTheme}
+                  title={theme === 'dark' ? 'Switch to Ghost' : 'Switch to Void'}
+                  style={{
+                    background: 'none', border: '1px solid var(--border)',
+                    borderRadius: 4, padding: '5px 8px', cursor: 'pointer',
+                    color: 'var(--muted)', display: 'flex', alignItems: 'center',
+                    fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
+                  }}
+                >
+                  {theme === 'dark' ? '☀' : '☾'}
+                </button>
+              )}
               {profile?.role === 'public' && !hasApplied && !isMobile && (
                 <button onClick={() => setShowApply(true)} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:'transparent',border:'1px solid var(--verified)',borderRadius:6,fontFamily:'var(--mono)',fontSize:10,color:'var(--verified)',cursor:'pointer',letterSpacing:1}}>
                   <BadgeCheck size={13} /> APPLY AS ANALYST

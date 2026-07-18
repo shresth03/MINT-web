@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useTheme } from '../../hooks/useTheme'
+import React from 'react'
+import { ThemeProvider, useTheme } from '../../hooks/useTheme'
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -23,6 +24,8 @@ Object.defineProperty(window, 'matchMedia', {
   }))
 })
 
+const wrapper = ({ children }) => React.createElement(ThemeProvider, null, children)
+
 describe('useTheme', () => {
   beforeEach(() => {
     localStorageMock.clear()
@@ -31,7 +34,7 @@ describe('useTheme', () => {
   })
 
   it('defaults to dark when system prefers dark', () => {
-    const { result } = renderHook(() => useTheme())
+    const { result } = renderHook(() => useTheme(), { wrapper })
     expect(result.current.theme).toBe('dark')
   })
 
@@ -41,19 +44,19 @@ describe('useTheme', () => {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     }))
-    const { result } = renderHook(() => useTheme())
+    const { result } = renderHook(() => useTheme(), { wrapper })
     expect(result.current.theme).toBe('light')
   })
 
   it('reads saved preference from localStorage', () => {
     localStorageMock.getItem.mockReturnValue('light')
-    const { result } = renderHook(() => useTheme())
+    const { result } = renderHook(() => useTheme(), { wrapper })
     expect(result.current.theme).toBe('light')
   })
 
   it('toggleTheme switches dark to light', () => {
     localStorageMock.getItem.mockReturnValue('dark')
-    const { result } = renderHook(() => useTheme())
+    const { result } = renderHook(() => useTheme(), { wrapper })
     act(() => { result.current.toggleTheme() })
     expect(result.current.theme).toBe('light')
     expect(localStorageMock.setItem).toHaveBeenCalledWith('mint_theme', 'light')
@@ -61,20 +64,20 @@ describe('useTheme', () => {
 
   it('toggleTheme switches light to dark', () => {
     localStorageMock.getItem.mockReturnValue('light')
-    const { result } = renderHook(() => useTheme())
+    const { result } = renderHook(() => useTheme(), { wrapper })
     act(() => { result.current.toggleTheme() })
     expect(result.current.theme).toBe('dark')
   })
 
   it('sets data-theme attribute on html element', () => {
     localStorageMock.getItem.mockReturnValue('light')
-    renderHook(() => useTheme())
+    renderHook(() => useTheme(), { wrapper })
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
   })
 
   it('followSystem removes localStorage preference', () => {
     localStorageMock.getItem.mockReturnValue('light')
-    const { result } = renderHook(() => useTheme())
+    const { result } = renderHook(() => useTheme(), { wrapper })
     act(() => { result.current.followSystem() })
     expect(localStorageMock.removeItem).toHaveBeenCalledWith('mint_theme')
   })
