@@ -19,20 +19,30 @@ export default function ResetPassword() {
   const [done, setDone] = useState(false)
 
   useEffect(() => {
-    // Primary: getSession() reads from localStorage immediately after the redirect.
-    // PASSWORD_RECOVERY fires on first load; subsequent loads replay as INITIAL_SESSION.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setReady(!!session)
-    })
+    // Only show the form if a genuine PASSWORD_RECOVERY event was detected
+    // (flagged in sessionStorage by AuthProvider). A regular logged-in session
+    // must not be able to reach this form — that would let any authenticated
+    // user change any account's password by navigating here directly.
+    const isRecovery = sessionStorage.getItem('mint_recovery') === '1'
 
-    // Secondary: catch PASSWORD_RECOVERY if we happen to be on the first load
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') setReady(true)
-      // If a sign-out happens while on this page, invalidate the form
-      if (event === 'SIGNED_OUT') setReady(false)
-    })
-
-    return () => subscription.unsubscribe()
+    if (isRecovery) {
+      setReady(true)
+    } else {
+      // Also catch PASSWORD_RECOVERY if we happen to be first tab receiving it
+      // before AuthProvider's listener fires (rare but possible).
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          sessionStorage.setItem('mint_recovery', '1')
+          setReady(true)
+        }
+      })
+      // Give the auth listener a moment before showing expired state
+      const t = setTimeout(() => setReady(prev => prev === null ? false : prev), 1500)
+      return () => {
+        subscription.unsubscribe()
+        clearTimeout(t)
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -50,7 +60,10 @@ export default function ResetPassword() {
     const { error: err } = await updatePassword(password)
     setLoading(false)
     if (err) setError(err.message)
-    else setDone(true)
+    else {
+      sessionStorage.removeItem('mint_recovery')
+      setDone(true)
+    }
   }
 
   const inputStyle = {

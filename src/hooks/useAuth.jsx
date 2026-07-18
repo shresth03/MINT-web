@@ -16,8 +16,13 @@ export function AuthProvider({ children }) {
         setLoading(false)
         // If Supabase redirected the user to the wrong page (e.g. homepage because
         // /reset-password wasn't in the allow-list), redirect them now.
-        if (_event === 'PASSWORD_RECOVERY' && window.location.pathname !== '/reset-password') {
-          window.location.replace('/reset-password')
+        if (_event === 'PASSWORD_RECOVERY') {
+          // Flag this as a genuine recovery session so ResetPassword can gate on it.
+          // sessionStorage survives window.location.replace but not a new tab.
+          sessionStorage.setItem('mint_recovery', '1')
+          if (window.location.pathname !== '/reset-password') {
+            window.location.replace('/reset-password')
+          }
         }
       }
     )
