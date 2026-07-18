@@ -555,9 +555,6 @@ export default function App() {
                 <div className="user-role">{profile?.role?.toUpperCase() || 'PUBLIC'}_USER</div>
               </div>
             </div>
-            <div onClick={handleSignOut} style={{marginTop:10, fontFamily:'var(--mono)', fontSize:10, color:'var(--muted)', cursor:'pointer', letterSpacing:1}}>
-              <X size={10} style={{ display:'inline', verticalAlign:'middle', marginRight:4 }} /> SIGN OUT
-            </div>
           </div>
         </div>
 

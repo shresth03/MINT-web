@@ -3,12 +3,12 @@ import { useUser } from '../hooks/useUser'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../api/supabase'
-import { BadgeCheck, ShieldAlert, CircleDot, Bookmark, Check } from 'lucide-react'
+import { BadgeCheck, ShieldAlert, CircleDot, Bookmark, Check, LogOut } from 'lucide-react'
 import { usePosts } from '../hooks/usePosts'
 import PageShell from '../components/PageShell'
 
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const { profile, loading, updateProfile } = useUser()
   const { fetchSavedPosts } = usePosts()
   const [savedPosts, setSavedPosts] = useState([])
@@ -266,6 +266,24 @@ export default function ProfilePage() {
         </div>
 
         <div style={{ height: 40 }} />
+
+        {/* Sign out */}
+        <div style={{ padding: '0 24px 32px' }}>
+          <button
+            onClick={async () => { await signOut(); navigate('/login') }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'none', border: '1px solid var(--border)',
+              borderRadius: 6, padding: '10px 16px', cursor: 'pointer',
+              fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)',
+              letterSpacing: 1, transition: 'all 0.15s',
+            }}
+            onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--accent2)'; e.currentTarget.style.color = 'var(--accent2)' }}
+            onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)' }}
+          >
+            <LogOut size={13} /> SIGN OUT
+          </button>
+        </div>
       </div>
     </PageShell>
   )
