@@ -1,5 +1,6 @@
 import { useTheme } from '../hooks/useTheme'
 import { useNavigate } from 'react-router-dom'
+import MobileBottomNav from './layout/MobileBottomNav'
 
 export default function PageShell({ children, title, showBack = true }) {
   const { theme } = useTheme()
@@ -12,6 +13,13 @@ export default function PageShell({ children, title, showBack = true }) {
       color: 'var(--text)',
       fontFamily: 'var(--sans)',
     }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .page-shell-content { padding-bottom: 72px !important; }
+          .page-shell-content > div { padding-left: 14px !important; padding-right: 14px !important; }
+        }
+      `}</style>
+
       {/* Topbar */}
       <div style={{
         height: 52, borderBottom: '1px solid var(--border)',
@@ -20,7 +28,6 @@ export default function PageShell({ children, title, showBack = true }) {
         padding: '0 20px', gap: 16,
         position: 'sticky', top: 0, zIndex: 10,
       }}>
-        {/* MINT logo */}
         <div style={{ flexShrink: 0 }}>
           <img
             src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
@@ -55,8 +62,12 @@ export default function PageShell({ children, title, showBack = true }) {
         <div style={{ marginLeft: 'auto' }} />
       </div>
 
-      {/* Page content */}
-      {children}
+      {/* Page content — gets bottom padding on mobile so nav doesn't cover it */}
+      <div className="page-shell-content">
+        {children}
+      </div>
+
+      <MobileBottomNav />
     </div>
   )
 }
