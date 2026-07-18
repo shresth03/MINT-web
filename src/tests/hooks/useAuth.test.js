@@ -145,7 +145,7 @@ describe('useAuth', () => {
     })
     expect(mockAuthResetPw).toHaveBeenCalledWith(
       'a@b.com',
-      expect.objectContaining({ redirectTo: expect.stringContaining('/login') })
+      expect.objectContaining({ redirectTo: expect.stringContaining('/reset-password') })
     )
   })
 })

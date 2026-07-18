@@ -14,6 +14,11 @@ export function AuthProvider({ children }) {
       (_event, session) => {
         setUser(session?.user ?? null)
         setLoading(false)
+        // If Supabase redirected the user to the wrong page (e.g. homepage because
+        // /reset-password wasn't in the allow-list), redirect them now.
+        if (_event === 'PASSWORD_RECOVERY' && window.location.pathname !== '/reset-password') {
+          window.location.replace('/reset-password')
+        }
       }
     )
 
@@ -62,13 +67,18 @@ export function AuthProvider({ children }) {
 
   const resetPassword = async (email) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
+      redirectTo: `${window.location.origin}/reset-password`,
     })
     return { error }
   }
 
+  const updatePassword = async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    return { error }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, resetPassword, resendVerification }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, resetPassword, updatePassword, resendVerification }}>
       {!loading && children}
     </AuthContext.Provider>
   )
