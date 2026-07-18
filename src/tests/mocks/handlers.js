@@ -1,8 +1,8 @@
 import { http, HttpResponse } from 'msw'
 
-// ── Anthropic API mock ──
+// ── Anthropic proxy mock (Edge Function) ──
 export const anthropicHandlers = [
-  http.post('https://api.anthropic.com/v1/messages', async ({ request }) => {
+  http.post('https://ipemqgxcjjyvrfzkcjoh.supabase.co/functions/v1/anthropic-proxy', async ({ request }) => {
     const body = await request.json()
 
     // Translation request (Haiku, max_tokens: 1024)

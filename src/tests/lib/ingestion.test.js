@@ -72,12 +72,10 @@ describe('detect()', () => {
 describe('ingest()', () => {
   beforeEach(() => {
     import.meta.env.VITE_SARVAM_API_KEY = 'test-sarvam-key'
-    import.meta.env.VITE_ANTHROPIC_API_KEY = 'test-anthropic-key'
   })
 
   afterEach(() => {
     import.meta.env.VITE_SARVAM_API_KEY = ''
-    import.meta.env.VITE_ANTHROPIC_API_KEY = ''
   })
 
   // ── English passthrough ────────────────────────────────────────────────────
@@ -153,9 +151,13 @@ describe('ingest()', () => {
     expect(result.lang).toBe('ru')
   })
 
-  it('degrades to original text when Claude key is also absent', async () => {
+  it('degrades to original text when both Sarvam and proxy fail', async () => {
     import.meta.env.VITE_SARVAM_API_KEY = ''
-    import.meta.env.VITE_ANTHROPIC_API_KEY = ''
+    server.use(
+      http.post('https://ipemqgxcjjyvrfzkcjoh.supabase.co/functions/v1/anthropic-proxy',
+        () => new HttpResponse(null, { status: 500 }), { once: true }
+      )
+    )
     const src = '印度船只'
     const result = await ingest(src)
     expect(result.text).toBe(src)

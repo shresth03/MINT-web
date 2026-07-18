@@ -3,6 +3,21 @@ import { supabase } from '../api/supabase'
 import { useAuth } from './useAuth'
 import { ingest } from '../lib/ingestion/index.js'
 
+const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/anthropic-proxy`
+
+async function callClaude(model, messages, max_tokens) {
+  const res = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ model, messages, max_tokens }),
+  })
+  return res.json()
+}
+
 export function useStoryComposer() {
   const { user } = useAuth()
 
@@ -32,27 +47,15 @@ export function useStoryComposer() {
 
   const generateHeadline = useCallback(async (sourcePosts) => {
     if (!sourcePosts || sourcePosts.length === 0) return null
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-    if (!apiKey) return null
 
     const sourceContext = sourcePosts
       .map((p, i) => `Source #${i + 1} (@${p.users?.username}): ${p.body}`)
       .join('\n')
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 60,
-        messages: [{
-          role: 'user',
-          content: `You are an OSINT intelligence analyst writing breaking news headlines.
+    try {
+      const data = await callClaude('claude-sonnet-4-6', [{
+        role: 'user',
+        content: `You are an OSINT intelligence analyst writing breaking news headlines.
 
 Sources:
 ${sourceContext}
@@ -66,37 +69,24 @@ Extract the primary ACTION and LOCATION from these sources, then write a single 
 - Does NOT start with "Breaking:" or similar prefixes
 
 Output only the headline text. No punctuation at the end. No preamble.`
-        }],
-      }),
-    })
-
-    const data = await response.json()
-    return data?.content?.[0]?.text?.trim() ?? null
+      }], 60)
+      return data?.content?.[0]?.text?.trim() ?? null
+    } catch {
+      return null
+    }
   }, [])
 
   const generateSummary = useCallback(async (headline, sourcePosts) => {
     if (!sourcePosts || sourcePosts.length === 0) return null
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-    if (!apiKey) return null
-    
+
     const sourceContext = sourcePosts
       .map((p, i) => `Source #${i + 1} (@${p.users?.username}): ${p.body}`)
       .join('\n')
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 300,
-        messages: [{
-          role: 'user',
-          content: `You are an OSINT intelligence analyst writing a developing situation report.
+    try {
+      const data = await callClaude('claude-sonnet-4-6', [{
+        role: 'user',
+        content: `You are an OSINT intelligence analyst writing a developing situation report.
 
 Headline: "${headline}"
 
@@ -112,19 +102,14 @@ Write a concise, neutral, intelligence-style summary that:
 - Does NOT include a headline — just the summary body
 
 Output only the summary text. No preamble, no labels.`
-        }],
-      }),
-    })
-    
-    const data = await response.json()
-    return data?.content?.[0]?.text?.trim() ?? null
+      }], 300)
+      return data?.content?.[0]?.text?.trim() ?? null
+    } catch {
+      return null
+    }
   }, [])
 
-  // Fetches all source posts for a story and regenerates summary via Claude
   async function refreshStorySummary(storyId, currentHeadline) {
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-    if (!apiKey) return
-
     const { data: sources } = await supabase
       .from('story_sources')
       .select('post_id, posts(body, users(username))')

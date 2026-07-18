@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
+import { http, HttpResponse } from 'msw'
+import { server } from '../mocks/server'
 import '../mocks/supabase.js'
 import { mockSupabase } from '../mocks/supabase.js'
 import { useStoryComposer } from '../../hooks/useStoryComposer'
@@ -27,7 +29,6 @@ describe('useStoryComposer', () => {
         mockSupabase.single.mockResolvedValue({ data: null, error: null })
         mockSupabase.limit.mockResolvedValue({ data: [], error: null })
         mockSupabase.rpc.mockResolvedValue({ data: [], error: null })
-        import.meta.env.VITE_ANTHROPIC_API_KEY = 'test-key'
       })
 
       // ── refreshStorySummary ──
@@ -65,15 +66,17 @@ describe('useStoryComposer', () => {
           expect(sum).toContain('Indian vessels')
         })
       
-        it('generateSummary returns null if API key is missing', async () => {
-          const savedKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-          import.meta.env.VITE_ANTHROPIC_API_KEY = ''
+        it('generateSummary returns null if proxy returns error', async () => {
+          server.use(
+            http.post('https://ipemqgxcjjyvrfzkcjoh.supabase.co/functions/v1/anthropic-proxy',
+              () => new HttpResponse(null, { status: 500 }), { once: true }
+            )
+          )
           const { result } = renderHook(() => useStoryComposer())
           const sum = await result.current.generateSummary('headline', [
             { body: 'test', users: { username: 'user' } }
           ])
           expect(sum).toBeNull()
-          import.meta.env.VITE_ANTHROPIC_API_KEY = savedKey
         })
       })
   // ── generateHeadline ──
@@ -84,8 +87,12 @@ describe('useStoryComposer', () => {
       expect(hl).toBeNull()
     })
 
-    it('returns null if no API key', async () => {
-      import.meta.env.VITE_ANTHROPIC_API_KEY = ''
+    it('returns null if proxy returns error', async () => {
+      server.use(
+        http.post('https://ipemqgxcjjyvrfzkcjoh.supabase.co/functions/v1/anthropic-proxy',
+          () => new HttpResponse(null, { status: 500 }), { once: true }
+        )
+      )
       const { result } = renderHook(() => useStoryComposer())
       const hl = await result.current.generateHeadline([{ body: 'test', users: { username: 'user' } }])
       expect(hl).toBeNull()
