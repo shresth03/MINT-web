@@ -462,7 +462,6 @@ export default function App() {
     ...(profile?.role === 'public' && hasApplied  ? [{id:"status", label:"Application Pending",  Icon:Clock}] : []),
     {id:"messages",      label:"Messages",      Icon:MessageSquare, section:"Account", badge: msgUnreadCount > 0 ? String(msgUnreadCount) : null, bc:"orange"},
     {id:"notifications", label:"Notifications", Icon:Bell,          badge: unreadCount > 0 ? String(unreadCount) : null, bc:"orange"},
-    {id:"profile",       label:"My Profile",    Icon:User},
     {id:"feedback",      label:"Give Feedback", Icon:MessageSquare},
     {id:"settings",      label:"Settings",      Icon:Settings},
     ...(profile?.role === 'admin' ? [{id:"admin", label:"Admin Dashboard", Icon:ShieldAlert, section:"Admin"}] : []),
@@ -549,7 +548,7 @@ export default function App() {
             ))}
           </div>
           <div className="sidebar-bottom">
-            <div className="user-card">
+            <div className="user-card" onClick={() => navigate('/profile')} style={{cursor:'pointer'}}>
               <div className="avatar">{(profile?.username || user?.email)?.[0]?.toUpperCase() || 'U'}</div>
               <div>
                 <div className="user-name" style={{fontSize:11, maxWidth:130, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{profile?.username || user?.email || 'User'}</div>
