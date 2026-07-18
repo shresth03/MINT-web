@@ -9,6 +9,13 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  // Only allow calls from the DB trigger (which sends the service role key)
+  const authHeader = req.headers.get('Authorization')
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!authHeader || authHeader !== `Bearer ${serviceRoleKey}`) {
+    return new Response('unauthorized', { status: 401, headers: corsHeaders })
+  }
+
   const { story_id } = await req.json()
   if (!story_id) return new Response('missing story_id', { status: 400 })
 

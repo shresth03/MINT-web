@@ -6,12 +6,15 @@ import { ingest } from '../lib/ingestion/index.js'
 const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/anthropic-proxy`
 
 async function callClaude(model, messages, max_tokens) {
+  const { data: { session } } = await supabase.auth.getSession()
+  const jwt = session?.access_token
+  if (!jwt) return null
+
   const res = await fetch(PROXY_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      'Authorization': `Bearer ${jwt}`,
     },
     body: JSON.stringify({ model, messages, max_tokens }),
   })
@@ -133,8 +136,11 @@ Output only the summary text. No preamble, no labels.`
   }
 
   async function publishStory({ body, tag, region, threadId, headline, summary }) {
+    const { data: { session } } = await supabase.auth.getSession()
+    const jwt = session?.access_token
+
     // Normalise to English for the AI pipeline; original body is stored in the DB.
-    const { text: normalizedBody } = await ingest(body)
+    const { text: normalizedBody } = await ingest(body, jwt)
 
     // Insert the post, carrying manual_story_id so the trigger skips auto-clustering
     const { data: post, error } = await supabase

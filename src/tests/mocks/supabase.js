@@ -33,4 +33,15 @@ function makeChain(resolved = DEFAULT) {
 
 export const mockSupabase = makeChain()
 
+mockSupabase.auth = {
+  getSession: vi.fn().mockResolvedValue({
+    data: { session: { access_token: 'test-jwt-token' } },
+    error: null,
+  }),
+  getUser: vi.fn().mockResolvedValue({
+    data: { user: { id: 'test-user-id' } },
+    error: null,
+  }),
+}
+
 vi.mock('../../api/supabase', () => ({ supabase: mockSupabase }))

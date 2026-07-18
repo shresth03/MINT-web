@@ -15,7 +15,7 @@ const INDIC = new Set(['hi', 'bn', 'pa', 'gu', 'or', 'ta', 'te', 'kn', 'ml', 'ur
  * @param {string} text
  * @returns {Promise<{ text: string, lang: string, provider: 'sarvam'|'claude'|null }>}
  */
-export async function ingest(text) {
+export async function ingest(text, authToken) {
   if (!text?.trim()) return { text: '', lang: 'en', provider: null }
 
   const lang = detect(text)
@@ -30,5 +30,5 @@ export async function ingest(text) {
     }
   }
 
-  return claudeTranslate(text, lang)
+  return claudeTranslate(text, lang, authToken)
 }

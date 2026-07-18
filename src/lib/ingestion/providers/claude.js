@@ -1,15 +1,16 @@
 const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/anthropic-proxy`
 
 // Haiku: fast and cheap for translation workloads.
-// Degrades gracefully — returns original text if the call fails.
-export async function claudeTranslate(text, lang) {
+// Degrades gracefully — returns original text if no auth token or call fails.
+export async function claudeTranslate(text, lang, authToken) {
+  if (!authToken) return { text, lang, provider: null }
+
   try {
     const res = await fetch(PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        'Authorization': `Bearer ${authToken}`,
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',

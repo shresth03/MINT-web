@@ -122,7 +122,7 @@ describe('ingest()', () => {
 
   it('falls back to Claude when Sarvam key is absent', async () => {
     import.meta.env.VITE_SARVAM_API_KEY = ''
-    const result = await ingest('भारतीय सेना ने सीमा पर तैनाती बढ़ाई')
+    const result = await ingest('भारतीय सेना ने सीमा पर तैनाती बढ़ाई', 'test-token')
     expect(result.provider).toBe('claude')
   })
 
@@ -132,21 +132,21 @@ describe('ingest()', () => {
         new HttpResponse(null, { status: 500 })
       )
     )
-    const result = await ingest('भारतीय सेना')
+    const result = await ingest('भारतीय सेना', 'test-token')
     expect(result.provider).toBe('claude')
   })
 
   // ── Non-Indic → Claude fallback ───────────────────────────────────────────
 
   it('routes Chinese directly to Claude (not Sarvam)', async () => {
-    const result = await ingest('印度船只向有争议的水域推进')
+    const result = await ingest('印度船只向有争议的水域推进', 'test-token')
     expect(result.provider).toBe('claude')
     expect(result.lang).toBe('zh')
     expect(result.text).toContain('[translated]')
   })
 
   it('routes Russian directly to Claude', async () => {
-    const result = await ingest('Индийские суда продвигаются в спорные воды')
+    const result = await ingest('Индийские суда продвигаются в спорные воды', 'test-token')
     expect(result.provider).toBe('claude')
     expect(result.lang).toBe('ru')
   })
@@ -159,7 +159,7 @@ describe('ingest()', () => {
       )
     )
     const src = '印度船只'
-    const result = await ingest(src)
+    const result = await ingest(src, 'test-token')
     expect(result.text).toBe(src)
     expect(result.provider).toBeNull()
   })
@@ -168,12 +168,12 @@ describe('ingest()', () => {
 
   it('always returns { text, lang, provider }', async () => {
     const cases = [
-      'English text',
-      'भारतीय सेना',
-      '印度船只',
+      ['English text', undefined],
+      ['भारतीय सेना', 'test-token'],
+      ['印度船只', 'test-token'],
     ]
-    for (const text of cases) {
-      const result = await ingest(text)
+    for (const [text, token] of cases) {
+      const result = await ingest(text, token)
       expect(result).toHaveProperty('text')
       expect(result).toHaveProperty('lang')
       expect(result).toHaveProperty('provider')

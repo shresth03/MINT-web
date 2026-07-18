@@ -29,6 +29,12 @@ describe('useStoryComposer', () => {
         mockSupabase.single.mockResolvedValue({ data: null, error: null })
         mockSupabase.limit.mockResolvedValue({ data: [], error: null })
         mockSupabase.rpc.mockResolvedValue({ data: [], error: null })
+        mockSupabase.auth.getSession.mockResolvedValue({
+          data: { session: { access_token: 'test-jwt-token' } }, error: null
+        })
+        mockSupabase.auth.getUser.mockResolvedValue({
+          data: { user: { id: 'test-user-id' } }, error: null
+        })
       })
 
       // ── refreshStorySummary ──
