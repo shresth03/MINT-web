@@ -42,6 +42,9 @@ mockSupabase.auth = {
     data: { user: { id: 'test-user-id' } },
     error: null,
   }),
+  onAuthStateChange: vi.fn().mockReturnValue({
+    data: { subscription: { unsubscribe: vi.fn() } },
+  }),
 }
 
 vi.mock('../../api/supabase', () => ({ supabase: mockSupabase }))
