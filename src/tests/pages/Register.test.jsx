@@ -92,14 +92,27 @@ describe('Register page', () => {
     })
   })
 
-  it('shows success message on successful registration', async () => {
+  it('navigates to /feed when email confirmation is not required', async () => {
+    mockSignUp.mockResolvedValue({ data: {}, error: null, needsEmailConfirmation: false })
     renderRegister()
     fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'alice' } })
     fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'alice@test.com' } })
     fireEvent.change(screen.getByPlaceholderText(/Password/i), { target: { value: 'password123' } })
     fireEvent.click(screen.getByText('CREATE ACCOUNT'))
     await waitFor(() => {
-      expect(screen.getByText(/Account created/i)).toBeInTheDocument()
+      expect(mockNavigate).toHaveBeenCalledWith('/feed')
+    })
+  })
+
+  it('navigates to /verify-email when email confirmation is required', async () => {
+    mockSignUp.mockResolvedValue({ data: {}, error: null, needsEmailConfirmation: true })
+    renderRegister()
+    fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'alice' } })
+    fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'alice@test.com' } })
+    fireEvent.change(screen.getByPlaceholderText(/Password/i), { target: { value: 'password123' } })
+    fireEvent.click(screen.getByText('CREATE ACCOUNT'))
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/verify-email?email=alice%40test.com')
     })
   })
 

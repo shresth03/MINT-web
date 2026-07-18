@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import PrototypePage from './pages/PrototypePage'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import VerifyEmail from './pages/VerifyEmail'
 import AdminDashboard from './pages/AdminDashboard'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import NotFound from './pages/NotFound'
@@ -22,6 +23,7 @@ export default function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/admin" element={
         <ProtectedRoute>
           <AdminDashboard />

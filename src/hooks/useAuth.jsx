@@ -25,7 +25,11 @@ export function AuthProvider({ children }) {
   }, [])
 
   const signUp = async (email, password, username, role = 'public') => {
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    })
     if (error) return { error }
 
     if (data.user) {
@@ -36,7 +40,13 @@ export function AuthProvider({ children }) {
       })
       if (profileError) return { error: profileError }
     }
-    return { data }
+    // session is null when Supabase has email confirmation enabled
+    return { data, needsEmailConfirmation: !data.session }
+  }
+
+  const resendVerification = async (email) => {
+    const { error } = await supabase.auth.resend({ type: 'signup', email })
+    return { error }
   }
 
   const signIn = async (email, password) => {
@@ -59,7 +69,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, resetPassword }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, resetPassword, resendVerification }}>
       {!loading && children}
     </AuthContext.Provider>
   )

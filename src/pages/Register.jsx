@@ -26,9 +26,10 @@ export default function Register() {
     if (password.length < 6) { setError('Password must be at least 6 characters'); return }
     setLoading(true)
     setError('')
-    const { error } = await signUp(email, password, username, accountType)
+    const { error, needsEmailConfirmation } = await signUp(email, password, username, accountType)
     if (error) { setError(error.message); setLoading(false) }
-    else { setSuccess('Account created! Redirecting...'); setTimeout(() => navigate('/feed'), 1500) }
+    else if (needsEmailConfirmation) navigate(`/verify-email?email=${encodeURIComponent(email)}`)
+    else navigate('/feed')
   }
 
   const inputStyle = {
