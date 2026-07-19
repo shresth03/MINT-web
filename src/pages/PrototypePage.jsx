@@ -1051,25 +1051,17 @@ export default function App() {
       )}
 
       {showNotifs && (
-        <div style={{
-          position:'fixed',
-          top: 0,
-          left: isMobile ? 0 : 220,
-          right: isMobile ? 0 : 'auto',
-          bottom: isMobile ? 56 : 0,
-          width: isMobile ? '100%' : 320,
-          background:'var(--surface)', borderLeft:'1px solid var(--border)',
-          borderRight: isMobile ? 'none' : '1px solid var(--border)',
-          zIndex:9999, boxShadow:'4px 0 24px rgba(0,0,0,0.5)'
-        }}>
-          <NotificationPanel
-            notifications={notifications}
-            unreadCount={unreadCount}
-            onMarkAllRead={markAllRead}
-            onMarkRead={markRead}
-            onClose={() => setShowNotifs(false)}
-          />
-        </div>
+        <NotificationPanel
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkAllRead={markAllRead}
+          onMarkRead={markRead}
+          onClose={() => setShowNotifs(false)}
+          style={isMobile
+            ? { position: 'fixed', left: 0, right: 0, top: 56, bottom: 56, width: '100%', borderRadius: 0, maxHeight: 'none' }
+            : { position: 'fixed', left: 220, top: 60, right: 'auto' }
+          }
+        />
       )}
     </>
   );
