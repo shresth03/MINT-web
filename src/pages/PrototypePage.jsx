@@ -508,13 +508,14 @@ export default function App() {
             onMouseDown={startHold}
             onMouseUp={cancelHold}
             onMouseLeave={cancelHold}
-            onTouchStart={startHold}
+            onTouchStart={(e) => { e.preventDefault(); startHold() }}
             onTouchEnd={cancelHold}
           >
             <img
               src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
               alt="MINT"
-              style={{ height: 38, width: 'auto', display: 'block', flexShrink: 0 }}
+              draggable={false}
+              style={{ height: 38, width: 'auto', display: 'block', flexShrink: 0, pointerEvents: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}
             />
             {isMobile && (
               <button onClick={() => setSidebarOpen(false)}

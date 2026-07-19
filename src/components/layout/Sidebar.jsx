@@ -99,13 +99,14 @@ export default function Sidebar({ setShowApply }) {
         onMouseDown={startHold}
         onMouseUp={cancelHold}
         onMouseLeave={cancelHold}
-        onTouchStart={startHold}
+        onTouchStart={(e) => { e.preventDefault(); startHold() }}
         onTouchEnd={cancelHold}
       >
         <img
           src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
           alt="MINT"
-          style={{ height: 28, width: 'auto', display: 'block', pointerEvents: 'none' }}
+          draggable={false}
+          style={{ height: 28, width: 'auto', display: 'block', pointerEvents: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}
         />
       </div>
 
