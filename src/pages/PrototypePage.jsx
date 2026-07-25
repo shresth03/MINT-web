@@ -238,8 +238,11 @@ const styles = `
   .tab { padding:10px 16px; font-size:11px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; font-family:var(--mono); letter-spacing:0.5px; transition:all 0.15s; }
   .tab:hover { color:var(--text); }
   .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
-  .modal-overlay { position:fixed; inset:0; background:var(--modal-overlay); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:200; padding:16px; }
-  .modal { background:var(--surface); border:1px solid var(--border); border-radius:8px; width:480px; max-width:100%; max-height:80vh; overflow-y:auto; padding:24px; }
+  .modal-overlay { position:fixed; inset:0; background:var(--modal-overlay); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:200; padding:16px; animation:modal-overlay-enter 200ms ease-out both; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:8px; width:480px; max-width:100%; max-height:80vh; overflow-y:auto; padding:24px; animation:modal-card-enter 250ms cubic-bezier(0.23,1,0.32,1) both; }
+  @keyframes modal-overlay-enter { from { opacity:0; } to { opacity:1; } }
+  @keyframes modal-card-enter { from { opacity:0; transform:scale(0.97); } to { opacity:1; transform:scale(1); } }
+  @media (prefers-reduced-motion:reduce) { .modal-overlay, .modal { animation-duration:0ms; } }
   .modal-title { font-family:var(--mono); font-size:14px; font-weight:600; color:var(--accent); margin-bottom:4px; }
   .modal-sub { font-size:11px; color:var(--muted); margin-bottom:20px; line-height:1.5; font-family:var(--sans); }
   .form-group { margin-bottom:16px; }
