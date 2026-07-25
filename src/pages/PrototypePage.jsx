@@ -206,8 +206,10 @@ const styles = `
   .post-time { font-size:10px; color:var(--muted); margin-left:auto; font-family:var(--mono); }
   .post-body { font-size:12px; line-height:1.6; color:var(--muted); font-family:var(--sans); }
   .post-actions { display:flex; gap:16px; margin-top:10px; }
-  .post-action { font-size:10px; color:var(--muted); cursor:pointer; font-family:var(--mono); transition:color 0.15s; }
+  .post-action { font-size:10px; color:var(--muted); cursor:pointer; font-family:var(--mono); transition:color 0.15s, transform 160ms ease-out; }
   .post-action:hover { color:var(--accent); }
+  .post-action:active { transform:scale(0.85); }
+  @media (prefers-reduced-motion:reduce) { .post-action { transition:color 0.15s; } .post-action:active { transform:none; } }
   .detail-panel { flex:1; overflow-y:auto; background:var(--bg); padding:24px 28px; transition:background 0.4s ease; animation:detail-fade-in 150ms ease-out both; }
   @keyframes detail-fade-in { from { opacity:0; } to { opacity:1; } }
   @media (prefers-reduced-motion:reduce) { .detail-panel { animation-duration:0ms; } }
