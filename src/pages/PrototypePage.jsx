@@ -267,21 +267,30 @@ const styles = `
   .btn.primary { background:var(--accent); color:var(--bg); font-weight:600; border-color:var(--accent); }
 
   /* MAP */
-  .map-wrap { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .map-page { flex:1; display:flex; overflow:hidden; }
+  .map-globe-col { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
   .map-filters { padding:8px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:var(--surface); flex-shrink:0; overflow-x:auto; }
   .mf-btn { padding:3px 10px; border-radius:3px; font-family:var(--mono); font-size:9px; letter-spacing:1px; border:1px solid var(--border); color:var(--muted); background:transparent; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
   .mf-btn.on { border-color:var(--accent); color:var(--accent); background:var(--mf-active-bg); }
   .map-body { flex:1; position:relative; overflow:hidden; }
   .map-svg { width:100%; height:100%; display:block; }
-  .map-legend-box { position:absolute; bottom:16px; left:16px; background:var(--map-bg); border:1px solid var(--border); border-radius:6px; padding:10px 14px; backdrop-filter:blur(8px); display:flex; flex-direction:column; gap:6px; }
-  .leg-row { display:flex; align-items:center; gap:7px; font-family:var(--mono); font-size:8px; color:var(--muted); letter-spacing:0.5px; }
-  .leg-dot { border-radius:50%; flex-shrink:0; }
-  .map-stats-box { position:absolute; top:12px; right:16px; display:flex; flex-direction:column; gap:8px; }
-  .stat-card { background:var(--stat-bg); border:1px solid var(--border); border-radius:6px; padding:9px 13px; min-width:130px; backdrop-filter:blur(8px); }
-  .stat-label { font-family:var(--mono); font-size:8px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:3px; }
-  .stat-val { font-family:var(--mono); font-size:18px; font-weight:600; color:var(--text); }
-  .stat-sub { font-size:9px; color:var(--muted); margin-top:2px; font-family:var(--sans); }
-  .region-panel { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); width:360px; max-width:calc(100vw - 32px); background:var(--region-bg); border:1px solid var(--border); border-radius:8px; padding:14px; backdrop-filter:blur(12px); }
+  .map-intel-col { width:244px; flex-shrink:0; border-left:1px solid var(--border); display:flex; flex-direction:column; overflow-y:auto; background:var(--surface); }
+  .map-intel-hd { padding:11px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; flex-shrink:0; min-height:40px; }
+  .map-intel-hd-title { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--accent); }
+  .map-intel-back { background:none; border:none; font-family:var(--mono); font-size:9px; color:var(--muted); cursor:pointer; letter-spacing:1px; padding:0; display:flex; align-items:center; gap:4px; transition:color 0.12s; }
+  .map-intel-back:hover { color:var(--accent); }
+  .mil-stat { padding:12px 14px; border-bottom:1px solid var(--border); }
+  .mil-label { font-family:var(--mono); font-size:8px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:4px; }
+  .mil-val { font-family:var(--mono); font-size:22px; font-weight:700; }
+  .mil-sub { font-size:9px; color:var(--muted); font-family:var(--sans); margin-top:2px; }
+  .mil-section { padding:10px 14px 4px; font-family:var(--mono); font-size:8px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; }
+  .mil-tags { padding:10px 14px 12px; display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--border); }
+  .mil-story { padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.12s; }
+  .mil-story:hover { background:var(--surface2); }
+  .mil-story-hl { font-size:11px; line-height:1.4; color:var(--text); margin-bottom:4px; }
+  .mil-story-meta { font-family:var(--mono); font-size:8px; color:var(--muted); }
+  .mil-empty { padding:20px 14px; font-family:var(--mono); font-size:9px; color:var(--muted); line-height:1.6; }
+  .map-region-sheet { display:none; }
   .tooltip-box { position:fixed; pointer-events:none; background:var(--tooltip-bg); border:1px solid var(--border); border-radius:6px; padding:9px 13px; min-width:180px; max-width:260px; font-size:11px; z-index:999; }
   .tt-region { font-family:var(--mono); font-size:9px; color:var(--accent); margin-bottom:3px; letter-spacing:1px; }
   .tt-count { font-size:20px; font-weight:700; color:var(--text); margin-bottom:4px; font-family:var(--mono); }
@@ -294,7 +303,9 @@ const styles = `
   @media (max-width: 768px) {
     .bottom-nav { display:flex; }
     .main { padding-bottom:56px; }
-    .map-stats-box { display:none; }
+    .map-intel-col { display:none; }
+    .map-region-sheet { display:block; position:fixed; left:0; right:0; bottom:56px; background:var(--surface); border-top:1px solid var(--border); border-radius:12px 12px 0 0; padding:14px; z-index:100; max-height:50vh; overflow-y:auto; animation:sheet-up 200ms cubic-bezier(0.23,1,0.32,1) both; }
+    @keyframes sheet-up { from { transform:translateY(100%); opacity:0; } to { transform:translateY(0); opacity:1; } }
   }
   .bn-item { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; flex:1; padding:6px 0; cursor:pointer; font-family:var(--mono); font-size:8px; color:var(--muted); border:none; background:none; transition:color 0.15s; position:relative; }
   .bn-item.active { color:var(--accent); }
@@ -623,14 +634,16 @@ export default function App() {
           
           {/* ══ MAP VIEW ══ */}
           {nav === "map" && (
-            <div className="map-wrap">
-              <div className="map-filters">
-                <span style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",letterSpacing:2,whiteSpace:"nowrap"}}>FILTER:</span>
-                {MAP_FILTERS.map(f => (
-                  <button key={f} className={`mf-btn ${mf===f?"on":""}`} onClick={() => { setMf(f); setSelRegion(null); }}>{f}</button>
-                ))}
-              </div>
-              <div style={{position:"relative",flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            <div className="map-page">
+
+              {/* Globe column */}
+              <div className="map-globe-col">
+                <div className="map-filters">
+                  <span style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",letterSpacing:2,whiteSpace:"nowrap"}}>FILTER:</span>
+                  {MAP_FILTERS.map(f => (
+                    <button key={f} className={`mf-btn ${mf===f?"on":""}`} onClick={() => { setMf(f); setSelRegion(null); }}>{f}</button>
+                  ))}
+                </div>
                 {dbRegions.length === 0 ? (
                   <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,fontFamily:"var(--mono)",fontSize:11,color:"var(--muted)"}}>
                     <Globe2 size={24} style={{animation:"pulse 1.5s ease-in-out infinite"}} />
@@ -639,70 +652,110 @@ export default function App() {
                 ) : (
                   <WorldMap filter={mf} regions={dbRegions} onRegionClick={r => setSelRegion(r)} />
                 )}
-                {!isMobile && (
-                  <div className="map-stats-box">
-                    <div className="stat-card">
-                      <div className="stat-label">Total Events</div>
-                      <div className="stat-val" style={{color:"var(--accent)"}}>{totalEv}</div>
-                      <div className="stat-sub">{dbRegions.length} active regions</div>
+              </div>
+
+              {/* Intel side panel (desktop) */}
+              <div className="map-intel-col">
+                <div className="map-intel-hd">
+                  {selRegion ? (
+                    <>
+                      <button className="map-intel-back" onClick={() => setSelRegion(null)}>← ALL REGIONS</button>
+                      {selRegion.breaking && <span className="breaking-tag" style={{marginLeft:"auto",fontSize:7}}>BREAKING</span>}
+                    </>
+                  ) : (
+                    <span className="map-intel-hd-title">GLOBAL INTELLIGENCE</span>
+                  )}
+                </div>
+
+                {!selRegion ? (
+                  <>
+                    <div className="mil-stat">
+                      <div className="mil-label">Total Events</div>
+                      <div className="mil-val" style={{color:"var(--accent)"}}>{totalEv}</div>
+                      <div className="mil-sub">{dbRegions.length} active regions</div>
                     </div>
-                    <div className="stat-card">
-                      <div className="stat-label">Breaking Zones</div>
-                      <div className="stat-val" style={{color:"var(--accent2)"}}>{breakZones}</div>
-                      <div className="stat-sub">live right now</div>
+                    <div className="mil-stat">
+                      <div className="mil-label">Breaking Zones</div>
+                      <div className="mil-val" style={{color:"var(--accent2)"}}>{breakZones}</div>
+                      <div className="mil-sub">live right now</div>
                     </div>
-                    <div className="stat-card">
-                      <div className="stat-label">Hottest Region</div>
-                      <div className="stat-val" style={{fontSize:11,lineHeight:1.3,color:"var(--warn)",marginTop:3}}>{hottest?.name ?? '—'}</div>
-                      <div className="stat-sub">{hottest?.count ?? 0} events</div>
+                    <div className="mil-stat">
+                      <div className="mil-label">Hottest Region</div>
+                      <div className="mil-val" style={{fontSize:14,lineHeight:1.3,color:"var(--warn)"}}>{hottest?.name ?? '—'}</div>
+                      <div className="mil-sub">{hottest?.count ?? 0} events</div>
                     </div>
-                  </div>
-                )}
-                {selRegion && (
-                  <div className="region-panel">
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                      {selRegion.breaking && <span className="breaking-tag">BREAKING</span>}
-                      <span style={{fontFamily:"var(--mono)",fontSize:11,color:selRegion.color,fontWeight:600}}>{selRegion.name.toUpperCase()}</span>
-                      <button onClick={()=>setSelRegion(null)} style={{marginLeft:"auto",background:"none",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:18,lineHeight:1}}>×</button>
+                  </>
+                ) : (
+                  <>
+                    <div className="mil-stat">
+                      <div className="mil-label">{selRegion.name.toUpperCase()}</div>
+                      <div className="mil-val" style={{color:selRegion.color}}>{selRegion.count}</div>
+                      <div className="mil-sub">active events</div>
                     </div>
-                    <div style={{display:"flex",gap:8,marginBottom:10}}>
-                      <div style={{flex:1,background:"var(--surface)",borderRadius:4,padding:"8px 10px",border:"1px solid var(--border)"}}>
-                        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",letterSpacing:1,marginBottom:2}}>EVENTS</div>
-                        <div style={{fontFamily:"var(--mono)",fontSize:22,fontWeight:700,color:selRegion.color}}>{selRegion.count}</div>
-                      </div>
-                      <div style={{flex:2,background:"var(--surface)",borderRadius:4,padding:"8px 10px",border:"1px solid var(--border)"}}>
-                        <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",letterSpacing:1,marginBottom:5}}>CATEGORIES</div>
-                        <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                          {selRegion.tags.map(t=><span key={t} className="story-tag">{t}</span>)}
+                    <div className="mil-tags">
+                      {selRegion.tags.map(t => <span key={t} className="story-tag">{t}</span>)}
+                    </div>
+                    <div className="mil-section">Linked Intel Stories</div>
+                    {dbStories.filter(s => s.region === selRegion.id).length > 0 ? (
+                      dbStories.filter(s => s.region === selRegion.id).map(s => (
+                        <div key={s.id} className="mil-story" onClick={() => { setStory(s); setNav("feed") }}>
+                          {(s.breaking||s.is_breaking) && <span className="breaking-tag" style={{fontSize:7,marginRight:5,marginBottom:4,display:"inline-block"}}>BREAKING</span>}
+                          <div className="mil-story-hl">{s.headline}</div>
+                          <div className="mil-story-meta">{(s.story_sources||[]).length} source{(s.story_sources||[]).length!==1?"s":""} · {s.time || 'recent'}</div>
                         </div>
-                      </div>
-                    </div>
-                    {dbStories.filter(s=>s.region===selRegion.id).length > 0 ? (
-                      <>
-                        <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:2,color:"var(--muted)",marginBottom:6}}>LINKED INTEL STORIES</div>
-                        {dbStories.filter(s=>s.region===selRegion.id).map(s=>(
-                          <div key={s.id}
-                            style={{padding:"8px 10px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:4,marginBottom:6,cursor:"pointer",fontSize:11,lineHeight:1.4,color:"var(--text)"}}
-                            onClick={()=>{setStory(s);setNav("feed");if(isMobile)setMobileDetail(true)}}>
-                            {(s.breaking||s.is_breaking) && <span className="breaking-tag" style={{fontSize:7,marginRight:5}}>BREAKING</span>}
-                            {s.headline}
-                            <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",marginTop:4}}>
-                              {(s.story_sources||[]).length} source{(s.story_sources||[]).length!==1?"s":""} · {s.time || 'recent'}
-                            </div>
-                          </div>
-                        ))}
-                      </>
+                      ))
                     ) : (
-                      <div style={{fontSize:10,color:"var(--muted)",fontFamily:"var(--mono)",padding:"8px 0"}}>
+                      <div className="mil-empty">
                         No linked intel stories for this region yet.
-                        <div style={{marginTop:6,fontSize:9,color:"#2a3d54"}}>
-                          Stories will appear here as OSINT channels report events.
-                        </div>
+                        <div style={{marginTop:6,fontSize:9,color:"#2a3d54"}}>Stories will appear here as OSINT channels report events.</div>
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
+
+              {/* Mobile: region sheet */}
+              {isMobile && selRegion && (
+                <div className="map-region-sheet">
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                    {selRegion.breaking && <span className="breaking-tag">BREAKING</span>}
+                    <span style={{fontFamily:"var(--mono)",fontSize:11,color:selRegion.color,fontWeight:600}}>{selRegion.name.toUpperCase()}</span>
+                    <button onClick={() => setSelRegion(null)} style={{marginLeft:"auto",background:"none",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:18,lineHeight:1}}>×</button>
+                  </div>
+                  <div style={{display:"flex",gap:8,marginBottom:10}}>
+                    <div style={{flex:1,background:"var(--surface2)",borderRadius:4,padding:"8px 10px",border:"1px solid var(--border)"}}>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",letterSpacing:1,marginBottom:2}}>EVENTS</div>
+                      <div style={{fontFamily:"var(--mono)",fontSize:22,fontWeight:700,color:selRegion.color}}>{selRegion.count}</div>
+                    </div>
+                    <div style={{flex:2,background:"var(--surface2)",borderRadius:4,padding:"8px 10px",border:"1px solid var(--border)"}}>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",letterSpacing:1,marginBottom:5}}>CATEGORIES</div>
+                      <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                        {selRegion.tags.map(t => <span key={t} className="story-tag">{t}</span>)}
+                      </div>
+                    </div>
+                  </div>
+                  {dbStories.filter(s => s.region === selRegion.id).length > 0 ? (
+                    <>
+                      <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:2,color:"var(--muted)",marginBottom:6}}>LINKED INTEL STORIES</div>
+                      {dbStories.filter(s => s.region === selRegion.id).map(s => (
+                        <div key={s.id}
+                          style={{padding:"8px 10px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:4,marginBottom:6,cursor:"pointer",fontSize:11,lineHeight:1.4,color:"var(--text)"}}
+                          onClick={() => { setStory(s); setNav("feed"); setMobileDetail(true) }}>
+                          {(s.breaking||s.is_breaking) && <span className="breaking-tag" style={{fontSize:7,marginRight:5}}>BREAKING</span>}
+                          {s.headline}
+                          <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",marginTop:4}}>
+                            {(s.story_sources||[]).length} source{(s.story_sources||[]).length!==1?"s":""} · {s.time || 'recent'}
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div style={{fontSize:10,color:"var(--muted)",fontFamily:"var(--mono)",padding:"8px 0"}}>
+                      No linked intel stories for this region yet.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
