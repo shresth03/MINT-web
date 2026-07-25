@@ -67,8 +67,22 @@ export default function NotificationPanel({ notifications, unreadCount, onMarkAl
   }
 
   return (
+    <>
+    <style>{`
+      .mint-notif-panel {
+        animation: mint-notif-enter 200ms cubic-bezier(0.23, 1, 0.32, 1) both;
+      }
+      @keyframes mint-notif-enter {
+        from { opacity: 0; transform: translateY(-8px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .mint-notif-panel { animation-duration: 0ms; }
+      }
+    `}</style>
     <div
       ref={panelRef}
+      className="mint-notif-panel"
       style={{
         position: 'absolute',
         top: 52,
@@ -197,5 +211,6 @@ export default function NotificationPanel({ notifications, unreadCount, onMarkAl
         )}
       </div>
     </div>
+    </>
   )
 }
