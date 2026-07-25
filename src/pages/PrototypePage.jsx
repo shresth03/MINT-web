@@ -208,7 +208,9 @@ const styles = `
   .post-actions { display:flex; gap:16px; margin-top:10px; }
   .post-action { font-size:10px; color:var(--muted); cursor:pointer; font-family:var(--mono); transition:color 0.15s; }
   .post-action:hover { color:var(--accent); }
-  .detail-panel { flex:1; overflow-y:auto; background:var(--bg); padding:24px 28px; transition:background 0.4s ease; }
+  .detail-panel { flex:1; overflow-y:auto; background:var(--bg); padding:24px 28px; transition:background 0.4s ease; animation:detail-fade-in 150ms ease-out both; }
+  @keyframes detail-fade-in { from { opacity:0; } to { opacity:1; } }
+  @media (prefers-reduced-motion:reduce) { .detail-panel { animation-duration:0ms; } }
   .detail-panel::-webkit-scrollbar { width:3px; }
   .detail-panel::-webkit-scrollbar-thumb { background:var(--border); }
   .detail-headline { font-size:20px; font-weight:600; line-height:1.4; color:var(--text); margin-bottom:8px; font-family:var(--sans); }
@@ -896,7 +898,7 @@ export default function App() {
                       ← BACK TO FEED
                     </div>
                   )}
-                  <div className="detail-panel">
+                  <div key={story.id} className="detail-panel">
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,flexWrap:"wrap"}}>
                       {(story.breaking || story.is_breaking) && <span className="breaking-tag">BREAKING</span>}
                       <span className="story-tag">{story.tag}</span>
