@@ -116,7 +116,31 @@ export default function ResetPassword() {
     // Password successfully updated
     if (done) return (
       <>
-        <div style={{
+        <style>{`
+          @keyframes rp-icon-enter {
+            from { opacity: 0; transform: scale(0.7); }
+            to   { opacity: 1; transform: scale(1); }
+          }
+          @keyframes rp-text-enter {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+          .rp-success-icon {
+            animation: rp-icon-enter 300ms cubic-bezier(0.34,1.56,0.64,1) both;
+          }
+          .rp-success-text {
+            animation: rp-text-enter 250ms ease-out both;
+            animation-delay: 150ms;
+          }
+          .rp-success-sub {
+            animation: rp-text-enter 250ms ease-out both;
+            animation-delay: 220ms;
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .rp-success-icon, .rp-success-text, .rp-success-sub { animation-duration: 0ms; animation-delay: 0ms; }
+          }
+        `}</style>
+        <div className="rp-success-icon" style={{
           width: 56, height: 56, borderRadius: '50%',
           background: 'rgba(48,216,128,0.1)', border: '1px solid var(--verified)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -124,14 +148,14 @@ export default function ResetPassword() {
         }}>
           <CheckCircle size={24} style={{ color: 'var(--verified)' }} />
         </div>
-        <div style={{
+        <div className="rp-success-text" style={{
           fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700,
           letterSpacing: 2, color: 'var(--text)', textAlign: 'center',
           marginBottom: 10, textTransform: 'uppercase',
         }}>
           Password updated
         </div>
-        <div style={{ fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
+        <div className="rp-success-sub" style={{ fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
           Redirecting you to your feed…
         </div>
       </>
