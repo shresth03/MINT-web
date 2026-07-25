@@ -212,10 +212,11 @@ const styles = `
   @media (prefers-reduced-motion:reduce) { .post-action { transition:color 0.15s; } .post-action:active { transform:none; } }
   .detail-panel { flex:1; overflow-y:auto; background:var(--bg); padding:24px 28px; transition:background 0.4s ease; animation:detail-fade-in 150ms ease-out both; }
   @keyframes detail-fade-in { from { opacity:0; } to { opacity:1; } }
+  @keyframes headline-enter { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
   @media (prefers-reduced-motion:reduce) { .detail-panel, .detail-headline { animation-duration:0ms; } }
   .detail-panel::-webkit-scrollbar { width:3px; }
   .detail-panel::-webkit-scrollbar-thumb { background:var(--border); }
-  .detail-headline { font-size:20px; font-weight:600; line-height:1.4; color:var(--text); margin-bottom:8px; font-family:var(--sans); animation:decrypt 0.6s ease both; }
+  .detail-headline { font-size:20px; font-weight:600; line-height:1.4; color:var(--text); margin-bottom:8px; font-family:var(--sans); animation:headline-enter 200ms ease-out both; animation-delay:50ms; }
   .detail-summary { font-size:13px; line-height:1.7; color:var(--muted); padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:0 4px 4px 0; margin-bottom:20px; font-family:var(--sans); }
   .detail-summary-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--accent); margin-bottom:6px; }
   .src-title { font-family:var(--mono); font-size:10px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
@@ -231,8 +232,12 @@ const styles = `
   .first-report { color:var(--accent2); }
   .conf-bar { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
   .conf-label { font-family:var(--mono); font-size:9px; color:var(--muted); white-space:nowrap; }
-  .conf-track { flex:1; height:3px; background:var(--border); border-radius:2px; }
-  .conf-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--accent2),var(--accent)); }
+  .conf-track { position:relative; flex:1; height:3px; background:var(--border); border-radius:2px; overflow:visible; }
+  .conf-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--accent2),var(--accent)); transform-origin:left center; animation:conf-fill-enter 700ms cubic-bezier(0.23,1,0.32,1) both; }
+  @keyframes conf-fill-enter { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+  .conf-sparkle { position:absolute; top:50%; width:6px; height:6px; border-radius:50%; background:#fff; box-shadow:0 0 6px 3px var(--accent),0 0 2px 1px var(--accent2); transform:translate(-50%,-50%) scale(0); animation:conf-sparkle-enter 380ms ease-out both; animation-delay:660ms; pointer-events:none; }
+  @keyframes conf-sparkle-enter { 0%{opacity:0;transform:translate(-50%,-50%) scale(0)} 55%{opacity:1;transform:translate(-50%,-50%) scale(1.5)} 100%{opacity:0;transform:translate(-50%,-50%) scale(0.4)} }
+  @media (prefers-reduced-motion:reduce) { .conf-fill,.conf-sparkle { animation-duration:0ms; animation-delay:0ms; } }
   .conf-val { font-family:var(--mono); font-size:9px; color:var(--accent); }
   .tl-bar { display:flex; align-items:center; gap:6px; padding:8px 16px; border-bottom:1px solid var(--border); background:var(--tl-bg); overflow-x:auto; flex-shrink:0; }
   .tl-event { flex-shrink:0; font-size:9px; font-family:var(--mono); color:var(--muted); padding:3px 8px; border-radius:3px; border:1px solid var(--border); white-space:nowrap; }
@@ -912,7 +917,10 @@ export default function App() {
                     <div className="detail-headline">{story.headline}</div>
                     <div className="conf-bar">
                       <span className="conf-label">CONFIDENCE</span>
-                      <div className="conf-track"><div className="conf-fill" style={{width:`${story.confidence}%`}} /></div>
+                      <div className="conf-track">
+                        <div className="conf-fill" style={{width:`${story.confidence}%`}} />
+                        <div className="conf-sparkle" style={{left:`${story.confidence}%`}} />
+                      </div>
                       <span className="conf-val">{story.confidence}%</span>
                     </div>
                     <div className="tl-bar">
