@@ -97,8 +97,8 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     // Globe outer glow
     const gg = defs.append('radialGradient').attr('id', 'gg')
       .attr('cx', '50%').attr('cy', '50%').attr('r', '50%')
-    gg.append('stop').attr('offset', '85%').attr('stop-color', '#04090f').attr('stop-opacity', 1)
-    gg.append('stop').attr('offset', '100%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.15)
+    gg.append('stop').attr('offset', '85%').attr('stop-color', '#081c30').attr('stop-opacity', 1)
+    gg.append('stop').attr('offset', '100%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.22)
 
     // Moon surface
     const mb = defs.append('radialGradient').attr('id', 'mb')
@@ -127,15 +127,49 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     defs.append('clipPath').attr('id', 'mc')
       .append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR - 0.5)
 
+    // Limb darkening — transparent at center, dark at edges → real sphere look
+    const ldg = defs.append('radialGradient').attr('id', 'ldg')
+      .attr('cx', '50%').attr('cy', '50%').attr('r', '50%')
+    ldg.append('stop').attr('offset',  '0%').attr('stop-color', '#000').attr('stop-opacity', 0)
+    ldg.append('stop').attr('offset', '58%').attr('stop-color', '#000').attr('stop-opacity', 0)
+    ldg.append('stop').attr('offset', '80%').attr('stop-color', '#000').attr('stop-opacity', 0.20)
+    ldg.append('stop').attr('offset','100%').attr('stop-color', '#000').attr('stop-opacity', 0.52)
+
+    // Specular highlight — userSpaceOnUse so cx/cy can be nudged per frame
+    const sg = defs.append('radialGradient').attr('id', 'sg')
+      .attr('cx', w/2 - r*0.28).attr('cy', h/2 - r*0.22).attr('r', r*0.40)
+      .attr('gradientUnits', 'userSpaceOnUse')
+    sg.append('stop').attr('offset',  '0%').attr('stop-color', '#d0eeff').attr('stop-opacity', 0.13)
+    sg.append('stop').attr('offset', '48%').attr('stop-color', '#4dc8e8').attr('stop-opacity', 0.05)
+    sg.append('stop').attr('offset','100%').attr('stop-color', '#000000').attr('stop-opacity', 0)
+
+    // Atmosphere ring — thin halo just outside globe surface, breathing opacity
+    const ag = defs.append('radialGradient').attr('id', 'ag')
+      .attr('cx', '50%').attr('cy', '50%').attr('r', '50%')
+    ag.append('stop').attr('offset', '84%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0)
+    ag.append('stop').attr('offset', '93%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.18)
+    ag.append('stop').attr('offset','100%').attr('stop-color', '#004466').attr('stop-opacity', 0)
+
     // ── GLOBE BACKGROUND (static — never moves) ────────────────────────────
     svg.append('circle').attr('cx', w/2).attr('cy', h/2).attr('r', r + 8)
-      .attr('fill', 'url(#gg)').attr('stroke', '#1e2d3d').attr('stroke-width', 1)
+      .attr('fill', 'url(#gg)').attr('stroke', '#1e3a52').attr('stroke-width', 1)
     svg.append('circle').attr('cx', w/2).attr('cy', h/2).attr('r', r)
-      .attr('fill', '#04090f').attr('stroke', '#00d4ff')
-      .attr('stroke-width', 0.5).attr('stroke-opacity', 0.3)
+      .attr('fill', '#081c30').attr('stroke', '#00d4ff')
+      .attr('stroke-width', 0.5).attr('stroke-opacity', 0.4)
 
     // ── DYNAMIC LAYER SLOT (countries/graticule/hotspots go here each frame) ──
     svg.append('g').attr('class', 'globe-dynamic')
+
+    // ── DEPTH OVERLAYS (drawn once on top of countries, below moon) ────────
+    // Limb darkening: static, no per-frame update needed
+    svg.append('circle').attr('cx', w/2).attr('cy', h/2).attr('r', r)
+      .attr('fill', 'url(#ldg)').attr('pointer-events', 'none')
+    // Specular highlight: circle is static; gradient cx/cy updated each frame
+    svg.append('circle').attr('cx', w/2).attr('cy', h/2).attr('r', r)
+      .attr('class', 'spec-hl').attr('fill', 'url(#sg)').attr('pointer-events', 'none')
+    // Atmospheric halo: r+16 so ring peaks right at globe surface edge
+    svg.append('circle').attr('cx', w/2).attr('cy', h/2).attr('r', r + 16)
+      .attr('class', 'atmos-br').attr('fill', 'url(#ag)').attr('pointer-events', 'none')
 
     // ── REALISTIC MOON (static — corner position, drawn once on top) ──────
     svg.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR * 1.20)
@@ -317,26 +351,38 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       buildStaticLayer(svg, w, h, r, mX, mY, mR)
     }
 
+    // ── DEPTH ANIMATION — update gradient attrs on the static overlays ─────
+    const now = Date.now()
+    // Specular: slow Lissajous drift in upper-left quadrant
+    const sx = w/2 - r*0.28 + Math.cos(now / 11000) * r * 0.09
+    const sy = h/2 - r*0.22 + Math.sin(now / 15000) * r * 0.07
+    svg.select('#sg').attr('cx', sx).attr('cy', sy)
+    // Atmosphere: gentle sine-wave breathing (0.30 → 1.0 intensity)
+    svg.select('.atmos-br').attr('fill-opacity', 0.65 + Math.sin(now / 3200) * 0.35)
+
     // ── DYNAMIC CONTENT — cleared and redrawn every frame ─────────────────
     const dynG = svg.select('.globe-dynamic')
     dynG.selectAll('*').remove()
 
     dynG.append('path').datum(d3.geoGraticule()()).attr('d', path)
-      .attr('fill', 'none').attr('stroke', '#0d1e2e').attr('stroke-width', 0.5)
+      .attr('fill', 'none').attr('stroke', '#163448').attr('stroke-width', 0.5)
 
     if (topoData && window.topojson) {
       const countries = window.topojson.feature(topoData, topoData.objects.countries).features
       dynG.append('g').selectAll('path')
         .data(countries.filter(f => f.id !== 356))
         .join('path').attr('d', path)
-        .attr('fill', '#0c1a26').attr('stroke', '#1a2d40').attr('stroke-width', 0.4)
-    }
+        .attr('fill', '#111418').attr('stroke', '#4a7090').attr('stroke-width', 0.65)
 
-    if (indiaData) {
-      dynG.append('g').selectAll('path')
-        .data(indiaData.features)
-        .join('path').attr('d', path)
-        .attr('fill', '#0c1a26').attr('stroke', '#1a2d40').attr('stroke-width', 0.4)
+      // Only draw India once the world atlas is present — avoids a winding-order
+      // flood-fill glitch that occurs when indiaData (local file, loads instantly)
+      // renders alone before topoData (CDN fetch) arrives.
+      if (indiaData) {
+        dynG.append('g').selectAll('path')
+          .data(indiaData.features)
+          .join('path').attr('d', path)
+          .attr('fill', '#111418').attr('stroke', '#4a7090').attr('stroke-width', 0.65)
+      }
     }
 
     // ── EVENT HOTSPOTS ────────────────────────────────────────────────────
