@@ -539,7 +539,7 @@ export default function App() {
                 <div className="user-name" style={{fontSize:11, maxWidth:130, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{profile?.username || user?.email || 'User'}</div>
                 <div className="user-role">{profile?.role?.toUpperCase() || 'PUBLIC'}</div>
               </div>
-            </div>
+            </button>
           </div>
         </div>
 
