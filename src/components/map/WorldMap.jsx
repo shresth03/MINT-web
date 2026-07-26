@@ -368,20 +368,17 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       .attr('fill', 'none').attr('stroke', '#163448').attr('stroke-width', 0.5)
 
     if (topoData && window.topojson) {
-      const countries = window.topojson.feature(topoData, topoData.objects.countries).features
-      // Exclude world-atlas India (id '356') — replaced by official Survey of India boundary below
+      const atlas = window.topojson.feature(topoData, topoData.objects.countries).features
+      // Replace atlas India with official Survey of India boundary when available,
+      // otherwise fall back to atlas India — single render pass, single layer
+      const features = [
+        ...atlas.filter(f => f.id !== '356'),
+        ...(indiaData ? indiaData.features : atlas.filter(f => f.id === '356')),
+      ]
       dynG.append('g').selectAll('path')
-        .data(countries.filter(f => f.id !== '356'))
+        .data(features)
         .join('path').attr('d', path)
         .attr('fill', '#111418').attr('stroke', '#5a8aaa').attr('stroke-width', 0.8)
-
-      // India's official boundary (correct CCW winding) drawn on top once world atlas is ready
-      if (indiaData) {
-        dynG.append('g').selectAll('path')
-          .data(indiaData.features)
-          .join('path').attr('d', path)
-          .attr('fill', '#111418').attr('stroke', '#5a8aaa').attr('stroke-width', 0.8)
-      }
     }
 
     // ── EVENT HOTSPOTS ────────────────────────────────────────────────────
