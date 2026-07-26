@@ -67,7 +67,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     function tick(time) {
       if (!dragRef.current && !kbFocusRef.current) {
         if (lastTime !== null) {
-          rotRef.current = [rotRef.current[0] + (time - lastTime) * 0.01, rotRef.current[1], 0]
+          rotRef.current = [rotRef.current[0] + (time - lastTime) * 0.004, rotRef.current[1], 0]
         }
         lastTime = time
         draw()
