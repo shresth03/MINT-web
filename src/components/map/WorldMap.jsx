@@ -6,18 +6,21 @@ const TYCHO_RAYS  = [2.8, 3.4, 2.6, 3.6, 3.0, 2.5, 3.2, 2.9]
 const COPER_RAYS  = [2.5, 3.0, 2.3, 2.8, 2.6, 3.1]
 
 export default function WorldMap({ filter, onRegionClick, regions: propRegions }) {
-  const svgRef    = useRef(null)
-  const wrapRef   = useRef(null)
-  const rotRef    = useRef([-20, -30, 0])
-  const dragRef   = useRef(false)
-  const lastPos   = useRef(null)
-  const rafRef    = useRef(null)
+  const svgRef        = useRef(null)
+  const wrapRef       = useRef(null)
+  const rotRef        = useRef([-78, -22, 0])  // India-centric: 78°E, 22°N
+  const dragRef       = useRef(false)
+  const lastPos       = useRef(null)
+  const rafRef        = useRef(null)
+  const kbFocusRef    = useRef(false)
+  const roverCloseRef = useRef(null)
 
-  const [tooltip,    setTooltip]   = useState(null)
-  const [topoData,   setTopoData]  = useState(null)
-  const [indiaData,  setIndiaData] = useState(null)
-  const [dims,       setDims]      = useState({ w: 900, h: 520 })
-  const [showRover,  setShowRover] = useState(false)
+  const [tooltip,     setTooltip]   = useState(null)
+  const [topoData,    setTopoData]  = useState(null)
+  const [indiaData,   setIndiaData] = useState(null)
+  const [dims,        setDims]      = useState({ w: 900, h: 520 })
+  const [showRover,   setShowRover] = useState(false)
+  const [isDragging,  setIsDragging] = useState(false)
 
   const allRegions = propRegions || []
   const regions    = filter === 'ALL' ? allRegions : allRegions.filter(r => r.tags.includes(filter))
@@ -43,6 +46,11 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       .then(r => r.json()).then(setIndiaData).catch(() => {})
   }, [])
 
+  // Focus rover close button on open
+  useEffect(() => {
+    if (showRover) roverCloseRef.current?.focus()
+  }, [showRover])
+
   // Inject topojson lib if missing
   useEffect(() => {
     if (!window.topojson) {
@@ -55,9 +63,14 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
 
   // Auto-rotation loop
   useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReducedMotion) {
+      draw()
+      return
+    }
     let lastTime = null
     function tick(time) {
-      if (!dragRef.current) {
+      if (!dragRef.current && !kbFocusRef.current) {
         if (lastTime !== null) {
           rotRef.current = [rotRef.current[0] + (time - lastTime) * 0.01, rotRef.current[1], 0]
         }
@@ -138,7 +151,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       // Draw all countries except India (356) — India is drawn separately with correct boundaries
       const countries = window.topojson.feature(topoData, topoData.objects.countries).features
       svg.append('g').selectAll('path')
-        .data(countries.filter(f => f.id !== '356'))
+        .data(countries.filter(f => f.id !== 356))
         .join('path').attr('d', path)
         .attr('fill', '#0c1a26').attr('stroke', '#1a2d40').attr('stroke-width', 0.4)
     }
@@ -164,13 +177,13 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       const bR = rScale(reg.count)
 
       if (reg.breaking) {
-        const ring = g.append('circle').attr('cx', cx).attr('cy', cy).attr('r', bR)
-          .attr('fill', 'none').attr('stroke', reg.color).attr('stroke-width', 1.5).attr('pointer-events', 'none')
-        ;(function pulse() {
-          ring.attr('r', bR).attr('opacity', 0.8)
-            .transition().duration(1800).ease(d3.easeCubicOut)
-            .attr('r', bR * 2.8).attr('opacity', 0).on('end', pulse)
-        })()
+        const t = (Date.now() % 1800) / 1800
+        const e = 1 - Math.pow(1 - t, 2)   // ease-out quadratic
+        g.append('circle').attr('cx', cx).attr('cy', cy)
+          .attr('r', bR + bR * 1.8 * e)
+          .attr('fill', 'none').attr('stroke', reg.color)
+          .attr('stroke-width', 1.5).attr('stroke-opacity', 0.8 * (1 - e))
+          .attr('pointer-events', 'none')
       }
 
       g.append('circle').attr('cx', cx).attr('cy', cy).attr('r', bR + 3)
@@ -180,6 +193,8 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
         .attr('fill', reg.color).attr('fill-opacity', reg.breaking ? 0.45 : 0.25)
         .attr('stroke', reg.color).attr('stroke-width', reg.breaking ? 2 : 1.2)
         .attr('stroke-opacity', 0.9).style('cursor', 'pointer')
+        .attr('tabindex', 0).attr('role', 'button')
+        .attr('aria-label', `${reg.name}: ${reg.count} active event${reg.count === 1 ? '' : 's'}`)
 
       g.append('text').attr('x', cx).attr('y', cy + 1)
         .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
@@ -188,6 +203,11 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
         .attr('pointer-events', 'none').text(reg.count)
 
       circle
+        .on('focus', () => { kbFocusRef.current = true })
+        .on('blur',  () => { kbFocusRef.current = false })
+        .on('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRegionClick(reg) }
+        })
         .on('mouseover', function (event) {
           d3.select(this).attr('fill-opacity', 0.7)
           setTooltip({ reg, mx: event.clientX, my: event.clientY })
@@ -208,7 +228,13 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       .attr('fill', 'url(#mh)').attr('pointer-events', 'none')
 
     const moon = svg.append('g').style('cursor', 'pointer')
-    moon.on('click', () => setShowRover(true))
+      .attr('tabindex', 0).attr('role', 'button')
+      .attr('aria-label', 'Chandrayaan-3 moon — press to view Pragyan rover')
+    moon
+      .on('click', () => setShowRover(true))
+      .on('focus', () => { kbFocusRef.current = true })
+      .on('blur',  () => { kbFocusRef.current = false })
+      .on('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowRover(true) } })
 
     // Base sphere surface
     moon.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR)
@@ -388,7 +414,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
       : { x: e.clientX, y: e.clientY }
 
-    const onStart = e => { dragRef.current = true; lastPos.current = getPos(e) }
+    const onStart = e => { dragRef.current = true; setIsDragging(true); lastPos.current = getPos(e) }
     const onMove  = e => {
       if (!dragRef.current || !lastPos.current) return
       const pos = getPos(e)
@@ -398,7 +424,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       lastPos.current = pos
       draw()
     }
-    const onEnd = () => { dragRef.current = false; lastPos.current = null }
+    const onEnd = () => { dragRef.current = false; setIsDragging(false); lastPos.current = null }
 
     el.addEventListener('mousedown',  onStart)
     el.addEventListener('mousemove',  onMove)
@@ -419,7 +445,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
   }, [dims, regions, topoData, indiaData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div ref={wrapRef} className="map-body" style={{ cursor: dragRef.current ? 'grabbing' : 'grab' }}>
+    <div ref={wrapRef} className="map-body" style={{ cursor: isDragging ? 'grabbing' : 'grab' }}>
       <svg ref={svgRef} className="map-svg" />
 
       {tooltip && (
@@ -452,8 +478,12 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
           onClick={() => setShowRover(false)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Chandrayaan-3 Pragyan Rover"
             style={{ position: 'relative', maxWidth: 680, width: '90vw', padding: '28px 24px' }}
             onClick={e => e.stopPropagation()}
+            onKeyDown={e => e.key === 'Escape' && setShowRover(false)}
           >
             {/* Header */}
             <div style={{
@@ -494,6 +524,8 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
 
             {/* Close */}
             <button
+              ref={roverCloseRef}
+              aria-label="Close rover photo"
               onClick={() => setShowRover(false)}
               style={{
                 position: 'absolute', top: 4, right: -4,

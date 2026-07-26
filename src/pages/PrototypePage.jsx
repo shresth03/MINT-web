@@ -25,8 +25,6 @@ import {
   Cpu, Flag, Award, Inbox, Film, X, Radio,
 } from 'lucide-react'
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');`;
-
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -59,62 +57,6 @@ const styles = `
   html[data-theme-transitioning] .nav-item,
   html[data-theme-transitioning] .post-body {
     animation: decrypt 0.6s ease forwards;
-  }
-
-  /* ── LIGHT MODE — GHOST ── */
-  :root, [data-theme="light"] {
-    --bg: #f8f7f5;
-    --surface: #ffffff;
-    --surface2: #f0ede8;
-    --border: #e0dbd4;
-    --accent: #c0404a;
-    --accent2: #8a3a8a;
-    --verified: #2a7a4a;
-    --warn: #b06020;
-    --text: #1a1614;
-    --muted: #8a7a70;
-    --mono: 'JetBrains Mono', monospace;
-    --sans: 'Inter', sans-serif;
-    --active-bg: rgba(192,64,74,0.06);
-    --story-active-bg: rgba(192,64,74,0.04);
-    --tl-bg: rgba(192,64,74,0.03);
-    --section-bg: rgba(248,247,245,0.95);
-    --stat-bg: rgba(255,255,255,0.93);
-    --tooltip-bg: rgba(248,247,245,0.97);
-    --map-bg: rgba(255,255,255,0.93);
-    --region-bg: rgba(255,255,255,0.97);
-    --modal-overlay: rgba(26,22,20,0.6);
-    --post-hover: rgba(0,0,0,0.02);
-    --mf-active-bg: rgba(192,64,74,0.08);
-    --topbar-hover: rgba(192,64,74,0.1);
-  }
-
-  /* ── DARK MODE — VOID ── */
-  [data-theme="dark"] {
-    --bg: #000000;
-    --surface: #0a0a0a;
-    --surface2: #111111;
-    --border: #1e1e1e;
-    --accent: #4dc8e8;
-    --accent2: #e84848;
-    --verified: #30d880;
-    --warn: #e8a020;
-    --text: #e0e8f0;
-    --muted: #404858;
-    --mono: 'JetBrains Mono', monospace;
-    --sans: 'Inter', sans-serif;
-    --active-bg: rgba(77,200,232,0.06);
-    --story-active-bg: rgba(77,200,232,0.05);
-    --tl-bg: rgba(77,200,232,0.03);
-    --section-bg: rgba(0,0,0,0.95);
-    --stat-bg: rgba(10,10,10,0.93);
-    --tooltip-bg: rgba(0,0,0,0.97);
-    --map-bg: rgba(10,10,10,0.93);
-    --region-bg: rgba(10,10,10,0.97);
-    --modal-overlay: rgba(0,0,0,0.75);
-    --post-hover: rgba(255,255,255,0.02);
-    --mf-active-bg: rgba(77,200,232,0.08);
-    --topbar-hover: rgba(77,200,232,0.1);
   }
 
   body {
@@ -182,7 +124,7 @@ const styles = `
   .section-header { position: sticky; top: 0; z-index: 10; background: var(--section-bg); backdrop-filter: blur(8px); padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
   .section-label { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); font-weight: 600; }
   .count-badge { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-left: auto; }
-  .story-card { padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; position: relative; }
+  .story-card { border: none; border-bottom: 1px solid var(--border); background: none; width: 100%; text-align: left; font: inherit; color: inherit; padding: 14px 16px; cursor: pointer; transition: background 0.15s; position: relative; display: block; }
   .story-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:transparent; transition:background 0.15s; }
   .story-card:hover { background: var(--surface2); }
   .story-card:hover::before { background: var(--accent); }
@@ -193,7 +135,7 @@ const styles = `
   .breaking-tag { font-family:var(--mono); font-size:8px; letter-spacing:1.5px; padding:2px 6px; border-radius:2px; background:var(--accent2); color:#fff; font-weight:600; animation:flashTag 2s ease-in-out infinite; }
   .story-tag { font-family:var(--mono); font-size:8px; letter-spacing:1px; padding:2px 6px; border-radius:2px; border:1px solid var(--border); color:var(--muted); }
   .story-time { font-family:var(--mono); font-size:9px; color:var(--muted); margin-left:auto; }
-  .story-headline { font-size:13px; font-weight:500; line-height:1.5; color:var(--text); margin-bottom:8px; font-family:var(--sans); }
+  .story-headline { font-size:13px; font-weight:500; line-height:1.5; color:var(--text); margin-bottom:8px; font-family:var(--sans); display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
   .story-sources { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
   .source-chip { display:flex; align-items:center; gap:4px; padding:2px 7px; border-radius:3px; background:var(--surface2); border:1px solid var(--border); font-size:9px; color:var(--muted); font-family:var(--mono); }
   .vdot { width:5px; height:5px; border-radius:50%; background:var(--verified); }
@@ -221,10 +163,10 @@ const styles = `
   .detail-summary-label { font-family:var(--mono); font-size:9px; letter-spacing:2px; color:var(--accent); margin-bottom:6px; }
   .src-title { font-family:var(--mono); font-size:10px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
   .src-title::after { content:''; flex:1; height:1px; background:var(--border); }
-  .source-post { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:18px; margin-bottom:14px; transition:border-color 0.15s; }
+  .source-post { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:18px; margin-bottom:14px; transition:border-color 0.15s; }
   .source-post:hover { border-color:var(--accent); }
   .source-post-hd { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
-  .source-name { font-size:14px; font-weight:600; color:var(--text); font-family:var(--sans); }
+  .source-name { font-size:13px; font-weight:600; color:var(--text); font-family:var(--sans); }
   .source-handle { font-size:10px; color:var(--muted); font-family:var(--mono); margin-top:2px; }
   .score-badge { margin-left:auto; display:flex; align-items:center; gap:4px; font-family:var(--mono); font-size:9px; padding:4px 10px; border-radius:4px; border:1px solid var(--verified); color:var(--verified); white-space:nowrap; }
   .source-post-body { font-size:13px; line-height:1.7; color:var(--text); font-family:var(--sans); }
@@ -248,7 +190,7 @@ const styles = `
   .tab:hover { color:var(--text); }
   .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
   .modal-overlay { position:fixed; inset:0; background:var(--modal-overlay); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:200; padding:16px; animation:modal-overlay-enter 200ms ease-out both; }
-  .modal { background:var(--surface); border:1px solid var(--border); border-radius:8px; width:480px; max-width:100%; max-height:80vh; overflow-y:auto; padding:24px; animation:modal-card-enter 250ms cubic-bezier(0.23,1,0.32,1) both; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:10px; width:480px; max-width:100%; max-height:80vh; overflow-y:auto; padding:24px; animation:modal-card-enter 250ms cubic-bezier(0.23,1,0.32,1) both; }
   @keyframes modal-overlay-enter { from { opacity:0; } to { opacity:1; } }
   @keyframes modal-card-enter { from { opacity:0; transform:scale(0.97); } to { opacity:1; transform:scale(1); } }
   @media (prefers-reduced-motion:reduce) { .modal-overlay, .modal { animation-duration:0ms; } }
@@ -257,7 +199,7 @@ const styles = `
   .form-group { margin-bottom:16px; }
   .form-label { font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--muted); margin-bottom:6px; display:block; }
   .form-input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:9px 12px; color:var(--text); font-family:var(--sans); font-size:12px; outline:none; transition:border-color 0.15s; }
-  .form-input:focus { border-color:var(--accent); }
+  .form-input:focus-visible { border-color:var(--accent); }
   .form-ta { resize:vertical; min-height:70px; }
   .crit-list { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:12px; margin-bottom:20px; }
   .crit-item { display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; font-size:11px; color:var(--muted); line-height:1.5; font-family:var(--sans); }
@@ -265,6 +207,13 @@ const styles = `
   .btn { padding:8px 18px; border-radius:4px; cursor:pointer; font-size:11px; font-family:var(--mono); border:1px solid var(--border); color:var(--muted); background:transparent; transition:all 0.15s; }
   .btn:hover { color:var(--text); }
   .btn.primary { background:var(--accent); color:var(--bg); font-weight:600; border-color:var(--accent); }
+
+  /* ── FOCUS RINGS ── */
+  button:focus-visible, .nav-item:focus-visible, .topbar-btn:focus-visible, .tab:focus-visible, .bn-item:focus-visible, .story-card:focus-visible, .post-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ── REDUCED MOTION — extend to live/breaking animations ── */
+  @media (prefers-reduced-motion:reduce) { .live-dot { animation:none; } .breaking-tag { animation:none; } }
+  @media (prefers-reduced-motion:reduce) { .sidebar { transition:none; } .map-region-sheet { animation:none; } }
 
   /* MAP */
   .map-page { flex:1; display:flex; overflow:hidden; }
@@ -285,13 +234,13 @@ const styles = `
   .mil-sub { font-size:9px; color:var(--muted); font-family:var(--sans); margin-top:2px; }
   .mil-section { padding:10px 14px 4px; font-family:var(--mono); font-size:8px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; }
   .mil-tags { padding:10px 14px 12px; display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--border); }
-  .mil-story { padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.12s; }
+  .mil-story { border:none; border-bottom:1px solid var(--border); background:none; width:100%; text-align:left; font:inherit; color:inherit; display:block; padding:10px 14px; cursor:pointer; transition:background 0.12s; }
   .mil-story:hover { background:var(--surface2); }
-  .mil-story-hl { font-size:11px; line-height:1.4; color:var(--text); margin-bottom:4px; }
+  .mil-story-hl { font-size:11px; line-height:1.4; color:var(--text); margin-bottom:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .mil-story-meta { font-family:var(--mono); font-size:8px; color:var(--muted); }
   .mil-empty { padding:20px 14px; font-family:var(--mono); font-size:9px; color:var(--muted); line-height:1.6; }
   .map-region-sheet { display:none; }
-  .tooltip-box { position:fixed; pointer-events:none; background:var(--tooltip-bg); border:1px solid var(--border); border-radius:6px; padding:9px 13px; min-width:180px; max-width:260px; font-size:11px; z-index:999; }
+  .tooltip-box { position:fixed; pointer-events:none; background:var(--tooltip-bg); border:1px solid var(--border); border-radius:4px; padding:9px 13px; min-width:180px; max-width:260px; font-size:11px; z-index:999; }
   .tt-region { font-family:var(--mono); font-size:9px; color:var(--accent); margin-bottom:3px; letter-spacing:1px; }
   .tt-count { font-size:20px; font-weight:700; color:var(--text); margin-bottom:4px; font-family:var(--mono); }
   .tt-tags { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:4px; }
@@ -304,13 +253,13 @@ const styles = `
     .bottom-nav { display:flex; }
     .main { padding-bottom:56px; }
     .map-intel-col { display:none; }
-    .map-region-sheet { display:block; position:fixed; left:0; right:0; bottom:56px; background:var(--surface); border-top:1px solid var(--border); border-radius:12px 12px 0 0; padding:14px; z-index:100; max-height:50vh; overflow-y:auto; animation:sheet-up 200ms cubic-bezier(0.23,1,0.32,1) both; }
+    .map-region-sheet { display:block; position:fixed; left:0; right:0; bottom:56px; background:var(--surface); border-top:1px solid var(--border); border-radius:10px 10px 0 0; padding:14px; z-index:100; max-height:50vh; overflow-y:auto; animation:sheet-up 200ms cubic-bezier(0.23,1,0.32,1) both; }
     @keyframes sheet-up { from { transform:translateY(100%); opacity:0; } to { transform:translateY(0); opacity:1; } }
   }
   .bn-item { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; flex:1; padding:6px 0; cursor:pointer; font-family:var(--mono); font-size:8px; color:var(--muted); border:none; background:none; transition:color 0.15s; position:relative; }
   .bn-item.active { color:var(--accent); }
   .bn-item-icon { font-size:16px; line-height:1; }
-  .bn-badge { position:absolute; top:4px; right:calc(50% - 14px); background:var(--accent2); color:white; font-size:8px; font-family:var(--mono); padding:1px 4px; border-radius:8px; min-width:14px; text-align:center; }
+  .bn-badge { position:absolute; top:4px; right:calc(50% - 14px); background:var(--accent2); color:var(--bg); font-size:8px; font-family:var(--mono); padding:1px 4px; border-radius:10px; min-width:14px; text-align:center; }
 
   /* HAMBURGER */
   .hamburger { display:none; background:none; border:none; cursor:pointer; padding:6px; color:var(--muted); font-size:18px; line-height:1; flex-shrink:0; }
@@ -320,7 +269,7 @@ const styles = `
   }
 
   /* MOBILE BACK */
-  .mobile-back { display:none; align-items:center; gap:8px; padding:10px 16px; border-bottom:1px solid var(--border); background:var(--surface); cursor:pointer; font-family:var(--mono); font-size:10px; color:var(--accent); letter-spacing:1px; flex-shrink:0; }
+  .mobile-back { border:none; border-bottom:1px solid var(--border); background:var(--surface); width:100%; text-align:left; display:none; align-items:center; gap:8px; padding:10px 16px; cursor:pointer; font-family:var(--mono); font-size:10px; color:var(--accent); letter-spacing:1px; flex-shrink:0; }
   @media (max-width: 768px) {
     .mobile-back { display:flex; }
   }
@@ -408,6 +357,7 @@ export default function App() {
   const logoRef = useRef(null)
 
   const holdTimer = useRef(null)
+  const modalRef  = useRef(null)
 
   const startHold = useCallback(() => {
     if (ripple) return
@@ -459,6 +409,14 @@ export default function App() {
     return () => supabase.removeChannel(sub)
   }, [story?.id])
 
+  useEffect(() => {
+    if (!showApply) return
+    const el = modalRef.current
+    if (!el) return
+    const focusable = el.querySelectorAll('input,textarea,button,[tabindex]:not([tabindex="-1"])')
+    focusable[0]?.focus()
+  }, [showApply])
+
   const doApply = async () => {
     if (!form.channel || !form.handle) return
     setApplied(true)
@@ -501,7 +459,7 @@ export default function App() {
 
   return (
     <>
-      <style>{FONTS + styles}</style>
+      <style>{styles}</style>
       <div className="app">
 
         {ripple && (
@@ -536,12 +494,14 @@ export default function App() {
           >
             <img
               src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
-              alt="MINT"
+              alt="SIGINT"
               draggable={false}
               style={{ height: 38, width: 'auto', display: 'block', flexShrink: 0, pointerEvents: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}
             />
             {isMobile && (
-              <button onClick={() => setSidebarOpen(false)}
+              <button
+                aria-label="Close sidebar"
+                onClick={() => setSidebarOpen(false)}
                 style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',padding:4,display:'flex',alignItems:'center',marginLeft:'auto'}}>
                 <X size={18} />
               </button>
@@ -551,8 +511,9 @@ export default function App() {
             {navItems.map((n) => (
               <span key={n.id}>
                 {n.section && <div className="nav-section">{n.section}</div>}
-                <div
+                <button
                   className={`nav-item ${nav===n.id?"active":""}`}
+                  aria-current={nav===n.id ? "page" : undefined}
                   onClick={() => {
                     if(n.id==="admin") { navigate('/admin'); if(isMobile) setSidebarOpen(false); return; }
                     if(n.id==="profile") { navigate('/profile'); if(isMobile) setSidebarOpen(false); return; }
@@ -567,16 +528,16 @@ export default function App() {
                 >
                   <n.Icon size={14} /> {n.label}
                   {n.badge && <span className={`nav-badge ${n.bc||""}`}>{n.badge}</span>}
-                </div>
+                </button>
               </span>
             ))}
           </div>
           <div className="sidebar-bottom">
-            <div className="user-card" onClick={() => navigate('/profile')} style={{cursor:'pointer'}}>
+            <button className="user-card" onClick={() => navigate('/profile')} style={{cursor:'pointer', background:'none', border:'none', width:'100%', textAlign:'left'}}>
               <div className="avatar">{(profile?.username || user?.email)?.[0]?.toUpperCase() || 'U'}</div>
               <div>
                 <div className="user-name" style={{fontSize:11, maxWidth:130, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{profile?.username || user?.email || 'User'}</div>
-                <div className="user-role">{profile?.role?.toUpperCase() || 'PUBLIC'}_USER</div>
+                <div className="user-role">{profile?.role?.toUpperCase() || 'PUBLIC'}</div>
               </div>
             </div>
           </div>
@@ -587,7 +548,7 @@ export default function App() {
           {/* TOPBAR */}
           <div className="topbar">
             {isMobile && (
-              <button className="hamburger" onClick={() => setSidebarOpen(true)}>☰</button>
+              <button className="hamburger" aria-label="Open navigation" onClick={() => setSidebarOpen(true)}>☰</button>
             )}
             <span className="topbar-title">
               {nav==="map"?"Event Map":nav==="trending"?"Trending":"Intel Feed"}
@@ -602,7 +563,7 @@ export default function App() {
               {isMobile && (
                 <button
                   onClick={toggleTheme}
-                  title={theme === 'dark' ? 'Switch to Ghost' : 'Switch to Void'}
+                  aria-label={theme === 'dark' ? 'Switch to Ghost (light) mode' : 'Switch to Void (dark) mode'}
                   style={{
                     background: 'none', border: '1px solid var(--border)',
                     borderRadius: 4, padding: '5px 8px', cursor: 'pointer',
@@ -614,17 +575,17 @@ export default function App() {
                 </button>
               )}
               {profile?.role === 'public' && !hasApplied && !isMobile && (
-                <button onClick={() => setShowApply(true)} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:'transparent',border:'1px solid var(--verified)',borderRadius:6,fontFamily:'var(--mono)',fontSize:10,color:'var(--verified)',cursor:'pointer',letterSpacing:1}}>
+                <button onClick={() => setShowApply(true)} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:'transparent',border:'1px solid var(--verified)',borderRadius:4,fontFamily:'var(--mono)',fontSize:10,color:'var(--verified)',cursor:'pointer',letterSpacing:1}}>
                   <BadgeCheck size={13} /> APPLY AS ANALYST
                 </button>
               )}
               {profile?.role === 'public' && hasApplied && !isMobile && (
-                <div style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:'rgba(74,96,128,0.15)',border:'1px solid var(--border)',borderRadius:6,fontFamily:'var(--mono)',fontSize:10,color:'var(--muted)',letterSpacing:1}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:4,fontFamily:'var(--mono)',fontSize:10,color:'var(--muted)',letterSpacing:1}}>
                   <Clock size={13} /> PENDING
                 </div>
               )}
               {profile?.role === 'osint' && (
-                <div style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:'rgba(0,255,136,0.08)',border:'1px solid rgba(0,255,136,0.3)',borderRadius:6,fontFamily:'var(--mono)',fontSize:isMobile?9:10,color:'var(--verified)',letterSpacing:1}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:'var(--active-bg)',border:'1px solid var(--verified)',borderRadius:4,fontFamily:'var(--mono)',fontSize:isMobile?9:10,color:'var(--verified)',letterSpacing:1}}>
                   <BadgeCheck size={13} /> {isMobile ? 'ANALYST' : 'VERIFIED ANALYST'}
                 </div>
               )}
@@ -698,16 +659,16 @@ export default function App() {
                     <div className="mil-section">Linked Intel Stories</div>
                     {dbStories.filter(s => s.region === selRegion.id).length > 0 ? (
                       dbStories.filter(s => s.region === selRegion.id).map(s => (
-                        <div key={s.id} className="mil-story" onClick={() => { setStory(s); setNav("feed") }}>
+                        <button key={s.id} className="mil-story" type="button" onClick={() => { setStory(s); setNav("feed") }}>
                           {(s.breaking||s.is_breaking) && <span className="breaking-tag" style={{fontSize:7,marginRight:5,marginBottom:4,display:"inline-block"}}>BREAKING</span>}
                           <div className="mil-story-hl">{s.headline}</div>
                           <div className="mil-story-meta">{(s.story_sources||[]).length} source{(s.story_sources||[]).length!==1?"s":""} · {s.time || 'recent'}</div>
-                        </div>
+                        </button>
                       ))
                     ) : (
                       <div className="mil-empty">
                         No linked intel stories for this region yet.
-                        <div style={{marginTop:6,fontSize:9,color:"#2a3d54"}}>Stories will appear here as OSINT channels report events.</div>
+                        <div style={{marginTop:6,fontSize:9,color:"var(--muted)"}}>Stories will appear here as OSINT channels report events.</div>
                       </div>
                     )}
                   </>
@@ -720,7 +681,7 @@ export default function App() {
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                     {selRegion.breaking && <span className="breaking-tag">BREAKING</span>}
                     <span style={{fontFamily:"var(--mono)",fontSize:11,color:selRegion.color,fontWeight:600}}>{selRegion.name.toUpperCase()}</span>
-                    <button onClick={() => setSelRegion(null)} style={{marginLeft:"auto",background:"none",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:18,lineHeight:1}}>×</button>
+                    <button aria-label="Close region panel" onClick={() => setSelRegion(null)} style={{marginLeft:"auto",background:"none",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:18,lineHeight:1}}>×</button>
                   </div>
                   <div style={{display:"flex",gap:8,marginBottom:10}}>
                     <div style={{flex:1,background:"var(--surface2)",borderRadius:4,padding:"8px 10px",border:"1px solid var(--border)"}}>
@@ -738,15 +699,15 @@ export default function App() {
                     <>
                       <div style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:2,color:"var(--muted)",marginBottom:6}}>LINKED INTEL STORIES</div>
                       {dbStories.filter(s => s.region === selRegion.id).map(s => (
-                        <div key={s.id}
-                          style={{padding:"8px 10px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:4,marginBottom:6,cursor:"pointer",fontSize:11,lineHeight:1.4,color:"var(--text)"}}
+                        <button type="button" key={s.id}
+                          style={{padding:"8px 10px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:4,marginBottom:6,cursor:"pointer",fontSize:11,lineHeight:1.4,color:"var(--text)",width:"100%",textAlign:"left",font:"inherit"}}
                           onClick={() => { setStory(s); setNav("feed"); setMobileDetail(true) }}>
                           {(s.breaking||s.is_breaking) && <span className="breaking-tag" style={{fontSize:7,marginRight:5}}>BREAKING</span>}
                           {s.headline}
                           <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",marginTop:4}}>
                             {(s.story_sources||[]).length} source{(s.story_sources||[]).length!==1?"s":""} · {s.time || 'recent'}
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </>
                   ) : (
@@ -770,9 +731,9 @@ export default function App() {
                 {dbStories
                   .slice().sort((a,b) => (b.story_sources||[]).length - (a.story_sources||[]).length)
                   .map((s, i) => (
-                    <div key={s.id} className="story-card" onClick={() => { handleSelectStory(s); setNav("feed") }}
+                    <button key={s.id} type="button" className="story-card" onClick={() => { handleSelectStory(s); setNav("feed") }}
                       style={{display:"flex", alignItems:"flex-start", gap:12}}>
-                      <div style={{fontFamily:"var(--mono)", fontSize:20, fontWeight:700, color: i===0?"var(--accent2)": i===1?"var(--muted)": i===2?"#8a6a2a":"var(--border)", minWidth:28, paddingTop:2}}>
+                      <div style={{fontFamily:"var(--mono)", fontSize:20, fontWeight:700, color: i===0?"var(--accent2)": i===1?"var(--muted)": i===2?"var(--border)":"var(--border)", minWidth:28, paddingTop:2}}>
                         {i+1}
                       </div>
                       <div style={{flex:1}}>
@@ -787,7 +748,7 @@ export default function App() {
                           <span style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--muted)"}}>{s.confidence || s.confidence === 0 ? `${s.confidence}% confidence` : ''}</span>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   ))}
               </div>
             </div>
@@ -805,36 +766,36 @@ export default function App() {
                 {analysts.length >= 3 && (
                   <div style={{display:"flex", gap:10, marginBottom:16, alignItems:"flex-end"}}>
                     {/* 2nd place */}
-                    <div style={{flex:1, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, padding:"12px", textAlign:"center", cursor:"pointer"}}
+                    <button type="button" style={{flex:1, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:4, padding:"12px", textAlign:"center", cursor:"pointer", font:"inherit", color:"inherit"}}
                       onClick={() => navigate(`/channel/${analysts[1].username}`)}>
-                      <div style={{fontFamily:"var(--mono)", fontSize:20, color:"#7a9bbf", marginBottom:4}}>②</div>
-                      <div style={{width:36, height:36, borderRadius:"50%", background:"linear-gradient(135deg,#1e3a5f,#0d6efd)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"white", margin:"0 auto 8px"}}>
+                      <div style={{fontFamily:"var(--mono)", fontSize:20, color:"var(--muted)", marginBottom:4}}>②</div>
+                      <div style={{width:36, height:36, borderRadius:"50%", background:"var(--accent)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"var(--bg)", margin:"0 auto 8px"}}>
                         {analysts[1].username?.[0]?.toUpperCase()}
                       </div>
                       <div style={{fontFamily:"var(--mono)", fontSize:10, color:"var(--verified)", marginBottom:4, display:'flex', alignItems:'center', gap:3}}>{analysts[1].username} <BadgeCheck size={9} /></div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:18, fontWeight:700, color:"#7a9bbf"}}>{analysts[1].score}</div>
-                    </div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:18, fontWeight:700, color:"var(--muted)"}}>{analysts[1].score}</div>
+                    </button>
                     {/* 1st place */}
-                    <div style={{flex:1, background:"rgba(255,159,67,0.08)", border:"1px solid #ff9f43", borderRadius:8, padding:"14px", textAlign:"center", cursor:"pointer"}}
+                    <button type="button" style={{flex:1, background:"var(--active-bg)", border:"1px solid var(--warn)", borderRadius:4, padding:"14px", textAlign:"center", cursor:"pointer", font:"inherit", color:"inherit"}}
                       onClick={() => navigate(`/channel/${analysts[0].username}`)}>
-                      <div style={{fontFamily:"var(--mono)", fontSize:22, color:"#ff9f43", marginBottom:4}}>①</div>
-                      <div style={{width:42, height:42, borderRadius:"50%", background:"linear-gradient(135deg,#7a3f00,#ff9f43)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"white", margin:"0 auto 8px", border:"2px solid #ff9f43"}}>
+                      <div style={{fontFamily:"var(--mono)", fontSize:22, color:"var(--warn)", marginBottom:4}}>①</div>
+                      <div style={{width:42, height:42, borderRadius:"50%", background:"var(--warn)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"var(--bg)", margin:"0 auto 8px", border:"2px solid var(--warn)"}}>
                         {analysts[0].username?.[0]?.toUpperCase()}
                       </div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:11, color:"#ff9f43", marginBottom:4, display:'flex', alignItems:'center', gap:3}}>{analysts[0].username} <BadgeCheck size={9} /></div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:22, fontWeight:700, color:"#ff9f43"}}>{analysts[0].score}</div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:8, color:"#ff9f43", letterSpacing:1, marginTop:2}}>TOP ANALYST</div>
-                    </div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:11, color:"var(--warn)", marginBottom:4, display:'flex', alignItems:'center', gap:3}}>{analysts[0].username} <BadgeCheck size={9} /></div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:22, fontWeight:700, color:"var(--warn)"}}>{analysts[0].score}</div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:8, color:"var(--warn)", letterSpacing:1, marginTop:2}}>TOP ANALYST</div>
+                    </button>
                     {/* 3rd place */}
-                    <div style={{flex:1, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, padding:"12px", textAlign:"center", cursor:"pointer"}}
+                    <button type="button" style={{flex:1, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:4, padding:"12px", textAlign:"center", cursor:"pointer", font:"inherit", color:"inherit"}}
                       onClick={() => navigate(`/channel/${analysts[2].username}`)}>
-                      <div style={{fontFamily:"var(--mono)", fontSize:20, color:"#8a6a2a", marginBottom:4}}>③</div>
-                      <div style={{width:36, height:36, borderRadius:"50%", background:"linear-gradient(135deg,#1e3a5f,#0d6efd)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"white", margin:"0 auto 8px"}}>
+                      <div style={{fontFamily:"var(--mono)", fontSize:20, color:"var(--border)", marginBottom:4}}>③</div>
+                      <div style={{width:36, height:36, borderRadius:"50%", background:"var(--accent)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"var(--bg)", margin:"0 auto 8px"}}>
                         {analysts[2].username?.[0]?.toUpperCase()}
                       </div>
                       <div style={{fontFamily:"var(--mono)", fontSize:10, color:"var(--verified)", marginBottom:4}}>{analysts[2].username} ◆</div>
-                      <div style={{fontFamily:"var(--mono)", fontSize:18, fontWeight:700, color:"#8a6a2a"}}>{analysts[2].score}</div>
-                    </div>
+                      <div style={{fontFamily:"var(--mono)", fontSize:18, fontWeight:700, color:"var(--border)"}}>{analysts[2].score}</div>
+                    </button>
                   </div>
                 )}
 
@@ -843,19 +804,19 @@ export default function App() {
                 {analysts.length === 0 ? (
                   <div style={{textAlign:"center", padding:40, fontFamily:"var(--mono)", fontSize:11, color:"var(--muted)"}}>No verified analysts yet</div>
                 ) : analysts.map((ch, i) => {
-                  const scoreColor = ch.score >= 75 ? 'var(--verified)' : ch.score >= 50 ? 'var(--accent)' : ch.score >= 0 ? 'var(--warn)' : '#ff4757'
+                  const scoreColor = ch.score >= 75 ? 'var(--verified)' : ch.score >= 50 ? 'var(--accent)' : ch.score >= 0 ? 'var(--warn)' : 'var(--accent2)'
                   return (
-                    <div key={ch.id} style={{background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, padding:"14px 16px", marginBottom:8, cursor:"pointer", display:"flex", alignItems:"center", gap:12, transition:"border-color 0.15s"}}
+                    <button type="button" key={ch.id} style={{background:"var(--surface)", border:"1px solid var(--border)", borderRadius:4, padding:"14px 16px", marginBottom:8, cursor:"pointer", display:"flex", alignItems:"center", gap:12, transition:"border-color 0.15s", width:"100%", textAlign:"left", font:"inherit", color:"inherit"}}
                       onClick={() => navigate(`/channel/${ch.username}`)}
                       onMouseOver={e => e.currentTarget.style.borderColor='var(--accent)'}
                       onMouseOut={e => e.currentTarget.style.borderColor='var(--border)'}>
                       {/* Rank */}
                       <div style={{fontFamily:"var(--mono)", fontSize:16, fontWeight:700, minWidth:28, textAlign:"center",
-                        color: i===0 ? '#ff9f43' : i===1 ? '#7a9bbf' : i===2 ? '#8a6a2a' : 'var(--muted)'}}>
+                        color: i===0 ? 'var(--warn)' : i===1 ? 'var(--muted)' : i===2 ? 'var(--border)' : 'var(--muted)'}}>
                         {i + 1}
                       </div>
                       {/* Avatar */}
-                      <div style={{width:38, height:38, borderRadius:"50%", background:"linear-gradient(135deg,#1e3a5f,#0d6efd)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"white", flexShrink:0}}>
+                      <div style={{width:38, height:38, borderRadius:"50%", background:"var(--accent)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"var(--bg)", flexShrink:0}}>
                         {ch.username?.[0]?.toUpperCase()}
                       </div>
                       {/* Info */}
@@ -873,11 +834,11 @@ export default function App() {
                         <div style={{fontFamily:"var(--mono)", fontSize:13, fontWeight:700, color:scoreColor}}>
                           {ch.score ?? '—'}<span style={{fontSize:9, color:"var(--muted)"}}>/100</span>
                         </div>
-                        <div style={{width:80, height:3, background:"var(--border)", borderRadius:2}}>
-                          <div style={{height:"100%", borderRadius:2, background:scoreColor, width:`${Math.max(0, ch.score ?? 0)}%`, transition:"width 0.3s"}} />
+                        <div style={{width:80, height:3, background:"var(--border)", borderRadius:2, overflow:"hidden"}}>
+                          <div style={{height:"100%", borderRadius:2, background:scoreColor, width:"100%", transform:`scaleX(${Math.max(0, ch.score ?? 0) / 100})`, transformOrigin:"left", transition:"transform 0.3s"}} />
                         </div>
                       </div>
-                    </div>
+                    </button>
                   )
                 })}
 
@@ -887,18 +848,18 @@ export default function App() {
                     <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:2, color:'var(--muted)', marginBottom:12}}>SUGGESTED TO FOLLOW</div>
                     <div style={{display:'flex', gap:10}}>
                       {suggestions.map(s => (
-                        <div key={s.id} onClick={() => navigate(`/channel/${s.username}`)}
-                          style={{flex:1, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'12px', textAlign:'center', cursor:'pointer', transition:'border-color 0.15s'}}
+                        <button key={s.id} type="button" onClick={() => navigate(`/channel/${s.username}`)}
+                          style={{flex:1, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:4, padding:'12px', textAlign:'center', cursor:'pointer', transition:'border-color 0.15s', font:'inherit', color:'inherit'}}
                           onMouseOver={e => e.currentTarget.style.borderColor='var(--accent)'}
                           onMouseOut={e => e.currentTarget.style.borderColor='var(--border)'}>
-                          <div style={{width:36, height:36, borderRadius:'50%', background:'linear-gradient(135deg,#1e3a5f,#0d6efd)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'white', margin:'0 auto 8px'}}>
+                          <div style={{width:36, height:36, borderRadius:'50%', background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'var(--bg)', margin:'0 auto 8px'}}>
                             {s.username?.[0]?.toUpperCase()}
                           </div>
                           <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--verified)', display:'flex', alignItems:'center', justifyContent:'center', gap:3, marginBottom:2}}>
                             {s.username} <BadgeCheck size={9} />
                           </div>
                           <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)'}}>{s.score}/100</div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -912,9 +873,9 @@ export default function App() {
             <div className="feed-layout">
               {/* Left panel — hide on mobile when viewing detail */}
               <div className="intel-feed" style={isMobile && mobileDetail ? {display:'none'} : {}}>
-                <div className="tabs">
-                  <div className={`tab ${tab==="intel"?"active":""}`} onClick={()=>setTab("intel")}>Intel Stories</div>
-                  <div className={`tab ${tab==="general"?"active":""}`} onClick={()=>setTab("general")}>General</div>
+                <div className="tabs" role="tablist">
+                  <button className={`tab ${tab==="intel"?"active":""}`} role="tab" aria-selected={tab==="intel"} onClick={()=>setTab("intel")}>Intel Stories</button>
+                  <button className={`tab ${tab==="general"?"active":""}`} role="tab" aria-selected={tab==="general"} onClick={()=>setTab("general")}>General</button>
                 </div>
 
                 {tab==="intel" && <>
@@ -922,14 +883,14 @@ export default function App() {
                     <span className="section-label"><Cpu size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Multi-Source Stories</span>
                     <span className="count-badge">{dbStories.length} threads</span>
                     {(profile?.role === 'osint' || profile?.role === 'admin') && (
-                      <button onClick={() => setShowComposer(true)} style={{marginLeft:8,padding:'4px 10px',background:'rgba(0,255,136,0.1)',border:'1px solid rgba(0,255,136,0.3)',borderRadius:4,fontFamily:'var(--mono)',fontSize:9,color:'var(--verified)',cursor:'pointer',letterSpacing:1}}>
+                      <button onClick={() => setShowComposer(true)} style={{marginLeft:8,padding:'4px 10px',background:'var(--active-bg)',border:'1px solid var(--verified)',borderRadius:4,fontFamily:'var(--mono)',fontSize:9,color:'var(--verified)',cursor:'pointer',letterSpacing:1}}>
                         <BadgeCheck size={10} style={{display:'inline',verticalAlign:'middle',marginRight:3}} /> NEW
                       </button>
                     )}
                   </div>
-                  <div style={{display:'flex', borderBottom:'1px solid var(--border)', background:'var(--surface)'}}>
+                  <div role="tablist" style={{display:'flex', borderBottom:'1px solid var(--border)', background:'var(--surface)'}}>
                     {['all','following'].map(t => (
-                      <button key={t} onClick={() => setFeedTab(t)} style={{flex:1,padding:'10px 0',background:'none',border:'none',borderBottom: feedTab===t ? '2px solid var(--accent)' : '2px solid transparent',fontFamily:'var(--mono)',fontSize:10,letterSpacing:1,color: feedTab===t ? 'var(--accent)' : 'var(--muted)',cursor:'pointer',transition:'all 0.15s',textTransform:'uppercase'}}>
+                      <button key={t} role="tab" aria-selected={feedTab===t} onClick={() => setFeedTab(t)} style={{flex:1,padding:'10px 0',background:'none',border:'none',borderBottom: feedTab===t ? '2px solid var(--accent)' : '2px solid transparent',fontFamily:'var(--mono)',fontSize:10,letterSpacing:1,color: feedTab===t ? 'var(--accent)' : 'var(--muted)',cursor:'pointer',transition:'all 0.15s',textTransform:'uppercase'}}>
                         {t === 'all' ? 'All Intel' : 'Following'}
                       </button>
                     ))}
@@ -954,9 +915,9 @@ export default function App() {
                 <div style={{flex:1, overflow:'hidden', display:'flex', flexDirection:'column'}}>
                   {/* Mobile back button */}
                   {isMobile && (
-                    <div className="mobile-back" onClick={() => setMobileDetail(false)}>
+                    <button type="button" className="mobile-back" onClick={() => setMobileDetail(false)}>
                       ← BACK TO FEED
-                    </div>
+                    </button>
                   )}
                   <div key={story.id} className="detail-panel">
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,flexWrap:"wrap"}}>
@@ -998,7 +959,7 @@ export default function App() {
                     {(story.sources || story.story_sources || []).map((s,i) => (
                       <div key={i} className="source-post">
                         <div className="source-post-hd">
-                          <div className="post-avatar" style={{background: s.av || '#1a3a5c', width:36, height:36, fontSize:12}}>
+                          <div className="post-avatar" style={{background: s.av || 'var(--accent)', width:36, height:36, fontSize:12}}>
                             {s.ini || (s.posts?.users?.username?.[0]?.toUpperCase()) || 'S'}
                           </div>
                           <div>
@@ -1055,8 +1016,23 @@ export default function App() {
 
       {/* ── APPLY MODAL ── */}
       {showApply && (
-        <div className="modal-overlay" onClick={e => e.target===e.currentTarget && setShowApply(false)}>
-          <div className="modal">
+        <div
+          className="modal-overlay"
+          onClick={e => e.target===e.currentTarget && setShowApply(false)}
+          onKeyDown={e => {
+            if (e.key === 'Escape') { setShowApply(false); setApplyError('') }
+            if (e.key === 'Tab') {
+              const focusable = Array.from(
+                modalRef.current?.querySelectorAll('input,textarea,button,[tabindex]:not([tabindex="-1"])') || []
+              )
+              if (!focusable.length) return
+              const first = focusable[0], last = focusable[focusable.length - 1]
+              if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+              else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+            }
+          }}
+        >
+          <div className="modal" ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="apply-modal-title">
             {applied ? (
               <div style={{textAlign:"center",padding:"24px 0"}}>
                 <BadgeCheck size={40} style={{marginBottom:12,color:"var(--verified)"}} />
@@ -1064,7 +1040,7 @@ export default function App() {
                 <div style={{fontSize:12,color:"var(--muted)"}}>Your application is under review. You'll be notified within 72 hours.</div>
               </div>
             ) : <>
-              <div className="modal-title"><BadgeCheck size={13} style={{display:'inline',verticalAlign:'middle',marginRight:6}} />Apply for OSINT Channel Status</div>
+              <div id="apply-modal-title" className="modal-title"><BadgeCheck size={13} style={{display:'inline',verticalAlign:'middle',marginRight:6}} />Apply for OSINT Channel Status</div>
               <div className="modal-sub">Verified OSINT channels gain exclusive access to post in the Intel Stories section. Applications are evaluated on a rolling basis.</div>
               <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:2,marginBottom:8}}>EVALUATION CRITERIA</div>
               <div className="crit-list">
@@ -1077,18 +1053,18 @@ export default function App() {
               </div>
               {[["Channel / Organization Name","e.g. AltitudeSentinel","channel"],["Primary Handle / Account","@yourhandle","handle"]].map(([lbl,ph,k])=>(
                 <div key={k} className="form-group">
-                  <label className="form-label">{lbl}</label>
-                  <input className="form-input" placeholder={ph} value={form[k]} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} />
+                  <label className="form-label" htmlFor={`apply-${k}`}>{lbl}</label>
+                  <input id={`apply-${k}`} className="form-input" placeholder={ph} value={form[k]} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} />
                 </div>
               ))}
               {[["Portfolio / Past Work","Link to notable OSINT threads...","portfolio"],["Why should you be approved?","Describe your methodology...","why"]].map(([lbl,ph,k])=>(
                 <div key={k} className="form-group">
-                  <label className="form-label">{lbl}</label>
-                  <textarea className="form-input form-ta" placeholder={ph} value={form[k]} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} />
+                  <label className="form-label" htmlFor={`apply-${k}`}>{lbl}</label>
+                  <textarea id={`apply-${k}`} className="form-input form-ta" placeholder={ph} value={form[k]} onChange={e=>setForm(p=>({...p,[k]:e.target.value}))} />
                 </div>
               ))}
               {applyError && (
-                <div style={{ padding: '8px 12px', borderRadius: 6, background: 'rgba(192,64,74,0.1)', border: '1px solid var(--accent2)', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent2)', marginBottom: 8 }}>
+                <div role="alert" style={{ padding: '8px 12px', borderRadius: 6, background: 'rgba(192,64,74,0.1)', border: '1px solid var(--accent2)', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent2)', marginBottom: 8 }}>
                   {applyError}
                 </div>
               )}
