@@ -1,5 +1,6 @@
 import { useUser } from '../hooks/useUser'
 import { useRegions } from '../hooks/useRegions'
+import { useTrending, TRENDING_WINDOWS } from '../hooks/useTrending'
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../api/supabase'
@@ -296,6 +297,7 @@ export default function App() {
   const [hasApplied, setHasApplied] = useState(false)
   const [showComposer, setShowComposer] = useState(false)
   const { regions: dbRegions, loaded: regionsLoaded } = useRegions()
+  const { trending, windowId, setWindowId } = useTrending(dbStories)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mobileDetail, setMobileDetail] = useState(false) // show detail panel on mobile
 
@@ -725,31 +727,59 @@ export default function App() {
             <div style={{flex:1, overflow:"hidden", display:"flex", flexDirection:"column"}}>
               <div className="section-header">
                 <span className="section-label"><TrendingUp size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Trending Now</span>
-                <span className="count-badge">Last 24 hours</span>
+                <span className="count-badge">{trending.length} stories</span>
               </div>
+
+              {/* Time window tabs */}
+              <div style={{display:"flex", borderBottom:"1px solid var(--border)", flexShrink:0}}>
+                {TRENDING_WINDOWS.map(w => (
+                  <button key={w.id} type="button" onClick={() => setWindowId(w.id)} style={{
+                    flex:1, padding:"8px 4px", background:"none",
+                    border:"none", borderBottom: windowId===w.id ? "2px solid var(--accent)" : "2px solid transparent",
+                    fontFamily:"var(--mono)", fontSize:9, letterSpacing:1,
+                    color: windowId===w.id ? "var(--accent)" : "var(--muted)",
+                    cursor:"pointer", transition:"all 0.15s"
+                  }}>{w.label.toUpperCase()}</button>
+                ))}
+              </div>
+
               <div style={{overflow:"auto", flex:1}}>
-                {dbStories
-                  .slice().sort((a,b) => (b.story_sources||[]).length - (a.story_sources||[]).length)
-                  .map((s, i) => (
-                    <button key={s.id} type="button" className="story-card" onClick={() => { handleSelectStory(s); setNav("feed") }}
-                      style={{display:"flex", alignItems:"flex-start", gap:12}}>
-                      <div style={{fontFamily:"var(--mono)", fontSize:20, fontWeight:700, color: i===0?"var(--accent2)": i===1?"var(--muted)": i===2?"var(--border)":"var(--border)", minWidth:28, paddingTop:2}}>
-                        {i+1}
+                {trending.length === 0 ? (
+                  <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:200, gap:8, fontFamily:"var(--mono)", fontSize:10, color:"var(--muted)", letterSpacing:1}}>
+                    <TrendingUp size={20} style={{opacity:0.3}} />
+                    NO STORIES IN THIS WINDOW
+                  </div>
+                ) : trending.map((s, i) => (
+                  <button key={s.id} type="button" className="story-card" onClick={() => { handleSelectStory(s); setNav("feed") }}
+                    style={{display:"flex", alignItems:"flex-start", gap:12}}>
+                    <div style={{fontFamily:"var(--mono)", fontSize:20, fontWeight:700, color: i===0?"var(--accent2)": i===1?"var(--muted)": i===2?"var(--border)":"var(--border)", minWidth:28, paddingTop:2}}>
+                      {i+1}
+                    </div>
+                    <div style={{flex:1}}>
+                      <div className="story-meta">
+                        {(s.breaking||s.is_breaking) && <span className="breaking-tag">BREAKING</span>}
+                        <span className="story-tag">{s.tag}</span>
+                        <span className="story-time">{s.time || 'recent'}</span>
                       </div>
-                      <div style={{flex:1}}>
-                        <div className="story-meta">
-                          {(s.breaking||s.is_breaking) && <span className="breaking-tag">BREAKING</span>}
-                          <span className="story-tag">{s.tag}</span>
-                          <span className="story-time">{s.time || 'recent'}</span>
-                        </div>
-                        <div className="story-headline">{s.headline}</div>
-                        <div style={{display:"flex", alignItems:"center", gap:8, marginTop:6}}>
-                          <span style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--accent)", display:'flex', alignItems:'center', gap:3}}><BadgeCheck size={9} />{(s.sources||s.story_sources||[]).length} sources</span>
-                          <span style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--muted)"}}>{s.confidence || s.confidence === 0 ? `${s.confidence}% confidence` : ''}</span>
-                        </div>
+                      <div className="story-headline">{s.headline}</div>
+                      <div style={{display:"flex", alignItems:"center", gap:8, marginTop:6}}>
+                        <span style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--accent)", display:'flex', alignItems:'center', gap:3}}>
+                          <BadgeCheck size={9} />{(s.story_sources||[]).length} sources
+                        </span>
+                        {s.confidence != null && (
+                          <span style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--muted)"}}>
+                            {s.confidence}% conf
+                          </span>
+                        )}
+                        {s.updated_at && s.updated_at !== s.created_at && (
+                          <span style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--muted)", marginLeft:"auto"}}>
+                            ↑ {Math.round((Date.now() - new Date(s.updated_at).getTime()) / 60000)}m ago
+                          </span>
+                        )}
                       </div>
-                    </button>
-                  ))}
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           )}
