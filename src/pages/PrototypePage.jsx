@@ -494,7 +494,7 @@ export default function App() {
           >
             <img
               src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
-              alt="SIGINT"
+              alt="MINT"
               draggable={false}
               style={{ height: 38, width: 'auto', display: 'block', flexShrink: 0, pointerEvents: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}
             />
