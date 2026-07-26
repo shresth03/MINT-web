@@ -12,11 +12,6 @@ export const COMPOSER_TAGS = [
   'ECONOMIC', 'ENERGY', 'OTHER',
 ]
 
-export const REGIONS_LIST = [
-  'Global', 'Middle East', 'Europe', 'Asia Pacific',
-  'North America', 'South America', 'Africa',
-  'Central Asia', 'Eastern Europe', 'Arctic',
-]
 
 export const MAP_FILTERS = [
   'ALL', 'CONFLICT', 'MARITIME', 'CYBER',

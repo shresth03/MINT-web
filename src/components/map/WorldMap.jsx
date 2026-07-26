@@ -14,6 +14,8 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
   const rafRef        = useRef(null)
   const kbFocusRef    = useRef(false)
   const roverCloseRef = useRef(null)
+  // Track last dims for which static layer was built — avoids full teardown every frame
+  const staticReadyRef = useRef(null)
 
   const [tooltip,     setTooltip]   = useState(null)
   const [topoData,    setTopoData]  = useState(null)
@@ -85,22 +87,9 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     return () => cancelAnimationFrame(rafRef.current)
   }, [dims, regions, topoData, indiaData]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function draw() {
-    const svg = d3.select(svgRef.current)
+  function buildStaticLayer(svg, w, h, r, mX, mY, mR) {
     svg.selectAll('*').remove()
-
-    const { w, h } = dims
-    const r = Math.min(w, h) / 2 - 20
-
-    // Moon constants — computed here so clip-path uses the right r
-    const mX = 78
-    const mY = 78
-    const mR = Math.min(52, r * 0.20)
-
-    const proj = d3.geoOrthographic()
-      .scale(r).translate([w / 2, h / 2])
-      .rotate(rotRef.current).clipAngle(90)
-    const path = d3.geoPath().projection(proj)
+    staticReadyRef.current = { w, h }
 
     // ── DEFS ──────────────────────────────────────────────────────────────
     const defs = svg.append('defs')
@@ -111,7 +100,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     gg.append('stop').attr('offset', '85%').attr('stop-color', '#04090f').attr('stop-opacity', 1)
     gg.append('stop').attr('offset', '100%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.15)
 
-    // Moon surface — lit from top-left, dims toward right/bottom
+    // Moon surface
     const mb = defs.append('radialGradient').attr('id', 'mb')
       .attr('cx', '36%').attr('cy', '30%').attr('r', '70%')
     mb.append('stop').attr('offset',  '0%').attr('stop-color', '#e0dcd2')
@@ -120,7 +109,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     mb.append('stop').attr('offset', '76%').attr('stop-color', '#524840')
     mb.append('stop').attr('offset','100%').attr('stop-color', '#1a1510')
 
-    // Moon terminator — right-side night shadow
+    // Moon terminator
     const mt = defs.append('linearGradient').attr('id', 'mt')
       .attr('x1', '0%').attr('y1', '0%').attr('x2', '100%').attr('y2', '0%')
     mt.append('stop').attr('offset', '40%').attr('stop-color', '#000').attr('stop-opacity', 0)
@@ -138,27 +127,213 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     defs.append('clipPath').attr('id', 'mc')
       .append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR - 0.5)
 
-    // ── GLOBE ─────────────────────────────────────────────────────────────
+    // ── GLOBE BACKGROUND (static — never moves) ────────────────────────────
     svg.append('circle').attr('cx', w/2).attr('cy', h/2).attr('r', r + 8)
       .attr('fill', 'url(#gg)').attr('stroke', '#1e2d3d').attr('stroke-width', 1)
     svg.append('circle').attr('cx', w/2).attr('cy', h/2).attr('r', r)
       .attr('fill', '#04090f').attr('stroke', '#00d4ff')
       .attr('stroke-width', 0.5).attr('stroke-opacity', 0.3)
-    svg.append('path').datum(d3.geoGraticule()()).attr('d', path)
+
+    // ── DYNAMIC LAYER SLOT (countries/graticule/hotspots go here each frame) ──
+    svg.append('g').attr('class', 'globe-dynamic')
+
+    // ── REALISTIC MOON (static — corner position, drawn once on top) ──────
+    svg.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR * 1.20)
+      .attr('fill', 'url(#mh)').attr('pointer-events', 'none')
+
+    const moon = svg.append('g').style('cursor', 'pointer')
+      .attr('tabindex', 0).attr('role', 'button')
+      .attr('aria-label', 'Chandrayaan-3 moon — press to view Pragyan rover')
+    moon
+      .on('click', () => setShowRover(true))
+      .on('focus', () => { kbFocusRef.current = true })
+      .on('blur',  () => { kbFocusRef.current = false })
+      .on('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowRover(true) } })
+
+    moon.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR)
+      .attr('fill', 'url(#mb)')
+
+    const feats = moon.append('g').attr('clip-path', 'url(#mc)')
+
+    const maria = [
+      { cx: mX - mR*0.28, cy: mY - mR*0.10, rx: mR*0.40, ry: mR*0.46, o: 0.56 },
+      { cx: mX - mR*0.22, cy: mY - mR*0.32, rx: mR*0.21, ry: mR*0.18, o: 0.62 },
+      { cx: mX + mR*0.10, cy: mY - mR*0.27, rx: mR*0.14, ry: mR*0.12, o: 0.58 },
+      { cx: mX + mR*0.18, cy: mY - mR*0.10, rx: mR*0.16, ry: mR*0.13, o: 0.55 },
+      { cx: mX - mR*0.12, cy: mY + mR*0.22, rx: mR*0.13, ry: mR*0.10, o: 0.52 },
+      { cx: mX + mR*0.40, cy: mY - mR*0.24, rx: mR*0.10, ry: mR*0.08, o: 0.64 },
+      { cx: mX + mR*0.32, cy: mY + mR*0.04, rx: mR*0.09, ry: mR*0.08, o: 0.50 },
+    ]
+    maria.forEach(m => {
+      feats.append('ellipse')
+        .attr('cx', m.cx).attr('cy', m.cy).attr('rx', m.rx).attr('ry', m.ry)
+        .attr('fill', '#26231a').attr('fill-opacity', m.o)
+    })
+
+    const strokes = [
+      { x1: mX - mR*0.05, y1: mY - mR*0.60, x2: mX + mR*0.15, y2: mY - mR*0.50, o: 0.07 },
+      { x1: mX + mR*0.10, y1: mY + mR*0.35, x2: mX + mR*0.35, y2: mY + mR*0.45, o: 0.06 },
+      { x1: mX - mR*0.45, y1: mY + mR*0.30, x2: mX - mR*0.20, y2: mY + mR*0.40, o: 0.07 },
+    ]
+    strokes.forEach(s => {
+      feats.append('line')
+        .attr('x1', s.x1).attr('y1', s.y1).attr('x2', s.x2).attr('y2', s.y2)
+        .attr('stroke', '#9a9080').attr('stroke-width', mR * 0.04)
+        .attr('stroke-opacity', s.o).attr('stroke-linecap', 'round')
+    })
+
+    const craters = [
+      { dx: 0.05,  dy: 0.48,  r: 0.09, rays: TYCHO_RAYS  },
+      { dx: -0.20, dy: 0.12,  r: 0.07, rays: COPER_RAYS  },
+      { dx: -0.24, dy: -0.42, r: 0.06 },
+      { dx: -0.35, dy:  0.08, r: 0.05 },
+      { dx: -0.38, dy: -0.16, r: 0.04, bright: true },
+      { dx: -0.08, dy:  0.44, r: 0.11 },
+      { dx: -0.50, dy:  0.06, r: 0.06 },
+      { dx:  0.25, dy:  0.30, r: 0.04 },
+      { dx:  0.32, dy: -0.38, r: 0.035 },
+      { dx: -0.10, dy:  0.34, r: 0.035 },
+      { dx:  0.15, dy: -0.46, r: 0.030 },
+      { dx:  0.40, dy:  0.10, r: 0.030 },
+      { dx: -0.42, dy:  0.30, r: 0.040 },
+      { dx:  0.06, dy: -0.20, r: 0.025 },
+      { dx: -0.14, dy: -0.28, r: 0.025 },
+    ]
+    craters.forEach(c => {
+      const cx = mX + c.dx * mR
+      const cy = mY + c.dy * mR
+      const cr = c.r * mR
+      feats.append('circle').attr('cx', cx).attr('cy', cy).attr('r', cr + cr * 0.30)
+        .attr('fill', c.bright ? '#ece8d8' : '#a89e88').attr('fill-opacity', 0.30)
+      feats.append('circle').attr('cx', cx + cr*0.10).attr('cy', cy + cr*0.10).attr('r', cr * 0.75)
+        .attr('fill', '#16140e').attr('fill-opacity', 0.70)
+      feats.append('circle').attr('cx', cx - cr*0.28).attr('cy', cy - cr*0.28).attr('r', cr * 0.36)
+        .attr('fill', c.bright ? '#fffff5' : '#d0c8b0')
+        .attr('fill-opacity', c.bright ? 0.72 : 0.40)
+      if (c.rays) {
+        c.rays.forEach((len, i) => {
+          const angle = (i / c.rays.length) * Math.PI * 2
+          feats.append('line')
+            .attr('x1', cx).attr('y1', cy)
+            .attr('x2', cx + Math.cos(angle) * cr * len)
+            .attr('y2', cy + Math.sin(angle) * cr * len)
+            .attr('stroke', '#ccc4a4').attr('stroke-width', 0.5)
+            .attr('stroke-opacity', 0.20)
+        })
+      }
+    })
+
+    feats.append('ellipse')
+      .attr('cx', mX).attr('cy', mY + mR * 0.76)
+      .attr('rx', mR * 0.18).attr('ry', mR * 0.06)
+      .attr('fill', '#d8d4c8').attr('fill-opacity', 0.18)
+
+    feats.append('rect')
+      .attr('x', mX - mR).attr('y', mY - mR)
+      .attr('width', mR * 2).attr('height', mR * 2)
+      .attr('fill', 'url(#mt)').attr('pointer-events', 'none')
+
+    moon.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR)
+      .attr('fill', 'url(#mt)').attr('pointer-events', 'none')
+
+    moon.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR)
+      .attr('fill', 'none').attr('stroke', '#c8c0a8')
+      .attr('stroke-width', 1.8).attr('stroke-opacity', 0.16)
+      .attr('pointer-events', 'none')
+
+    // Chandrayaan-3 landing site
+    const c3y = mY + mR * 0.82
+    moon.append('circle').attr('cx', mX).attr('cy', c3y).attr('r', mR * 0.115)
+      .attr('fill', '#00d4ff').attr('fill-opacity', 0.12).attr('pointer-events', 'none')
+    moon.append('circle').attr('cx', mX).attr('cy', c3y).attr('r', mR * 0.058)
+      .attr('fill', '#00d4ff').attr('fill-opacity', 0.42).attr('pointer-events', 'none')
+
+    const ls = mR * 0.038
+    moon.append('line')
+      .attr('x1', mX - ls*2.5).attr('y1', c3y)
+      .attr('x2', mX + ls*2.5).attr('y2', c3y)
+      .attr('stroke', '#00d4ff').attr('stroke-width', 1.5).attr('pointer-events', 'none')
+    moon.append('line')
+      .attr('x1', mX).attr('y1', c3y - ls*2.5)
+      .attr('x2', mX).attr('y2', c3y + ls*2.5)
+      .attr('stroke', '#00d4ff').attr('stroke-width', 1.5).attr('pointer-events', 'none')
+    moon.append('circle').attr('cx', mX).attr('cy', c3y).attr('r', ls)
+      .attr('fill', '#00d4ff').attr('pointer-events', 'none')
+
+    moon.append('text')
+      .attr('x', mX).attr('y', c3y + mR * 0.17)
+      .attr('text-anchor', 'middle').attr('fill', '#00d4ff')
+      .attr('font-size', Math.max(5.5, mR * 0.088))
+      .attr('font-family', "var(--mono)").attr('font-weight', '600')
+      .attr('pointer-events', 'none')
+      .text('CHANDRAYAAN-3')
+
+    moon.append('text')
+      .attr('x', mX).attr('y', c3y + mR * 0.27)
+      .attr('text-anchor', 'middle').attr('fill', '#9a9278')
+      .attr('font-size', Math.max(4.5, mR * 0.064))
+      .attr('font-family', "var(--mono)")
+      .attr('pointer-events', 'none')
+      .text('SOUTH POLE · 2023')
+
+    moon.append('text')
+      .attr('x', mX).attr('y', mY - mR - 7)
+      .attr('text-anchor', 'middle').attr('fill', '#c8c0a8')
+      .attr('font-size', Math.max(7, mR * 0.10))
+      .attr('font-family', "var(--mono)").attr('letter-spacing', 2)
+      .attr('pointer-events', 'none')
+      .text('MOON')
+
+    moon.append('text')
+      .attr('x', mX).attr('y', mY - mR - 15)
+      .attr('text-anchor', 'middle').attr('fill', '#3a5068')
+      .attr('font-size', 6)
+      .attr('font-family', "var(--mono)")
+      .attr('pointer-events', 'none')
+      .text('[ CLICK ]')
+  }
+
+  function draw() {
+    const svg = d3.select(svgRef.current)
+    const { w, h } = dims
+    const r = Math.min(w, h) / 2 - 20
+    const mX = 78
+    const mY = 78
+    const mR = Math.min(52, r * 0.20)
+
+    const proj = d3.geoOrthographic()
+      .scale(r).translate([w / 2, h / 2])
+      .rotate(rotRef.current).clipAngle(90)
+    const path = d3.geoPath().projection(proj)
+
+    // Rebuild static layer only when dims change or SVG was cleared externally
+    const needsRebuild =
+      !staticReadyRef.current ||
+      staticReadyRef.current.w !== w ||
+      staticReadyRef.current.h !== h ||
+      svg.select('.globe-dynamic').empty()
+
+    if (needsRebuild) {
+      buildStaticLayer(svg, w, h, r, mX, mY, mR)
+    }
+
+    // ── DYNAMIC CONTENT — cleared and redrawn every frame ─────────────────
+    const dynG = svg.select('.globe-dynamic')
+    dynG.selectAll('*').remove()
+
+    dynG.append('path').datum(d3.geoGraticule()()).attr('d', path)
       .attr('fill', 'none').attr('stroke', '#0d1e2e').attr('stroke-width', 0.5)
 
     if (topoData && window.topojson) {
-      // Draw all countries except India (356) — India is drawn separately with correct boundaries
       const countries = window.topojson.feature(topoData, topoData.objects.countries).features
-      svg.append('g').selectAll('path')
+      dynG.append('g').selectAll('path')
         .data(countries.filter(f => f.id !== 356))
         .join('path').attr('d', path)
         .attr('fill', '#0c1a26').attr('stroke', '#1a2d40').attr('stroke-width', 0.4)
     }
 
-    // Draw India with correct boundaries (PoK + Aksai Chin as Indian territory)
     if (indiaData) {
-      svg.append('g').selectAll('path')
+      dynG.append('g').selectAll('path')
         .data(indiaData.features)
         .join('path').attr('d', path)
         .attr('fill', '#0c1a26').attr('stroke', '#1a2d40').attr('stroke-width', 0.4)
@@ -167,7 +342,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     // ── EVENT HOTSPOTS ────────────────────────────────────────────────────
     const maxC  = d3.max(regions, d => d.count) || 1
     const rScale = d3.scaleSqrt().domain([1, maxC]).range([6, 22])
-    const g = svg.append('g')
+    const g = dynG.append('g')
 
     regions.forEach(reg => {
       const coords = proj([reg.lng, reg.lat])
@@ -178,7 +353,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
 
       if (reg.breaking) {
         const t = (Date.now() % 1800) / 1800
-        const e = 1 - Math.pow(1 - t, 2)   // ease-out quadratic
+        const e = 1 - Math.pow(1 - t, 2)
         g.append('circle').attr('cx', cx).attr('cy', cy)
           .attr('r', bR + bR * 1.8 * e)
           .attr('fill', 'none').attr('stroke', reg.color)
@@ -221,189 +396,6 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
         })
         .on('click', () => onRegionClick(reg))
     })
-
-    // ── REALISTIC MOON (easter egg) ────────────────────────────────────────
-    // Atmosphere halo behind moon
-    svg.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR * 1.20)
-      .attr('fill', 'url(#mh)').attr('pointer-events', 'none')
-
-    const moon = svg.append('g').style('cursor', 'pointer')
-      .attr('tabindex', 0).attr('role', 'button')
-      .attr('aria-label', 'Chandrayaan-3 moon — press to view Pragyan rover')
-    moon
-      .on('click', () => setShowRover(true))
-      .on('focus', () => { kbFocusRef.current = true })
-      .on('blur',  () => { kbFocusRef.current = false })
-      .on('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowRover(true) } })
-
-    // Base sphere surface
-    moon.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR)
-      .attr('fill', 'url(#mb)')
-
-    // Clipped features (maria, craters, terminator rect)
-    const feats = moon.append('g').attr('clip-path', 'url(#mc)')
-
-    // Maria — ancient basalt plains (dark patches)
-    const maria = [
-      // Oceanus Procellarum — large, left side
-      { cx: mX - mR*0.28, cy: mY - mR*0.10, rx: mR*0.40, ry: mR*0.46, o: 0.56 },
-      // Mare Imbrium — upper left
-      { cx: mX - mR*0.22, cy: mY - mR*0.32, rx: mR*0.21, ry: mR*0.18, o: 0.62 },
-      // Mare Serenitatis — upper centre
-      { cx: mX + mR*0.10, cy: mY - mR*0.27, rx: mR*0.14, ry: mR*0.12, o: 0.58 },
-      // Mare Tranquillitatis — centre
-      { cx: mX + mR*0.18, cy: mY - mR*0.10, rx: mR*0.16, ry: mR*0.13, o: 0.55 },
-      // Mare Nubium — lower left
-      { cx: mX - mR*0.12, cy: mY + mR*0.22, rx: mR*0.13, ry: mR*0.10, o: 0.52 },
-      // Mare Crisium — right edge (compact, distinct)
-      { cx: mX + mR*0.40, cy: mY - mR*0.24, rx: mR*0.10, ry: mR*0.08, o: 0.64 },
-      // Mare Fecunditatis — right centre
-      { cx: mX + mR*0.32, cy: mY + mR*0.04, rx: mR*0.09, ry: mR*0.08, o: 0.50 },
-    ]
-    maria.forEach(m => {
-      feats.append('ellipse')
-        .attr('cx', m.cx).attr('cy', m.cy).attr('rx', m.rx).attr('ry', m.ry)
-        .attr('fill', '#26231a').attr('fill-opacity', m.o)
-    })
-
-    // Highland texture strokes (subtle variation)
-    const strokes = [
-      { x1: mX - mR*0.05, y1: mY - mR*0.60, x2: mX + mR*0.15, y2: mY - mR*0.50, o: 0.07 },
-      { x1: mX + mR*0.10, y1: mY + mR*0.35, x2: mX + mR*0.35, y2: mY + mR*0.45, o: 0.06 },
-      { x1: mX - mR*0.45, y1: mY + mR*0.30, x2: mX - mR*0.20, y2: mY + mR*0.40, o: 0.07 },
-    ]
-    strokes.forEach(s => {
-      feats.append('line')
-        .attr('x1', s.x1).attr('y1', s.y1).attr('x2', s.x2).attr('y2', s.y2)
-        .attr('stroke', '#9a9080').attr('stroke-width', mR * 0.04)
-        .attr('stroke-opacity', s.o).attr('stroke-linecap', 'round')
-    })
-
-    // Craters — rim + floor shadow + highlight
-    const craters = [
-      { dx: 0.05,  dy: 0.48,  r: 0.09, rays: TYCHO_RAYS  },   // Tycho (south, prominent)
-      { dx: -0.20, dy: 0.12,  r: 0.07, rays: COPER_RAYS  },   // Copernicus
-      { dx: -0.24, dy: -0.42, r: 0.06 },                       // Plato
-      { dx: -0.35, dy:  0.08, r: 0.05 },                       // Kepler
-      { dx: -0.38, dy: -0.16, r: 0.04, bright: true },         // Aristarchus (bright)
-      { dx: -0.08, dy:  0.44, r: 0.11 },                       // Clavius (large, south)
-      { dx: -0.50, dy:  0.06, r: 0.06 },                       // Grimaldi
-      { dx:  0.25, dy:  0.30, r: 0.04 },
-      { dx:  0.32, dy: -0.38, r: 0.035 },
-      { dx: -0.10, dy:  0.34, r: 0.035 },
-      { dx:  0.15, dy: -0.46, r: 0.030 },
-      { dx:  0.40, dy:  0.10, r: 0.030 },
-      { dx: -0.42, dy:  0.30, r: 0.040 },
-      { dx:  0.06, dy: -0.20, r: 0.025 },
-      { dx: -0.14, dy: -0.28, r: 0.025 },
-    ]
-    craters.forEach(c => {
-      const cx = mX + c.dx * mR
-      const cy = mY + c.dy * mR
-      const cr = c.r * mR
-      // Ejecta blanket / rim
-      feats.append('circle').attr('cx', cx).attr('cy', cy).attr('r', cr + cr * 0.30)
-        .attr('fill', c.bright ? '#ece8d8' : '#a89e88').attr('fill-opacity', 0.30)
-      // Floor (dark shadow inside)
-      feats.append('circle').attr('cx', cx + cr*0.10).attr('cy', cy + cr*0.10).attr('r', cr * 0.75)
-        .attr('fill', '#16140e').attr('fill-opacity', 0.70)
-      // Lit rim highlight (top-left of crater)
-      feats.append('circle').attr('cx', cx - cr*0.28).attr('cy', cy - cr*0.28).attr('r', cr * 0.36)
-        .attr('fill', c.bright ? '#fffff5' : '#d0c8b0')
-        .attr('fill-opacity', c.bright ? 0.72 : 0.40)
-      // Ray system for major craters
-      if (c.rays) {
-        c.rays.forEach((len, i) => {
-          const angle = (i / c.rays.length) * Math.PI * 2
-          feats.append('line')
-            .attr('x1', cx).attr('y1', cy)
-            .attr('x2', cx + Math.cos(angle) * cr * len)
-            .attr('y2', cy + Math.sin(angle) * cr * len)
-            .attr('stroke', '#ccc4a4').attr('stroke-width', 0.5)
-            .attr('stroke-opacity', 0.20)
-        })
-      }
-    })
-
-    // South polar region — subtle bright ice cap hint
-    feats.append('ellipse')
-      .attr('cx', mX).attr('cy', mY + mR * 0.76)
-      .attr('rx', mR * 0.18).attr('ry', mR * 0.06)
-      .attr('fill', '#d8d4c8').attr('fill-opacity', 0.18)
-
-    // Terminator shadow rect (right-side night, clipped to sphere)
-    feats.append('rect')
-      .attr('x', mX - mR).attr('y', mY - mR)
-      .attr('width', mR * 2).attr('height', mR * 2)
-      .attr('fill', 'url(#mt)').attr('pointer-events', 'none')
-
-    // Terminator circle on top of features (smooth edge)
-    moon.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR)
-      .attr('fill', 'url(#mt)').attr('pointer-events', 'none')
-
-    // Sphere limb (faint edge highlight)
-    moon.append('circle').attr('cx', mX).attr('cy', mY).attr('r', mR)
-      .attr('fill', 'none').attr('stroke', '#c8c0a8')
-      .attr('stroke-width', 1.8).attr('stroke-opacity', 0.16)
-      .attr('pointer-events', 'none')
-
-    // ── CHANDRAYAAN-3 — South Pole ─────────────────────────────────────
-    const c3y = mY + mR * 0.82   // near the bottom of the sphere
-
-    // Outer landing-site glow
-    moon.append('circle').attr('cx', mX).attr('cy', c3y).attr('r', mR * 0.115)
-      .attr('fill', '#00d4ff').attr('fill-opacity', 0.12).attr('pointer-events', 'none')
-    // Inner glow
-    moon.append('circle').attr('cx', mX).attr('cy', c3y).attr('r', mR * 0.058)
-      .attr('fill', '#00d4ff').attr('fill-opacity', 0.42).attr('pointer-events', 'none')
-
-    // Lander cross
-    const ls = mR * 0.038
-    moon.append('line')
-      .attr('x1', mX - ls*2.5).attr('y1', c3y)
-      .attr('x2', mX + ls*2.5).attr('y2', c3y)
-      .attr('stroke', '#00d4ff').attr('stroke-width', 1.5).attr('pointer-events', 'none')
-    moon.append('line')
-      .attr('x1', mX).attr('y1', c3y - ls*2.5)
-      .attr('x2', mX).attr('y2', c3y + ls*2.5)
-      .attr('stroke', '#00d4ff').attr('stroke-width', 1.5).attr('pointer-events', 'none')
-    moon.append('circle').attr('cx', mX).attr('cy', c3y).attr('r', ls)
-      .attr('fill', '#00d4ff').attr('pointer-events', 'none')
-
-    // Label: CHANDRAYAAN-3
-    moon.append('text')
-      .attr('x', mX).attr('y', c3y + mR * 0.17)
-      .attr('text-anchor', 'middle').attr('fill', '#00d4ff')
-      .attr('font-size', Math.max(5.5, mR * 0.088))
-      .attr('font-family', "var(--mono)").attr('font-weight', '600')
-      .attr('pointer-events', 'none')
-      .text('CHANDRAYAAN-3')
-
-    moon.append('text')
-      .attr('x', mX).attr('y', c3y + mR * 0.27)
-      .attr('text-anchor', 'middle').attr('fill', '#9a9278')
-      .attr('font-size', Math.max(4.5, mR * 0.064))
-      .attr('font-family', "var(--mono)")
-      .attr('pointer-events', 'none')
-      .text('SOUTH POLE · 2023')
-
-    // MOON label above
-    moon.append('text')
-      .attr('x', mX).attr('y', mY - mR - 7)
-      .attr('text-anchor', 'middle').attr('fill', '#c8c0a8')
-      .attr('font-size', Math.max(7, mR * 0.10))
-      .attr('font-family', "var(--mono)").attr('letter-spacing', 2)
-      .attr('pointer-events', 'none')
-      .text('MOON')
-
-    // Subtle click hint
-    moon.append('text')
-      .attr('x', mX).attr('y', mY - mR - 15)
-      .attr('text-anchor', 'middle').attr('fill', '#3a5068')
-      .attr('font-size', 6)
-      .attr('font-family', "var(--mono)")
-      .attr('pointer-events', 'none')
-      .text('[ CLICK ]')
   }
 
   // Drag-to-rotate
@@ -485,7 +477,6 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
             onClick={e => e.stopPropagation()}
             onKeyDown={e => e.key === 'Escape' && setShowRover(false)}
           >
-            {/* Header */}
             <div style={{
               fontFamily: "var(--mono)",
               color: '#00d4ff', letterSpacing: 3, fontSize: 9,
@@ -494,7 +485,6 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
               ISRO · CHANDRAYAAN-3 · VIKRAM LANDER · SOUTH POLE · AUGUST 2023
             </div>
 
-            {/* Photo */}
             <div style={{ position: 'relative' }}>
               <img
                 src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Chandrayaan-3_Pragyan_rover_on_Moon.jpg/960px-Chandrayaan-3_Pragyan_rover_on_Moon.jpg"
@@ -505,7 +495,6 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
                   border: '1px solid rgba(0,212,255,0.22)',
                 }}
               />
-              {/* CRT scan-line aesthetic */}
               <div style={{
                 position: 'absolute', inset: 0, pointerEvents: 'none',
                 background: 'repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.07) 3px,rgba(0,0,0,0.07) 4px)',
@@ -513,7 +502,6 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
               }} />
             </div>
 
-            {/* Caption */}
             <div style={{
               marginTop: 12, display: 'flex', justifyContent: 'space-between',
               fontFamily: "var(--mono)", fontSize: 9,
@@ -522,7 +510,6 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
               <span style={{ color: '#3a5a6a' }}>ISRO 2023</span>
             </div>
 
-            {/* Close */}
             <button
               ref={roverCloseRef}
               aria-label="Close rover photo"

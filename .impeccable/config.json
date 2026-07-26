@@ -1,0 +1,141 @@
+{
+  "detector": {
+    "ignoreRules": [
+      "overused-font"
+    ],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-07-25T22:54:51.573Z",
+        "reason": "Committed typeface per DESIGN.md: Inter+JetBrains Mono is the design system typeface pairing"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "10px",
+        "createdAt": "2026-07-25T22:54:55.360Z",
+        "reason": "10px is within the documented Mono type range (DESIGN.md: 'Mono JetBrains Mono, 10-13px')"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "14px",
+        "files": [
+          "src/pages/PrototypePage.jsx"
+        ],
+        "createdAt": "2026-07-25T22:54:59.469Z",
+        "reason": "14px appears only on .logo-icon glyph (inside 32px hex icon) and .detail-headline — both borderline-off-ramp uses accepted per audit"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/pages/PrototypePage.jsx"
+        ],
+        "createdAt": "2026-07-25T22:55:08.087Z",
+        "reason": "DESIGN.md-prescribed pattern: 3px left accent stripe is the design system's primary active/selected indicator; also used as semantic blockquote rail on detail-summary"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "8px",
+        "createdAt": "2026-07-25T23:04:10.817Z",
+        "reason": "8px is the documented micro-label size for breaking-tag and status chips per DESIGN.md components section"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "20px",
+        "createdAt": "2026-07-25T23:08:43.840Z",
+        "reason": "Intentional panel-headline step: used for detail-headline and map tooltip event count — valid intermediate between 13px headline and 32px display"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "22px",
+        "createdAt": "2026-07-25T23:08:43.879Z",
+        "reason": "Intentional stat-display step: used for map intel event count milval — data magnitude indicator"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "16px",
+        "files": [
+          "src/pages/PrototypePage.jsx"
+        ],
+        "createdAt": "2026-07-25T23:08:43.916Z",
+        "reason": "Icon sizing for .bn-item-icon bottom-nav icons — not text typography"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "18px",
+        "files": [
+          "src/pages/PrototypePage.jsx"
+        ],
+        "createdAt": "2026-07-25T23:08:43.953Z",
+        "reason": "Icon sizing for .hamburger menu icon — not text typography"
+      },
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "src/pages/PrototypePage.jsx"
+        ],
+        "createdAt": "2026-07-25T23:09:55.790Z",
+        "reason": "Remaining finding is border-color transition on same line as width property — not animating width. All actual width transitions fixed (score bar → scaleX in harden pass)"
+      },
+      {
+        "rule": "overused-font",
+        "value": "google fonts: inter",
+        "createdAt": "2026-07-25T23:09:55.828Z",
+        "reason": "Inter is the committed design system typeface per DESIGN.md; suppress full detector string variant"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#00d4ff",
+        "createdAt": "2026-07-25T23:19:09.921Z",
+        "reason": "Chandrayaan-3 moon easter egg visualization color — intentional space-themed domain color, not UI chrome"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(0,212,255,0.22)",
+        "createdAt": "2026-07-25T23:19:09.960Z",
+        "reason": "Chandrayaan-3 rover photo border — same easter egg context"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#5a7a9a",
+        "createdAt": "2026-07-25T23:19:09.998Z",
+        "reason": "Moon easter egg caption tone — intentional muted atmospheric slate"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#3a5a6a",
+        "createdAt": "2026-07-25T23:19:10.035Z",
+        "reason": "Moon easter egg ISRO caption — intentional muted atmospheric slate"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#4a6a8a",
+        "createdAt": "2026-07-25T23:19:10.076Z",
+        "reason": "Moon easter egg close button — intentional muted atmospheric slate"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#ff6b35",
+        "createdAt": "2026-07-26T02:50:27.111Z",
+        "reason": "Map hotspot threat-level color: breaking/conflict zones. Globe-only, not general UI."
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#ffcc00",
+        "createdAt": "2026-07-26T02:50:27.149Z",
+        "reason": "Map hotspot active-zone amber. Globe-only, not general UI."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/pages/ArticlesPage.jsx"
+        ],
+        "createdAt": "2026-07-26T03:14:32.058Z"
+      }
+    ]
+  }
+}

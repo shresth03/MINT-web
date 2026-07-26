@@ -84,14 +84,14 @@ const styles = `
   .logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 1px; font-family: var(--mono); }
   .nav { flex: 1; padding: 12px 0; overflow-y: auto; }
   .nav-section { padding: 8px 18px 4px; font-size: 9px; letter-spacing: 2px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; }
-  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 18px; cursor: pointer; font-size: 13px; font-family: var(--sans); color: var(--muted); transition: all 0.15s; border-left: 2px solid transparent; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 18px; cursor: pointer; font-size: 13px; font-family: var(--sans); color: var(--muted); transition: all 0.15s; border-left: 2px solid transparent; background: none; border-top: none; border-right: none; border-bottom: none; width: 100%; text-align: left; }
   .nav-item:hover { background: var(--surface2); color: var(--text); }
   .nav-item.active { background: var(--active-bg); color: var(--accent); border-left-color: var(--accent); }
   .nav-badge { margin-left: auto; background: var(--accent2); color: #fff; font-size: 9px; padding: 1px 6px; border-radius: 10px; font-family: var(--mono); }
   .nav-badge.green { background: var(--verified); color: #000; }
   .nav-badge.orange { background: var(--accent2); }
   .sidebar-bottom { border-top: 1px solid var(--border); padding: 12px 18px; }
-  .user-card { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .user-card { display: flex; align-items: center; gap: 10px; cursor: pointer; background: none; border: none; width: 100%; text-align: left; font: inherit; color: inherit; }
   .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--bg); border: 1px solid var(--border); font-family: var(--mono); }
   .user-name { font-size: 12px; font-weight: 500; color: var(--text); font-family: var(--sans); }
   .user-role { font-size: 10px; color: var(--muted); font-family: var(--mono); }
@@ -148,7 +148,7 @@ const styles = `
   .post-time { font-size:10px; color:var(--muted); margin-left:auto; font-family:var(--mono); }
   .post-body { font-size:12px; line-height:1.6; color:var(--muted); font-family:var(--sans); }
   .post-actions { display:flex; gap:16px; margin-top:10px; }
-  .post-action { font-size:10px; color:var(--muted); cursor:pointer; font-family:var(--mono); transition:color 0.15s, transform 160ms ease-out; }
+  .post-action { font-size:10px; color:var(--muted); cursor:pointer; font-family:var(--mono); transition:color 0.15s, transform 160ms ease-out; background:none; border:none; padding:0; }
   .post-action:hover { color:var(--accent); }
   .post-action:active { transform:scale(0.85); }
   @media (prefers-reduced-motion:reduce) { .post-action { transition:color 0.15s; } .post-action:active { transform:none; } }
@@ -186,7 +186,7 @@ const styles = `
   .tl-event.first { border-color:var(--accent2); color:var(--accent2); }
   .tl-arrow { color:var(--border); font-size:10px; flex-shrink:0; }
   .tabs { display:flex; border-bottom:1px solid var(--border); padding:0 16px; background:var(--bg); flex-shrink:0; }
-  .tab { padding:10px 16px; font-size:11px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; font-family:var(--mono); letter-spacing:0.5px; transition:all 0.15s; }
+  .tab { padding:10px 16px; font-size:11px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; font-family:var(--mono); letter-spacing:0.5px; transition:all 0.15s; background:none; border-top:none; border-left:none; border-right:none; }
   .tab:hover { color:var(--text); }
   .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
   .modal-overlay { position:fixed; inset:0; background:var(--modal-overlay); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:200; padding:16px; animation:modal-overlay-enter 200ms ease-out both; }
@@ -295,7 +295,7 @@ export default function App() {
   const [feedTab, setFeedTab] = useState('all')
   const [hasApplied, setHasApplied] = useState(false)
   const [showComposer, setShowComposer] = useState(false)
-  const { regions: dbRegions } = useRegions()
+  const { regions: dbRegions, loaded: regionsLoaded } = useRegions()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mobileDetail, setMobileDetail] = useState(false) // show detail panel on mobile
 
@@ -605,7 +605,7 @@ export default function App() {
                     <button key={f} className={`mf-btn ${mf===f?"on":""}`} onClick={() => { setMf(f); setSelRegion(null); }}>{f}</button>
                   ))}
                 </div>
-                {dbRegions.length === 0 ? (
+                {!regionsLoaded ? (
                   <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,fontFamily:"var(--mono)",fontSize:11,color:"var(--muted)"}}>
                     <Globe2 size={24} style={{animation:"pulse 1.5s ease-in-out infinite"}} />
                     <div style={{letterSpacing:2}}>LOADING MAP DATA...</div>

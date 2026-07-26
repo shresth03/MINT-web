@@ -135,7 +135,7 @@ Output only the summary text. No preamble, no labels.`
     }
   }
 
-  async function publishStory({ body, tag, region, threadId, headline, summary }) {
+  async function publishStory({ body, tag, region, regionLat, regionLng, threadId, headline, summary }) {
     const { data: { session } } = await supabase.auth.getSession()
     const jwt = session?.access_token
 
@@ -150,6 +150,8 @@ Output only the summary text. No preamble, no labels.`
         body: body.trim(),
         tag,
         region,
+        region_lat: regionLat ?? null,
+        region_lng: regionLng ?? null,
         is_osint: true,
         post_type: 'news',
         likes: 0,
@@ -224,7 +226,7 @@ Output only the summary text. No preamble, no labels.`
 
     await supabase
       .from('stories')
-      .update({ headline: finalHeadline, summary: finalSummary, tag, region })
+      .update({ headline: finalHeadline, summary: finalSummary, tag, region, region_lat: regionLat ?? null, region_lng: regionLng ?? null })
       .eq('id', storyId)
 
     return { post, error: null }

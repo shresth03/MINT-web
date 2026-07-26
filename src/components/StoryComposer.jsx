@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useStoryComposer } from '../hooks/useStoryComposer'
-import { X, Check } from 'lucide-react'
-import { COMPOSER_TAGS as TAGS, REGIONS_LIST as REGIONS } from '../constants'
+import { X, Check, MapPin } from 'lucide-react'
+import { COMPOSER_TAGS as TAGS } from '../constants'
 
 export default function StoryComposer({ onClose, onPublished }) {
   const { publishStory, searchThreads, getRecentThreads, generateHeadline, generateSummary } = useStoryComposer()
@@ -9,7 +9,12 @@ export default function StoryComposer({ onClose, onPublished }) {
   const [step, setStep] = useState(1)
   const [body, setBody] = useState('')
   const [tag, setTag] = useState('GEOPOLITICAL')
-  const [region, setRegion] = useState('Global')
+  const [regionQuery, setRegionQuery]       = useState('')
+  const [regionPlace, setRegionPlace]       = useState(null)  // { label, lat, lng }
+  const [regionResults, setRegionResults]   = useState([])
+  const [regionLoading, setRegionLoading]   = useState(false)
+  const regionDebounce                      = useRef(null)
+  const regionDropdownRef                   = useRef(null)
   const [threadId, setThreadId] = useState(null)
   const [threadObj, setThreadObj] = useState(null)
   const [availableThreads, setAvailableThreads] = useState([])
@@ -61,6 +66,38 @@ export default function StoryComposer({ onClose, onPublished }) {
     getRecentThreads().then(setAvailableThreads)
   }, [])
 
+  // Nominatim place search — debounced 350ms
+  useEffect(() => {
+    if (regionDebounce.current) clearTimeout(regionDebounce.current)
+    if (!regionQuery.trim() || regionQuery.length < 2) { setRegionResults([]); return }
+    regionDebounce.current = setTimeout(async () => {
+      setRegionLoading(true)
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(regionQuery)}&format=json&limit=6&addressdetails=1`,
+          { headers: { 'User-Agent': 'MINT-OSINT-App/1.0' } }
+        )
+        const data = await res.json()
+        setRegionResults(data.map(r => ({
+          label: r.display_name,
+          short: [r.address?.city || r.address?.town || r.address?.village || r.address?.county || r.address?.state, r.address?.country].filter(Boolean).join(', '),
+          lat: parseFloat(r.lat),
+          lng: parseFloat(r.lon),
+          type: r.type,
+        })))
+      } catch { setRegionResults([]) }
+      setRegionLoading(false)
+    }, 350)
+    return () => clearTimeout(regionDebounce.current)
+  }, [regionQuery])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = e => { if (regionDropdownRef.current && !regionDropdownRef.current.contains(e.target)) setRegionResults([]) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   useEffect(() => {
     if (step === 2) {
       setLoadingThreads(true)
@@ -103,7 +140,13 @@ export default function StoryComposer({ onClose, onPublished }) {
     if (!body.trim()) { setError('Post body is required.'); return }
     setPublishing(true)
     setError('')
-    const { post, error: err } = await publishStory({ body, tag, region, threadId})
+    const { post, error: err } = await publishStory({
+      body, tag,
+      region: regionPlace?.short ?? 'global',
+      regionLat: regionPlace?.lat ?? null,
+      regionLng: regionPlace?.lng ?? null,
+      threadId,
+    })
     setPublishing(false)
     if (err) { setError(err.message); return }
     onPublished?.(post)
@@ -223,11 +266,55 @@ export default function StoryComposer({ onClose, onPublished }) {
                     {TAGS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label style={labelStyle}>REGION</label>
-                  <select style={{ ...inputStyle, cursor: 'pointer' }} value={region} onChange={e => setRegion(e.target.value)}>
-                    {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
+                <div style={{ position: 'relative' }} ref={regionDropdownRef}>
+                  <label style={labelStyle}>LOCATION</label>
+                  {regionPlace ? (
+                    <div style={{
+                      ...inputStyle, display: 'flex', alignItems: 'center',
+                      gap: 8, cursor: 'default', color: 'var(--text)',
+                    }}>
+                      <MapPin size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{regionPlace.short}</span>
+                      <button onClick={() => { setRegionPlace(null); setRegionQuery('') }}
+                        style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <input
+                      style={{ ...inputStyle }}
+                      value={regionQuery}
+                      onChange={e => setRegionQuery(e.target.value)}
+                      placeholder={regionLoading ? 'Searching...' : 'Search any place on earth…'}
+                    />
+                  )}
+                  {regionResults.length > 0 && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                      background: 'var(--surface)', border: '1px solid var(--border)',
+                      borderRadius: 6, marginTop: 4, overflow: 'hidden',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                    }}>
+                      {regionResults.map((r, i) => (
+                        <button key={i} type="button" onClick={() => { setRegionPlace(r); setRegionQuery(''); setRegionResults([]) }}
+                          style={{
+                            width: '100%', textAlign: 'left', background: 'none', border: 'none',
+                            padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                            borderBottom: i < regionResults.length - 1 ? '1px solid var(--border)' : 'none',
+                            transition: 'background 0.1s',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                        >
+                          <MapPin size={11} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontSize: 12, color: 'var(--text)', fontFamily: 'var(--sans)' }}>{r.short}</div>
+                            <div style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--mono)', marginTop: 2, letterSpacing: 0.5 }}>{r.type?.toUpperCase()}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -464,7 +551,7 @@ export default function StoryComposer({ onClose, onPublished }) {
                 <div style={{ padding: 16 }}>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 9, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--border)', color: 'var(--accent)', letterSpacing: 1 }}>{tag}</span>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 9, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--border)', color: 'var(--muted)', letterSpacing: 1 }}>{region}</span>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 9, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--border)', color: 'var(--muted)', letterSpacing: 1 }}>{regionPlace ? regionPlace.short : 'No location'}</span>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 9, padding: '3px 8px', borderRadius: 4, border: '1px solid color-mix(in srgb, var(--verified) 27%, transparent)', color: 'var(--verified)', letterSpacing: 1 }}>◆ OSINT</span>
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, marginBottom: 12 }}>
@@ -493,8 +580,8 @@ export default function StoryComposer({ onClose, onPublished }) {
               {error && (
                 <div style={{
                   padding: '10px 14px', borderRadius: 6,
-                  background: 'rgba(255,107,53,0.1)', border: '1px solid #ff6b35',
-                  fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--warn)'
+                  background: 'color-mix(in srgb, var(--accent2) 10%, transparent)', border: '1px solid var(--accent2)',
+                  fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent2)'
                 }}>
                   {error}
                 </div>

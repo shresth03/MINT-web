@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageShell from '../components/PageShell'
 import { useStories } from '../hooks/useStories'
 import { useAuth } from '../hooks/useAuth'
 import { MapPin, X, Cpu, BadgeCheck, PenSquare, Newspaper } from 'lucide-react'
 import { supabase } from '../api/supabase'
-import { STORY_TAGS as TAGS, REGIONS_LIST as REGIONS } from '../constants'
+import { STORY_TAGS as TAGS } from '../constants'
 
 const TAG_COLORS = {
-  CONFLICT: '#e84848', CYBER: '#00d4ff', GEOPOLITICS: '#ff9f43',
+  CONFLICT: '#e84848', CYBER: '#00d4ff', GEOPOLITICS: 'var(--warn)',
   MILITARY: '#8a6a2a', HUMANITARIAN: '#30d880', NUCLEAR: '#a855f7',
   MARITIME: '#3b82f6', INTELLIGENCE: '#f59e0b', BREAKING: '#e84848',
   SECURITY: '#6366f1', OTHER: 'var(--muted)',
@@ -57,7 +57,7 @@ function ArticleCard({ story, onClick }) {
         {story.confidence != null && (
           <span style={{
             marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 9,
-            color: story.confidence >= 70 ? 'var(--verified)' : story.confidence >= 40 ? '#ff9f43' : 'var(--accent2)',
+            color: story.confidence >= 70 ? 'var(--verified)' : story.confidence >= 40 ? 'var(--warn)' : 'var(--accent2)',
           }}>
             {story.confidence}% CONF
           </span>
@@ -83,7 +83,7 @@ function ArticleCard({ story, onClick }) {
           {authors.slice(0, 3).map(a => (
             <span key={a} style={{
               fontFamily: 'var(--mono)', fontSize: 9, padding: '2px 6px',
-              background: 'rgba(0,212,255,0.07)', border: '1px solid var(--border)',
+              background: 'var(--tl-bg)', border: '1px solid var(--border)',
               borderRadius: 3, color: 'var(--accent)',
             }}>@{a}</span>
           ))}
@@ -143,7 +143,7 @@ function ArticleDetail({ story, onClose }) {
           {story.confidence != null && (
             <span style={{
               fontFamily: 'var(--mono)', fontSize: 9,
-              color: story.confidence >= 70 ? 'var(--verified)' : '#ff9f43',
+              color: story.confidence >= 70 ? 'var(--verified)' : 'var(--warn)',
             }}>
               {story.confidence}% CONFIDENCE
             </span>
@@ -237,10 +237,45 @@ function ArticleComposer({ onClose, onPublished }) {
   const [headline, setHeadline] = useState('')
   const [summary, setSummary] = useState('')
   const [tag, setTag] = useState('GEOPOLITICS')
-  const [region, setRegion] = useState('Global')
+  const [regionQuery, setRegionQuery]     = useState('')
+  const [regionPlace, setRegionPlace]     = useState(null)
+  const [regionResults, setRegionResults] = useState([])
+  const [regionLoading, setRegionLoading] = useState(false)
+  const regionDebounce                    = useRef(null)
+  const regionDropdownRef                 = useRef(null)
   const [confidence, setConfidence] = useState(60)
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (regionDebounce.current) clearTimeout(regionDebounce.current)
+    if (!regionQuery.trim() || regionQuery.length < 2) { setRegionResults([]); return }
+    regionDebounce.current = setTimeout(async () => {
+      setRegionLoading(true)
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(regionQuery)}&format=json&limit=6&addressdetails=1`,
+          { headers: { 'User-Agent': 'MINT-OSINT-App/1.0' } }
+        )
+        const data = await res.json()
+        setRegionResults(data.map(r => ({
+          label: r.display_name,
+          short: [r.address?.city || r.address?.town || r.address?.village || r.address?.county || r.address?.state, r.address?.country].filter(Boolean).join(', '),
+          lat: parseFloat(r.lat),
+          lng: parseFloat(r.lon),
+          type: r.type,
+        })))
+      } catch { setRegionResults([]) }
+      setRegionLoading(false)
+    }, 350)
+    return () => clearTimeout(regionDebounce.current)
+  }, [regionQuery])
+
+  useEffect(() => {
+    const handler = e => { if (regionDropdownRef.current && !regionDropdownRef.current.contains(e.target)) setRegionResults([]) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const handlePublish = async () => {
     if (!headline.trim() || !summary.trim()) { setError('Headline and summary are required'); return }
@@ -249,7 +284,9 @@ function ArticleComposer({ onClose, onPublished }) {
       headline: headline.trim(),
       summary: summary.trim(),
       tag,
-      region,
+      region: regionPlace?.short ?? null,
+      region_lat: regionPlace?.lat ?? null,
+      region_lng: regionPlace?.lng ?? null,
       confidence,
       author_id: user.id,
       is_breaking: false,
@@ -307,18 +344,59 @@ function ArticleComposer({ onClose, onPublished }) {
               {TAGS.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-          <div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1, color: 'var(--muted)', marginBottom: 4 }}>REGION</div>
-            <select value={region} onChange={e => setRegion(e.target.value)} style={{ ...inputStyle, marginBottom: 0, cursor: 'pointer' }}>
-              {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+          <div style={{ position: 'relative' }} ref={regionDropdownRef}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1, color: 'var(--muted)', marginBottom: 4 }}>LOCATION</div>
+            {regionPlace ? (
+              <div style={{ ...inputStyle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <MapPin size={11} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                <span style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{regionPlace.short}</span>
+                <button onClick={() => { setRegionPlace(null); setRegionQuery('') }}
+                  style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                  <X size={13} />
+                </button>
+              </div>
+            ) : (
+              <input
+                style={{ ...inputStyle, marginBottom: 0 }}
+                value={regionQuery}
+                onChange={e => setRegionQuery(e.target.value)}
+                placeholder={regionLoading ? 'Searching...' : 'Search any place…'}
+              />
+            )}
+            {regionResults.length > 0 && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                borderRadius: 6, marginTop: 4, overflow: 'hidden',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+              }}>
+                {regionResults.map((r, i) => (
+                  <button key={i} type="button"
+                    onClick={() => { setRegionPlace(r); setRegionQuery(''); setRegionResults([]) }}
+                    style={{
+                      width: '100%', textAlign: 'left', background: 'none', border: 'none',
+                      padding: '9px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                      borderBottom: i < regionResults.length - 1 ? '1px solid var(--border)' : 'none',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  >
+                    <MapPin size={10} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text)', fontFamily: 'var(--sans)' }}>{r.short}</div>
+                      <div style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--mono)', marginTop: 1, letterSpacing: 0.5 }}>{r.type?.toUpperCase()}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1, color: 'var(--muted)' }}>CONFIDENCE</div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: confidence >= 70 ? 'var(--verified)' : confidence >= 40 ? '#ff9f43' : 'var(--accent2)' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: confidence >= 70 ? 'var(--verified)' : confidence >= 40 ? 'var(--warn)' : 'var(--accent2)' }}>
               {confidence}%
             </div>
           </div>
@@ -400,7 +478,7 @@ export default function ArticlesPage() {
                 padding: '4px 12px', borderRadius: 12, cursor: 'pointer',
                 fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
                 border: `1px solid ${!tagFilter ? 'var(--accent)' : 'var(--border)'}`,
-                background: !tagFilter ? 'rgba(0,212,255,0.1)' : 'transparent',
+                background: !tagFilter ? 'var(--active-bg)' : 'transparent',
                 color: !tagFilter ? 'var(--accent)' : 'var(--muted)',
               }}
             >ALL</button>
