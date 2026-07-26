@@ -19,6 +19,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
 
   const [tooltip,     setTooltip]   = useState(null)
   const [topoData,    setTopoData]  = useState(null)
+  const [indiaData,   setIndiaData] = useState(null)
   const [dims,        setDims]      = useState({ w: 900, h: 520 })
   const [showRover,   setShowRover] = useState(false)
   const [isDragging,  setIsDragging] = useState(false)
@@ -39,6 +40,12 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
   useEffect(() => {
     fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
       .then(r => r.json()).then(setTopoData).catch(() => {})
+  }, [])
+
+  // Fetch India's official boundary (Survey of India — includes J&K, Aksai Chin, Arunachal)
+  useEffect(() => {
+    fetch('/india-boundary.json')
+      .then(r => r.json()).then(setIndiaData).catch(() => {})
   }, [])
 
   // Focus rover close button on open
@@ -78,7 +85,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     }
     rafRef.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [dims, regions, topoData]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dims, regions, topoData, indiaData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function buildStaticLayer(svg, w, h, r, mX, mY, mR) {
     svg.selectAll('*').remove()
@@ -362,10 +369,19 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
 
     if (topoData && window.topojson) {
       const countries = window.topojson.feature(topoData, topoData.objects.countries).features
+      // Exclude world-atlas India (id '356') — replaced by official Survey of India boundary below
       dynG.append('g').selectAll('path')
-        .data(countries)
+        .data(countries.filter(f => f.id !== '356'))
         .join('path').attr('d', path)
         .attr('fill', '#111418').attr('stroke', '#5a8aaa').attr('stroke-width', 0.8)
+
+      // India's official boundary (correct CCW winding) drawn on top once world atlas is ready
+      if (indiaData) {
+        dynG.append('g').selectAll('path')
+          .data(indiaData.features)
+          .join('path').attr('d', path)
+          .attr('fill', '#111418').attr('stroke', '#5a8aaa').attr('stroke-width', 0.8)
+      }
     }
 
     // ── EVENT HOTSPOTS ────────────────────────────────────────────────────
@@ -463,7 +479,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       el.removeEventListener('touchmove',  onMove)
       el.removeEventListener('touchend',   onEnd)
     }
-  }, [dims, regions, topoData]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dims, regions, topoData, indiaData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div ref={wrapRef} className="map-body" style={{ cursor: isDragging ? 'grabbing' : 'grab' }}>
