@@ -97,7 +97,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     // Globe outer glow
     const gg = defs.append('radialGradient').attr('id', 'gg')
       .attr('cx', '50%').attr('cy', '50%').attr('r', '50%')
-    gg.append('stop').attr('offset', '85%').attr('stop-color', '#081c30').attr('stop-opacity', 1)
+    gg.append('stop').attr('offset', '85%').attr('stop-color', '#0d2840').attr('stop-opacity', 1)
     gg.append('stop').attr('offset', '100%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.08)
 
     // Moon surface
@@ -154,7 +154,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     svg.append('circle').attr('cx', w/2).attr('cy', h/2).attr('r', r + 8)
       .attr('fill', 'url(#gg)').attr('stroke', '#1e3a52').attr('stroke-width', 1)
     svg.append('circle').attr('cx', w/2).attr('cy', h/2).attr('r', r)
-      .attr('fill', '#081c30').attr('stroke', '#00d4ff')
+      .attr('fill', '#0d2840').attr('stroke', '#00d4ff')
       .attr('stroke-width', 0.5).attr('stroke-opacity', 0.15)
 
     // ── DYNAMIC LAYER SLOT (countries/graticule/hotspots go here each frame) ──
@@ -372,7 +372,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       dynG.append('g').selectAll('path')
         .data(countries.filter(f => f.id !== 356))
         .join('path').attr('d', path)
-        .attr('fill', '#111418').attr('stroke', '#4a7090').attr('stroke-width', 0.65)
+        .attr('fill', '#111418').attr('stroke', '#5a8aaa').attr('stroke-width', 0.8)
 
       // Only draw India once the world atlas is present — avoids a winding-order
       // flood-fill glitch that occurs when indiaData (local file, loads instantly)
@@ -381,7 +381,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
         dynG.append('g').selectAll('path')
           .data(indiaData.features)
           .join('path').attr('d', path)
-          .attr('fill', '#111418').attr('stroke', '#4a7090').attr('stroke-width', 0.65)
+          .attr('fill', '#111418').attr('stroke', '#5a8aaa').attr('stroke-width', 0.8)
       }
     }
 
