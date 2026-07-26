@@ -98,7 +98,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     const gg = defs.append('radialGradient').attr('id', 'gg')
       .attr('cx', '50%').attr('cy', '50%').attr('r', '50%')
     gg.append('stop').attr('offset', '85%').attr('stop-color', '#081c30').attr('stop-opacity', 1)
-    gg.append('stop').attr('offset', '100%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.22)
+    gg.append('stop').attr('offset', '100%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.08)
 
     // Moon surface
     const mb = defs.append('radialGradient').attr('id', 'mb')
@@ -147,7 +147,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
     const ag = defs.append('radialGradient').attr('id', 'ag')
       .attr('cx', '50%').attr('cy', '50%').attr('r', '50%')
     ag.append('stop').attr('offset', '84%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0)
-    ag.append('stop').attr('offset', '93%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.18)
+    ag.append('stop').attr('offset', '93%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.08)
     ag.append('stop').attr('offset','100%').attr('stop-color', '#004466').attr('stop-opacity', 0)
 
     // ── GLOBE BACKGROUND (static — never moves) ────────────────────────────
@@ -155,7 +155,7 @@ export default function WorldMap({ filter, onRegionClick, regions: propRegions }
       .attr('fill', 'url(#gg)').attr('stroke', '#1e3a52').attr('stroke-width', 1)
     svg.append('circle').attr('cx', w/2).attr('cy', h/2).attr('r', r)
       .attr('fill', '#081c30').attr('stroke', '#00d4ff')
-      .attr('stroke-width', 0.5).attr('stroke-opacity', 0.4)
+      .attr('stroke-width', 0.5).attr('stroke-opacity', 0.15)
 
     // ── DYNAMIC LAYER SLOT (countries/graticule/hotspots go here each frame) ──
     svg.append('g').attr('class', 'globe-dynamic')
