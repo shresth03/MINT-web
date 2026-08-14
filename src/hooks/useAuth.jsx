@@ -37,19 +37,19 @@ export function AuthProvider({ children }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        // Pass the extra data here so the trigger can read it!
+        data: {
+          username: username,
+          role: ['public', 'reporter'].includes(role) ? role : 'public'
+        }
+      },
     })
     if (error) return { error }
 
-    if (data.user) {
-      const { error: profileError } = await supabase.from('users').insert({
-        id: data.user.id,
-        username,
-        role: ['public', 'reporter'].includes(role) ? role : 'public',
-      })
-      if (profileError) return { error: profileError }
-    }
-    // session is null when Supabase has email confirmation enabled
+    // REMOVED the supabase.from('users').insert(...) entirely!
+
     return { data, needsEmailConfirmation: !data.session }
   }
 
