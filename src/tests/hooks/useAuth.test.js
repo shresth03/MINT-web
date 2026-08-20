@@ -5,7 +5,7 @@ import React from 'react'
 // vi.mock is hoisted — use vi.hoisted so the fns are available inside the factory
 const {
   mockAuthSignUp, mockAuthSignIn, mockAuthSignOut,
-  mockAuthGetSession, mockAuthOnChange, mockAuthResetPw, mockAuthResend, mockInsert,
+  mockAuthGetSession, mockAuthOnChange, mockAuthResetPw, mockAuthResend,
 } = vi.hoisted(() => ({
   mockAuthSignUp: vi.fn(),
   mockAuthSignIn: vi.fn(),
@@ -18,7 +18,6 @@ const {
   }),
   mockAuthResetPw: vi.fn().mockResolvedValue({ error: null }),
   mockAuthResend: vi.fn().mockResolvedValue({ error: null }),
-  mockInsert: vi.fn(),
 }))
 
 vi.mock('../../api/supabase', () => ({
@@ -32,7 +31,6 @@ vi.mock('../../api/supabase', () => ({
       resetPasswordForEmail: mockAuthResetPw,
       resend: mockAuthResend,
     },
-    from: () => ({ insert: mockInsert }),
   },
 }))
 
@@ -74,29 +72,10 @@ describe('useAuth', () => {
 
     expect(response.error).toBeTruthy()
     expect(response.error.message).toBe('Email rate limit exceeded')
-    expect(mockInsert).not.toHaveBeenCalled()
-  })
-
-  it('returns insert error when users table insert fails (#28)', async () => {
-    mockAuthSignUp.mockResolvedValue({ data: { user: { id: 'u-new' } }, error: null })
-    mockInsert.mockResolvedValue({
-      data: null,
-      error: { message: 'duplicate key value violates unique constraint "users_username_key"' },
-    })
-
-    const { result } = await setup()
-    let response
-    await act(async () => {
-      response = await result.current.signUp('a@b.com', 'pass123', 'taken_name')
-    })
-
-    expect(response.error).toBeTruthy()
-    expect(response.error.message).toMatch(/duplicate key/i)
   })
 
   it('returns { data } on fully successful signUp', async () => {
     mockAuthSignUp.mockResolvedValue({ data: { user: { id: 'u-new' } }, error: null })
-    mockInsert.mockResolvedValue({ data: { id: 'u-new' }, error: null })
 
     const { result } = await setup()
     let response
@@ -110,29 +89,35 @@ describe('useAuth', () => {
 
   it('sanitises role — unknown role defaults to public', async () => {
     mockAuthSignUp.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
-    mockInsert.mockResolvedValue({ data: {}, error: null })
 
     const { result } = await setup()
     await act(async () => {
       await result.current.signUp('a@b.com', 'pass', 'alice', 'hacker')
     })
 
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({ role: 'public' })
+    expect(mockAuthSignUp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          data: expect.objectContaining({ role: 'public' }),
+        }),
+      })
     )
   })
 
   it('allows reporter role through', async () => {
     mockAuthSignUp.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
-    mockInsert.mockResolvedValue({ data: {}, error: null })
 
     const { result } = await setup()
     await act(async () => {
       await result.current.signUp('a@b.com', 'pass', 'bob', 'reporter')
     })
 
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({ role: 'reporter' })
+    expect(mockAuthSignUp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          data: expect.objectContaining({ role: 'reporter' }),
+        }),
+      })
     )
   })
 
