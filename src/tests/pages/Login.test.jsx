@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import Login from '../../pages/Login'
+import Login from '../../pages/auth/Login'
 
 const mockNavigate = vi.fn()
 const mockSignIn = vi.fn()

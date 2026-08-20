@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import '../mocks/supabase.js'
 import { mockSupabase } from '../mocks/supabase.js'
-import ProfilePage from '../../pages/ProfilePage'
+import ProfilePage from '../../pages/account/ProfilePage'
 
 const mockNavigate = vi.fn()
 const mockUpdateProfile = vi.fn()

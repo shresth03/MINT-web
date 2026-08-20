@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import { useTheme } from '../hooks/useTheme'
+import { useAuth } from '../../hooks/useAuth'
+import { useTheme } from '../../hooks/useTheme'
 import { Mail, CheckCircle } from 'lucide-react'
 
 const RESEND_COOLDOWN = 60

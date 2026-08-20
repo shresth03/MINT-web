@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useChannel } from '../hooks/useChannel'
-import { useAuth } from '../hooks/useAuth'
-import { useFollow } from '../hooks/useFollow'
+import { useChannel } from '../../hooks/useChannel'
+import { useAuth } from '../../hooks/useAuth'
+import { useFollow } from '../../hooks/useFollow'
 import { Inbox, BadgeCheck, ShieldAlert, CircleDot, Check, Heart, MessageCircle, Repeat2, UserCheck, UserPlus } from 'lucide-react'
-import { useMessages } from '../hooks/useMessages'
-import { useCredibility } from '../hooks/useCredibility'
-import PageShell from '../components/PageShell'
+import { useMessages } from '../../hooks/useMessages'
+import { useCredibility } from '../../hooks/useCredibility'
+import PageShell from '../../components/PageShell'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)

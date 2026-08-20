@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import '../mocks/supabase.js'
 import { mockSupabase } from '../mocks/supabase.js'
-import FeedbackPage from '../../pages/FeedbackPage'
+import FeedbackPage from '../../pages/support/FeedbackPage'
 
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'test-user' } })

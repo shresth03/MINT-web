@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../api/supabase'
-import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../../api/supabase'
+import { useAuth } from '../../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
-import PageShell from '../components/PageShell'
+import PageShell from '../../components/PageShell'
 import { Check, X, Cpu, ChevronUp, ChevronDown, BadgeCheck, Flag, Clock, RefreshCw, CircleDot } from 'lucide-react'
-import { computeScore } from '../hooks/useCredibility'
+import { computeScore } from '../../hooks/useCredibility'
 
 const FEATURES_META = {
   intel_feed: 'Intel Feed', general_feed: 'General Feed', following_feed: 'Following Feed',

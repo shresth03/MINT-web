@@ -1,12 +1,12 @@
 // FILE: src/pages/SettingsPage.jsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import { useUser } from '../hooks/useUser'
+import { useAuth } from '../../hooks/useAuth'
+import { useUser } from '../../hooks/useUser'
 import { ToggleRight, ToggleLeft, BadgeCheck, ShieldAlert, CircleDot, Check } from 'lucide-react'
-import { useTheme } from '../hooks/useTheme'
-import PageShell from '../components/PageShell'
-import ThemeToggle from '../components/ThemeToggle'
+import { useTheme } from '../../hooks/useTheme'
+import PageShell from '../../components/PageShell'
+import ThemeToggle from '../../components/ThemeToggle'
 
 export default function SettingsPage() {
   const { user, signOut, resetPassword } = useAuth()

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useMessages } from '../hooks/useMessages'
-import { useAuth } from '../hooks/useAuth'
-import { supabase } from '../api/supabase'
+import { useMessages } from '../../hooks/useMessages'
+import { useAuth } from '../../hooks/useAuth'
+import { supabase } from '../../api/supabase'
 import { MessageSquare, BadgeCheck, Inbox } from 'lucide-react'
-import { useIsMobile } from '../hooks/useIsMobile'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)

@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import PageShell from '../components/PageShell'
-import { useStories } from '../hooks/useStories'
-import { useAuth } from '../hooks/useAuth'
+import PageShell from '../../components/PageShell'
+import { useStories } from '../../hooks/useStories'
+import { useAuth } from '../../hooks/useAuth'
 import { MapPin, X, Cpu, BadgeCheck, PenSquare, Newspaper } from 'lucide-react'
-import { supabase } from '../api/supabase'
-import { STORY_TAGS as TAGS } from '../constants'
+import { supabase } from '../../api/supabase'
+import { STORY_TAGS as TAGS } from '../../constants'
 
 const TAG_COLORS = {
   CONFLICT: '#e84848', CYBER: '#00d4ff', GEOPOLITICS: 'var(--warn)',

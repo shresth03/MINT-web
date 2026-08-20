@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { mockSupabase } from '../mocks/supabase.js'
-import LivePage from '../../pages/LivePage'
+import LivePage from '../../pages/feed/LivePage'
 
 vi.mock('../../hooks/useTheme', () => ({
   useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn(), followSystem: vi.fn() }),

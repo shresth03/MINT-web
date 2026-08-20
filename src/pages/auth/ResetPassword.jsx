@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import { useTheme } from '../hooks/useTheme'
-import { supabase } from '../api/supabase'
+import { useAuth } from '../../hooks/useAuth'
+import { useTheme } from '../../hooks/useTheme'
+import { supabase } from '../../api/supabase'
 import { CheckCircle, Lock } from 'lucide-react'
 
 export default function ResetPassword() {

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import VerifyEmail from '../../pages/VerifyEmail'
+import VerifyEmail from '../../pages/auth/VerifyEmail'
 
 const mockNavigate = vi.fn()
 const mockResendVerification = vi.fn()

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import ArticlesPage from '../../pages/ArticlesPage'
+import ArticlesPage from '../../pages/feed/ArticlesPage'
 
 vi.mock('../../hooks/useTheme', () => ({
   useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn(), followSystem: vi.fn() }),

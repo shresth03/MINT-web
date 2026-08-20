@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import '../mocks/supabase.js'
-import ReelsPage from '../../pages/ReelsPage'
+import ReelsPage from '../../pages/feed/ReelsPage'
 
 vi.mock('../../hooks/useTheme', () => ({
   useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn(), followSystem: vi.fn() }),

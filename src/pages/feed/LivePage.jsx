@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import PageShell from '../components/PageShell'
-import { useLiveStreams, useStreamViewers } from '../hooks/useLiveStreams'
-import { useAuth } from '../hooks/useAuth'
+import PageShell from '../../components/PageShell'
+import { useLiveStreams, useStreamViewers } from '../../hooks/useLiveStreams'
+import { useAuth } from '../../hooks/useAuth'
 import { BadgeCheck, PenLine, Play, Radio, Inbox } from 'lucide-react'
-import { supabase } from '../api/supabase'
+import { supabase } from '../../api/supabase'
 
 function timeAgo(dateStr) {
   if (!dateStr) return ''

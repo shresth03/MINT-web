@@ -1,7 +1,7 @@
 // FILE: src/pages/HomePage.jsx
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import { useTheme } from '../hooks/useTheme'
+import { useAuth } from '../../hooks/useAuth'
+import { useTheme } from '../../hooks/useTheme'
 import { Cpu, Globe2, BadgeCheck, Radio, MessageSquareText, TrendingUp } from 'lucide-react'
 
 const FEATURES = [

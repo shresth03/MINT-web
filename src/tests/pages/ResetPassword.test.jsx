@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { mockSupabase } from '../mocks/supabase.js'
 import '../mocks/supabase.js'
-import ResetPassword from '../../pages/ResetPassword'
+import ResetPassword from '../../pages/auth/ResetPassword'
 
 const mockNavigate = vi.fn()
 const mockUpdatePassword = vi.fn()
