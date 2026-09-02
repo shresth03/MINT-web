@@ -4,15 +4,15 @@ import { MemoryRouter } from 'react-router-dom'
 import '../mocks/supabase.js'
 import GeneralFeed from '../../components/feed/GeneralFeed'
 
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../hooks/core/useAuth', () => ({
   useAuth: () => ({ user: { id: 'test-user', email: 'test@test.com' } })
 }))
 
-vi.mock('../../hooks/useNotifications', () => ({
+vi.mock('../../hooks/social/useNotifications', () => ({
   useNotifications: () => ({ createNotification: vi.fn() })
 }))
 
-vi.mock('../../hooks/useIsMobile', () => ({
+vi.mock('../../hooks/core/useIsMobile', () => ({
   useIsMobile: () => false  // desktop by default
 }))
 
@@ -35,7 +35,7 @@ const mockPosts = [
   },
 ]
 
-vi.mock('../../hooks/usePosts', () => ({
+vi.mock('../../hooks/feed/usePosts', () => ({
   usePosts: () => ({
     posts: mockPosts,
     loading: false,
@@ -90,7 +90,7 @@ describe('GeneralFeed', () => {
   })
 
   it('shows FAB on mobile instead of inline composer', () => {
-    vi.doMock('../../hooks/useIsMobile', () => ({
+    vi.doMock('../../hooks/core/useIsMobile', () => ({
       useIsMobile: () => true
     }))
     // FAB renders as + button — just check composer textarea is NOT visible inline

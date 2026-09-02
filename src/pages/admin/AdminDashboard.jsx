@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../../api/supabase'
-import { useAuth } from '../../hooks/useAuth'
+import { contentDb, identityDb, moderationDb, socialDb } from '../../api/supabase'
+import { useAuth } from '../../hooks/core/useAuth'
 import { useNavigate } from 'react-router-dom'
 import PageShell from '../../components/PageShell'
 import { Check, X, Cpu, ChevronUp, ChevronDown, BadgeCheck, Flag, Clock, RefreshCw, CircleDot } from 'lucide-react'
-import { computeScore } from '../../hooks/useCredibility'
+import { computeScore } from '../../hooks/social/useCredibility'
 
 const FEATURES_META = {
   intel_feed: 'Intel Feed', general_feed: 'General Feed', following_feed: 'Following Feed',
@@ -122,12 +122,12 @@ export default function AdminDashboard() {
   const [feedback, setFeedback] = useState([])
 
   async function loadApplications() {
-    const { data } = await supabase.from('osint_applications').select('*').order('created_at', { ascending: false })
+    const { data } = await identityDb.from('osint_applications').select('*').order('created_at', { ascending: false })
     setApplications(data || [])
   }
 
   async function loadFeedback() {
-    const { data } = await supabase
+    const { data } = await moderationDb
       .from('feedback')
       .select('*')
       .order('created_at', { ascending: false })
@@ -135,32 +135,48 @@ export default function AdminDashboard() {
   }
 
   async function loadClaims() {
-    const { data } = await supabase
+    const { data: claimsData } = await moderationDb
       .from('claims')
-      .select(`*, posts (id, body, author_id, created_at, users!posts_author_id_fkey (username, role, score))`)
+      .select('*')
       .order('created_at', { ascending: false })
-    setClaims(data || [])
+
+    const postIds = [...new Set((claimsData || []).map(c => c.post_id).filter(Boolean))]
+    const { data: postsData } = postIds.length
+      ? await contentDb.from('posts').select('id, body, author_id, created_at').in('id', postIds)
+      : { data: [] }
+    const postsById = new Map((postsData || []).map(p => [p.id, p]))
+
+    const authorIds = [...new Set((postsData || []).map(p => p.author_id).filter(Boolean))]
+    const { data: authors } = authorIds.length
+      ? await identityDb.from('profiles').select('id, username, role, score').in('id', authorIds)
+      : { data: [] }
+    const authorsById = new Map((authors || []).map(a => [a.id, a]))
+
+    setClaims((claimsData || []).map(c => {
+      const post = postsById.get(c.post_id)
+      return { ...c, posts: post ? { ...post, users: authorsById.get(post.author_id) || null } : null }
+    }))
   }
 
   async function loadOsintUsers() {
-    const { data } = await supabase.from('users').select('id, username, score, role').eq('role', 'osint').order('score', { ascending: false })
+    const { data } = await identityDb.from('profiles').select('id, username, score, role').eq('role', 'osint').order('score', { ascending: false })
     setOsintUsers(data || [])
   }
 
   async function loadReportersAndPublic() {
-    const { data: rData } = await supabase.from('users').select('id, username, role, created_at').eq('role', 'reporter').order('created_at', { ascending: false })
-    const { data: pData } = await supabase.from('users').select('id, username, role, created_at').eq('role', 'public').order('created_at', { ascending: false }).limit(50)
+    const { data: rData } = await identityDb.from('profiles').select('id, username, role, created_at').eq('role', 'reporter').order('created_at', { ascending: false })
+    const { data: pData } = await identityDb.from('profiles').select('id, username, role, created_at').eq('role', 'public').order('created_at', { ascending: false }).limit(50)
     setReporters(rData || [])
     setPublicUsers(pData || [])
   }
 
   async function assignRole(userId, newRole) {
-    await supabase.from('users').update({ role: newRole }).eq('id', userId)
+    await identityDb.from('profiles').update({ role: newRole }).eq('id', userId)
     await loadReportersAndPublic()
   }
 
   async function checkAdminAndLoad() {
-    const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
+    const { data } = await identityDb.from('profiles').select('role').eq('id', user.id).single()
     if (!data || data.role !== 'admin') { navigate('/feed'); return }
     setUserRole('admin')
     await Promise.all([loadApplications(), loadClaims(), loadOsintUsers(), loadFeedback(), loadReportersAndPublic()])
@@ -171,26 +187,36 @@ export default function AdminDashboard() {
 
   async function loadClaimNotes(claimId, postId) {
     if (claimNotes[claimId]) { setExpandedClaim(expandedClaim === claimId ? null : claimId); return }
-    const { data } = await supabase
+    const { data: notesData } = await moderationDb
       .from('community_notes')
-      .select(`*, users!community_notes_author_id_fkey (username, role)`)
+      .select('*')
       .eq('post_id', postId).order('created_at', { ascending: false })
-    setClaimNotes(prev => ({ ...prev, [claimId]: data || [] }))
+
+    const authorIds = [...new Set((notesData || []).map(n => n.author_id).filter(Boolean))]
+    const { data: authors } = authorIds.length
+      ? await identityDb.from('profiles').select('id, username, role').in('id', authorIds)
+      : { data: [] }
+    const authorsById = new Map((authors || []).map(a => [a.id, a]))
+
+    setClaimNotes(prev => ({
+      ...prev,
+      [claimId]: (notesData || []).map(n => ({ ...n, users: authorsById.get(n.author_id) || null })),
+    }))
     setExpandedClaim(claimId)
   }
 
   async function handleApprove(app) {
     setProcessing(app.id)
-    await supabase.from('osint_applications').update({ status: 'approved' }).eq('id', app.id)
-    await supabase.from('users').update({ role: 'osint' }).eq('id', app.user_id)
-    await supabase.from('notifications').insert({ to_user_id: app.user_id, from_user_id: user.id, type: 'application_approved', post_id: null })
+    await identityDb.from('osint_applications').update({ status: 'approved' }).eq('id', app.id)
+    await identityDb.from('profiles').update({ role: 'osint' }).eq('id', app.user_id)
+    await socialDb.from('notifications').insert({ to_user_id: app.user_id, from_user_id: user.id, type: 'application_approved', post_id: null })
     setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'approved' } : a))
     setProcessing(null)
   }
 
   async function handleReject(app) {
     setProcessing(app.id)
-    await supabase.from('osint_applications').update({ status: 'rejected' }).eq('id', app.id)
+    await identityDb.from('osint_applications').update({ status: 'rejected' }).eq('id', app.id)
     setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'rejected' } : a))
     setProcessing(null)
   }
@@ -198,14 +224,14 @@ export default function AdminDashboard() {
   async function handleResolveClaim(claimId, status) {
     setProcessing(claimId)
     const note = resolutionNotes[claimId] || null
-    await supabase.from('claims').update({ status, resolved_by: user.id, resolved_at: new Date().toISOString(), resolution_note: note }).eq('id', claimId)
+    await moderationDb.from('claims').update({ status, resolved_by: user.id, resolved_at: new Date().toISOString(), resolution_note: note }).eq('id', claimId)
     setClaims(prev => prev.map(c => c.id === claimId ? { ...c, status, resolution_note: note } : c))
     setProcessing(null)
   }
 
   async function handleRateNote(noteId, claimId, rating) {
     setProcessing(`note-${noteId}`)
-    await supabase.from('community_notes').update({ accuracy_rating: rating }).eq('id', noteId)
+    await moderationDb.from('community_notes').update({ accuracy_rating: rating }).eq('id', noteId)
     setClaimNotes(prev => ({ ...prev, [claimId]: (prev[claimId] || []).map(n => n.id === noteId ? { ...n, accuracy_rating: rating } : n) }))
     setProcessing(null)
   }
@@ -215,8 +241,8 @@ export default function AdminDashboard() {
     if (isNaN(newScore) || newScore < -50 || newScore > 100) { alert('Score must be between -50 and 100'); return }
     setProcessing(`score-${targetUser.id}`)
     const clamped = Math.max(-50, Math.min(100, newScore))
-    await supabase.from('users').update({ score: clamped }).eq('id', targetUser.id)
-    await supabase.from('notifications').insert({ to_user_id: targetUser.id, from_user_id: user.id, type: 'score_override', post_id: null })
+    await identityDb.from('profiles').update({ score: clamped }).eq('id', targetUser.id)
+    await socialDb.from('notifications').insert({ to_user_id: targetUser.id, from_user_id: user.id, type: 'score_override', post_id: null })
     setOsintUsers(prev => prev.map(u => u.id === targetUser.id ? { ...u, score: clamped } : u))
     setScoreInputs(prev => ({ ...prev, [targetUser.id]: '' }))
     setProcessing(null)

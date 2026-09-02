@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../api/supabase'
-import { useAuth } from './useAuth'
+import { supabase, contentDb, identityDb, socialDb } from '../../api/supabase'
+import { useAuth } from '../core/useAuth'
 
 export function useNotifications() {
   const { user } = useAuth()
@@ -16,7 +16,7 @@ export function useNotifications() {
       .channel(`notifs:${user.id}`)
       .on('postgres_changes', {
         event: 'INSERT',
-        schema: 'public',
+        schema: 'social',
         table: 'notifications',
         filter: `to_user_id=eq.${user.id}`
       }, payload => {
@@ -28,15 +28,15 @@ export function useNotifications() {
   }, [user])
 
   async function enrichNotification(n) {
-    const { data: fromUser } = await supabase
-      .from('users')
+    const { data: fromUser } = await identityDb
+      .from('profiles')
       .select('id, username, role')
       .eq('id', n.from_user_id)
       .single()
 
     let postBody = null
     if (n.post_id) {
-      const { data: post } = await supabase
+      const { data: post } = await contentDb
         .from('posts')
         .select('body')
         .eq('id', n.post_id)
@@ -48,7 +48,7 @@ export function useNotifications() {
   }
 
   async function fetchNotifications() {
-    const { data } = await supabase
+    const { data } = await socialDb
       .from('notifications')
       .select('id, to_user_id, from_user_id, post_id, type, read, created_at')
       .eq('to_user_id', user.id)
@@ -64,7 +64,7 @@ export function useNotifications() {
   }
 
   async function fetchSingleNotification(id) {
-    const { data } = await supabase
+    const { data } = await socialDb
       .from('notifications')
       .select('id, to_user_id, from_user_id, post_id, type, read, created_at')
       .eq('id', id)
@@ -78,7 +78,7 @@ export function useNotifications() {
   }
 
   async function markAllRead() {
-    await supabase
+    await socialDb
       .from('notifications')
       .update({ read: true })
       .eq('to_user_id', user.id)
@@ -88,7 +88,7 @@ export function useNotifications() {
   }
 
   async function markRead(id) {
-    await supabase
+    await socialDb
       .from('notifications')
       .update({ read: true })
       .eq('id', id)
@@ -100,7 +100,7 @@ export function useNotifications() {
 
   async function createNotification(toUserId, type, postId = null) {
     if (!user?.id || toUserId === user.id) return
-    await supabase.from('notifications').insert({
+    await socialDb.from('notifications').insert({
       to_user_id: toUserId,
       from_user_id: user.id,
       type,

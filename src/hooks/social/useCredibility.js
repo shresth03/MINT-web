@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../api/supabase'
+import { contentDb, identityDb, moderationDb, socialDb } from '../../api/supabase'
 
 // Score each news post on a 0–100 scale then average across all posts.
 // New OSINT user with no posts = 80.
@@ -7,7 +7,7 @@ async function scoreNewsPosts(targetUserId) {
   const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString()
 
   // Fetch all news posts by this analyst
-  const { data: ownPosts } = await supabase
+  const { data: ownPosts } = await contentDb
     .from('posts')
     .select('id, tag, region, created_at')
     .eq('author_id', targetUserId)
@@ -26,28 +26,35 @@ async function scoreNewsPosts(targetUserId) {
 
   const postIds = ownPosts.map(p => p.id)
 
+  // Which accounts hold the 'osint' role — used to scope peer-corroboration
+  // to other analysts (posts.author_id lives in a different schema than
+  // profiles.role, so this can't be done as an embedded-relation filter).
+  const { data: osintProfiles } = await identityDb.from('profiles').select('id').eq('role', 'osint')
+  const osintIds = (osintProfiles || []).map(p => p.id).filter(id => id !== targetUserId)
+
   // Parallel fetches for all signal data
   const [citedRes, peerPostsRes, reactionsRes, claimsRes, storiesRes] = await Promise.all([
     // Which of this analyst's posts were cited in stories?
-    supabase.from('story_sources').select('post_id').in('post_id', postIds),
+    contentDb.from('story_sources').select('post_id').in('post_id', postIds),
 
     // All news posts from OTHER osint analysts for peer-corroboration check
-    supabase
-      .from('posts')
-      .select('id, author_id, tag, region, created_at, users!inner(role)')
-      .eq('post_type', 'news')
-      .eq('users.role', 'osint')
-      .neq('author_id', targetUserId)
-      .gte('created_at', sixMonthsAgo),
+    osintIds.length
+      ? contentDb
+          .from('posts')
+          .select('id, author_id, tag, region, created_at')
+          .eq('post_type', 'news')
+          .in('author_id', osintIds)
+          .gte('created_at', sixMonthsAgo)
+      : Promise.resolve({ data: [] }),
 
     // All reactions on this analyst's news posts
-    supabase.from('reactions').select('post_id, type').in('post_id', postIds),
+    socialDb.from('reactions').select('post_id, type').in('post_id', postIds),
 
     // Claims on this analyst's news posts
-    supabase.from('claims').select('post_id, status').in('post_id', postIds),
+    moderationDb.from('claims').select('post_id, status').in('post_id', postIds),
 
     // Stories to check timing (when was the story first compiled?)
-    supabase
+    contentDb
       .from('story_sources')
       .select('post_id, story_id, stories!inner(created_at, tag, region)')
       .in('post_id', postIds),
@@ -150,8 +157,8 @@ async function scoreNewsPosts(targetUserId) {
 export async function computeScore(targetUserId) {
   const [postResult, noteRes, consistencyRes] = await Promise.all([
     scoreNewsPosts(targetUserId),
-    supabase.from('community_notes').select('accuracy_rating').eq('author_id', targetUserId).not('accuracy_rating', 'is', null),
-    supabase.from('posts')
+    moderationDb.from('community_notes').select('accuracy_rating').eq('author_id', targetUserId).not('accuracy_rating', 'is', null),
+    contentDb.from('posts')
       .select('created_at')
       .eq('author_id', targetUserId)
       .eq('post_type', 'news')
@@ -190,8 +197,8 @@ export function useCredibility(targetUserId) {
   async function fetchCredibility() {
     setLoading(true)
 
-    const { data: userData } = await supabase
-      .from('users')
+    const { data: userData } = await identityDb
+      .from('profiles')
       .select('score, role')
       .eq('id', targetUserId)
       .single()
@@ -206,7 +213,7 @@ export function useCredibility(targetUserId) {
     const { score: computed, breakdown: bd } = await computeScore(targetUserId)
 
     // Write back so leaderboard stays current
-    await supabase.from('users').update({ score: computed }).eq('id', targetUserId)
+    await identityDb.from('profiles').update({ score: computed }).eq('id', targetUserId)
 
     setScore(computed)
     setBreakdown(bd)

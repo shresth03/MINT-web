@@ -14,11 +14,11 @@ vi.mock('react-router-dom', async (importOriginal) => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
-vi.mock('../../hooks/useTheme', () => ({
+vi.mock('../../hooks/core/useTheme', () => ({
   useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn() }),
 }))
 
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../hooks/core/useAuth', () => ({
   useAuth: () => ({
     user: { id: 'u1', email: 'alice@test.com' },
     signOut: mockSignOut,
@@ -28,7 +28,7 @@ vi.mock('../../hooks/useAuth', () => ({
 
 // Stable reference so useEffect([profile]) doesn't re-run on every render
 const MOCK_PROFILE = { username: 'alice', role: 'osint', score: 88 }
-vi.mock('../../hooks/useUser', () => ({
+vi.mock('../../hooks/account/useUser', () => ({
   useUser: () => ({
     profile: MOCK_PROFILE,
     updateProfile: mockUpdateProf,

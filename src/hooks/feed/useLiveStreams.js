@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../api/supabase'
-import { useAuth } from './useAuth'
+import { supabase, identityDb, mediaDb } from '../../api/supabase'
+import { useAuth } from '../core/useAuth'
 
 export function useLiveStreams() {
   const { user } = useAuth()
@@ -8,13 +8,20 @@ export function useLiveStreams() {
   const [loading, setLoading] = useState(true)
 
   async function fetchStreams() {
-    const { data } = await supabase
+    const { data } = await mediaDb
       .from('live_streams')
-      .select('*, users!live_streams_host_id_fkey(id, username, role, score)')
+      .select('*')
       .in('status', ['live', 'scheduled'])
       .order('status', { ascending: false }) // 'scheduled' < 'live' alphabetically, flip
       .order('created_at', { ascending: false })
-    setStreams(data || [])
+
+    const hostIds = [...new Set((data || []).map(s => s.host_id).filter(Boolean))]
+    const { data: hosts } = hostIds.length
+      ? await identityDb.from('profiles').select('id, username, role, score').in('id', hostIds)
+      : { data: [] }
+    const hostsById = new Map((hosts || []).map(h => [h.id, h]))
+
+    setStreams((data || []).map(s => ({ ...s, users: hostsById.get(s.host_id) || null })))
     setLoading(false)
   }
 
@@ -22,13 +29,13 @@ export function useLiveStreams() {
     fetchStreams()
     const sub = supabase
       .channel('live_streams_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, fetchStreams)
+      .on('postgres_changes', { event: '*', schema: 'media', table: 'live_streams' }, fetchStreams)
       .subscribe()
     return () => supabase.removeChannel(sub)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function createStream(title, description = '') {
-    const { data, error } = await supabase
+    const { data, error } = await mediaDb
       .from('live_streams')
       .insert({ host_id: user.id, title, description, status: 'scheduled' })
       .select()
@@ -38,7 +45,7 @@ export function useLiveStreams() {
   }
 
   async function goLive(streamId) {
-    const { error } = await supabase
+    const { error } = await mediaDb
       .from('live_streams')
       .update({ status: 'live', started_at: new Date().toISOString() })
       .eq('id', streamId)
@@ -47,7 +54,7 @@ export function useLiveStreams() {
   }
 
   async function endStream(streamId) {
-    const { error } = await supabase
+    const { error } = await mediaDb
       .from('live_streams')
       .update({ status: 'ended', ended_at: new Date().toISOString() })
       .eq('id', streamId)
@@ -74,7 +81,7 @@ export function useStreamViewers(streamId) {
         const state = channel.presenceState()
         const count = Object.keys(state).length
         setViewerCount(count)
-        supabase.from('live_streams').update({ viewer_count: count }).eq('id', streamId)
+        mediaDb.from('live_streams').update({ viewer_count: count }).eq('id', streamId)
       })
       .subscribe(async status => {
         if (status === 'SUBSCRIBED') {

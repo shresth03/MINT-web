@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../api/supabase'
-import { useAuth } from './useAuth'
+import { contentDb, identityDb, moderationDb, socialDb } from '../../api/supabase'
+import { useAuth } from '../core/useAuth'
+
+async function fetchProfilesByIds(ids) {
+  const uniqueIds = [...new Set(ids.filter(Boolean))]
+  if (uniqueIds.length === 0) return new Map()
+  const { data } = await identityDb.from('profiles').select('id, username, role, score').in('id', uniqueIds)
+  return new Map((data || []).map(p => [p.id, p]))
+}
 
 export function useClaims(postId = null) {
   const { user } = useAuth()
@@ -17,26 +24,36 @@ export function useClaims(postId = null) {
 
   // Admin: fetch all open claims across platform
   async function fetchAllOpenClaims() {
-    const { data } = await supabase
+    const { data: claims } = await moderationDb
       .from('claims')
-      .select(`
-        *,
-        posts (id, body, author_id, created_at,
-          users!posts_author_id_fkey (username, role, score)
-        )
-      `)
+      .select('*')
       .eq('status', 'open')
       .order('created_at', { ascending: false })
 
-    setOpenClaims(data || [])
-    return data || []
+    const postIds = [...new Set((claims || []).map(c => c.post_id).filter(Boolean))]
+    const { data: postsData } = postIds.length
+      ? await contentDb.from('posts').select('id, body, author_id, created_at').in('id', postIds)
+      : { data: [] }
+    const postsById = new Map((postsData || []).map(p => [p.id, p]))
+    const profilesById = await fetchProfilesByIds((postsData || []).map(p => p.author_id))
+
+    const enriched = (claims || []).map(c => {
+      const post = postsById.get(c.post_id)
+      return {
+        ...c,
+        posts: post ? { ...post, users: profilesById.get(post.author_id) || null } : null,
+      }
+    })
+
+    setOpenClaims(enriched)
+    return enriched
   }
 
   async function fetchPostClaims() {
     setLoading(true)
 
     // Get claim on this post
-    const { data: claimData } = await supabase
+    const { data: claimData } = await moderationDb
       .from('claims')
       .select('*')
       .eq('post_id', postId)
@@ -45,20 +62,20 @@ export function useClaims(postId = null) {
     setClaim(claimData || null)
 
     // Get all community notes on this post with author info
-    const { data: notesData } = await supabase
+    const { data: notesRaw } = await moderationDb
       .from('community_notes')
-      .select(`
-        *,
-        users!community_notes_author_id_fkey (username, role)
-      `)
+      .select('*')
       .eq('post_id', postId)
       .order('created_at', { ascending: false })
 
-    setNotes(notesData || [])
+    const profilesById = await fetchProfilesByIds((notesRaw || []).map(n => n.author_id))
+    const notesData = (notesRaw || []).map(n => ({ ...n, users: profilesById.get(n.author_id) || null }))
+
+    setNotes(notesData)
 
     // Check if current user already wrote a note
     if (user?.id) {
-      const existing = notesData?.find(n => n.author_id === user.id)
+      const existing = notesData.find(n => n.author_id === user.id)
       setUserNote(existing || null)
     }
 
@@ -70,7 +87,7 @@ export function useClaims(postId = null) {
     if (!user?.id || !postId) return { error: 'Not authenticated' }
     if (userNote) return { error: 'You have already written a note on this post' }
 
-    const { data, error } = await supabase
+    const { data, error } = await moderationDb
       .from('community_notes')
       .insert({ post_id: postId, author_id: user.id, body, stance })
       .select()
@@ -84,23 +101,23 @@ export function useClaims(postId = null) {
   }
 
   async function updateNote(noteId, body, stance) {
-    const { data, error } = await supabase
+    const { data, error } = await moderationDb
       .from('community_notes')
       .update({ body, stance })
       .eq('id', noteId)
       .select()
       .single()
-  
+
     if (!error) await fetchPostClaims()
     return { data, error }
   }
-  
+
   async function deleteNote(noteId) {
-    const { error } = await supabase
+    const { error } = await moderationDb
       .from('community_notes')
       .delete()
       .eq('id', noteId)
-  
+
     if (!error) {
       setUserNote(null)
       await fetchPostClaims()
@@ -110,7 +127,7 @@ export function useClaims(postId = null) {
 
   // Admin: resolve a claim
   async function resolveClaim(claimId, status, resolutionNote) {
-    const { error } = await supabase
+    const { error } = await moderationDb
       .from('claims')
       .update({
         status,
@@ -126,7 +143,7 @@ export function useClaims(postId = null) {
 
   // Admin: rate a community note's accuracy
   async function rateNote(noteId, accuracyRating) {
-    const { error } = await supabase
+    const { error } = await moderationDb
       .from('community_notes')
       .update({ accuracy_rating: accuracyRating })
       .eq('id', noteId)
@@ -137,14 +154,14 @@ export function useClaims(postId = null) {
 
   // Admin: manual score override
   async function overrideScore(targetUserId, newScore, reason) {
-    const { error } = await supabase
-      .from('users')
+    const { error } = await identityDb
+      .from('profiles')
       .update({ score: Math.max(-50, Math.min(100, newScore)) })
       .eq('id', targetUserId)
 
     // Log the override in a notification so there's an audit trail
     if (!error) {
-      await supabase.from('notifications').insert({
+      await socialDb.from('notifications').insert({
         to_user_id: targetUserId,
         from_user_id: user.id,
         type: 'score_override',

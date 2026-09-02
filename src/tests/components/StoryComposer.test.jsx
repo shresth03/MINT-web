@@ -4,11 +4,11 @@ import userEvent from '@testing-library/user-event'
 import '../mocks/supabase.js'
 import StoryComposer from '../../components/StoryComposer'
 
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../hooks/core/useAuth', () => ({
   useAuth: () => ({ user: { id: 'test-user-id', email: 'test@test.com' } })
 }))
 
-vi.mock('../../hooks/useStoryComposer', () => ({
+vi.mock('../../hooks/feed/useStoryComposer', () => ({
   useStoryComposer: () => ({
     publishStory: vi.fn().mockResolvedValue({ post: { id: 'new-post' }, error: null }),
     searchThreads: vi.fn().mockResolvedValue([]),

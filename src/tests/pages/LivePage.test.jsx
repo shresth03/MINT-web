@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { mockSupabase } from '../mocks/supabase.js'
 import LivePage from '../../pages/feed/LivePage'
 
-vi.mock('../../hooks/useTheme', () => ({
+vi.mock('../../hooks/core/useTheme', () => ({
   useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn(), followSystem: vi.fn() }),
   ThemeProvider: ({ children }) => children,
 }))
@@ -30,7 +30,7 @@ const scheduledStream = {
   users: { id: 'other-user', username: 'reporter_bob', role: 'reporter' },
 }
 
-vi.mock('../../hooks/useLiveStreams', () => ({
+vi.mock('../../hooks/feed/useLiveStreams', () => ({
   useLiveStreams: () => ({
     streams: [liveStream, scheduledStream],
     loading: false,
@@ -42,7 +42,7 @@ vi.mock('../../hooks/useLiveStreams', () => ({
   useStreamViewers: () => 42,
 }))
 
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../hooks/core/useAuth', () => ({
   useAuth: () => ({ user: { id: 'host-user', app_metadata: { role: 'osint' } } }),
 }))
 

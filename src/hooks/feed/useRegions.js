@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../api/supabase'
+import { contentDb } from '../../api/supabase'
 
 export function useRegions() {
   const [regions, setRegions] = useState([])
@@ -7,7 +7,7 @@ export function useRegions() {
 
   useEffect(() => {
     async function fetchRegionCounts() {
-      const { data, error } = await supabase
+      const { data, error } = await contentDb
         .from('stories')
         .select('region, region_lat, region_lng, is_breaking')
 

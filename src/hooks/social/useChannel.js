@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../api/supabase'
+import { contentDb, identityDb } from '../../api/supabase'
 
 export function useChannel(username) {
   const [channel, setChannel] = useState(null)
@@ -16,8 +16,8 @@ export function useChannel(username) {
     setLoading(true)
 
     // Fetch user profile
-    const { data: userData } = await supabase
-      .from('users')
+    const { data: userData } = await identityDb
+      .from('profiles')
       .select('id, username, role, score, created_at')
       .eq('username', username)
       .single()
@@ -26,7 +26,7 @@ export function useChannel(username) {
     setChannel(userData)
 
     // Fetch their posts
-    const { data: postsData } = await supabase
+    const { data: postsData } = await contentDb
       .from('posts')
       .select('id, body, tag, region, likes, reply_count, repost_count, created_at, post_type, is_osint')
       .eq('author_id', userData.id)
@@ -36,7 +36,7 @@ export function useChannel(username) {
     setPosts(postsData || [])
 
     // Fetch stories they contributed to via story_sources
-    const { data: sourcesData } = await supabase
+    const { data: sourcesData } = await contentDb
       .from('story_sources')
       .select('stories(id, headline, tag, region, confidence, is_breaking, created_at)')
       .eq('post_id', userData.id)

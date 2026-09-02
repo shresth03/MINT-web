@@ -17,7 +17,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
   }
 })
 
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../hooks/core/useAuth', () => ({
   useAuth: () => ({
     user: { id: 'u1', email: 'alice@test.com' },
     signOut: mockSignOut,
@@ -25,7 +25,7 @@ vi.mock('../../hooks/useAuth', () => ({
 }))
 
 const mockToggleTheme = vi.fn()
-vi.mock('../../hooks/useTheme', () => ({
+vi.mock('../../hooks/core/useTheme', () => ({
   useTheme: () => ({ theme: 'dark', toggleTheme: mockToggleTheme }),
 }))
 

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageShell from '../../components/PageShell'
-import { useStories } from '../../hooks/useStories'
-import { useAuth } from '../../hooks/useAuth'
+import { useStories } from '../../hooks/feed/useStories'
+import { useAuth } from '../../hooks/core/useAuth'
 import { MapPin, X, Cpu, BadgeCheck, PenSquare, Newspaper } from 'lucide-react'
-import { supabase } from '../../api/supabase'
+import { contentDb, identityDb } from '../../api/supabase'
 import { STORY_TAGS as TAGS } from '../../constants'
 
 const TAG_COLORS = {
@@ -280,7 +280,7 @@ function ArticleComposer({ onClose, onPublished }) {
   const handlePublish = async () => {
     if (!headline.trim() || !summary.trim()) { setError('Headline and summary are required'); return }
     setPublishing(true)
-    const { error: err } = await supabase.from('stories').insert({
+    const { error: err } = await contentDb.from('stories').insert({
       headline: headline.trim(),
       summary: summary.trim(),
       tag,
@@ -431,7 +431,7 @@ export default function ArticlesPage() {
 
   useEffect(() => {
     if (!user?.id) return
-    supabase.from('users').select('role').eq('id', user.id).single()
+    identityDb.from('profiles').select('role').eq('id', user.id).single()
       .then(({ data }) => setUserRole(data?.role || null))
   }, [user?.id])
 

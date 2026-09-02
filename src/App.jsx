@@ -1,6 +1,6 @@
 import ProfilePage from './pages/account/ProfilePage'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import PrototypePage from './pages/feed/PrototypePage'
+import PrototypePage from './pages/home/PrototypePage'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import VerifyEmail from './pages/auth/VerifyEmail'
@@ -15,7 +15,7 @@ import FeedbackPage from './pages/support/FeedbackPage'
 import ArticlesPage from './pages/feed/ArticlesPage'
 import LivePage from './pages/feed/LivePage'
 import ReelsPage from './pages/feed/ReelsPage'
-import HomePage from './pages/public/HomePage'
+import HomePage from './pages/home/HomePage'
 import SettingsPage from './pages/account/SettingsPage'
 
 export default function App() {

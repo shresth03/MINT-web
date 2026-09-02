@@ -1,4 +1,4 @@
-import { useTheme } from '../hooks/useTheme'
+import { useTheme } from '../hooks/core/useTheme'
 import { useNavigate } from 'react-router-dom'
 import MobileBottomNav from './layout/MobileBottomNav'
 

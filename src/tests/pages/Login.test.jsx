@@ -12,11 +12,11 @@ vi.mock('react-router-dom', async (importOriginal) => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../hooks/core/useAuth', () => ({
   useAuth: () => ({ signIn: mockSignIn, resetPassword: mockResetPassword }),
 }))
 
-vi.mock('../../hooks/useTheme', () => ({
+vi.mock('../../hooks/core/useTheme', () => ({
   useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn() }),
 }))
 
@@ -43,7 +43,7 @@ describe('Login page', () => {
   })
 
   it('light theme → logo src is logo-light.png', () => {
-    vi.doMock('../../hooks/useTheme', () => ({
+    vi.doMock('../../hooks/core/useTheme', () => ({
       useTheme: () => ({ theme: 'light', toggleTheme: vi.fn() }),
     }))
   })

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useSearch } from '../../hooks/useSearch'
+import { useSearch } from '../../hooks/social/useSearch'
 import PageShell from '../../components/PageShell'
 import { X, Heart, MessageCircle, BadgeCheck, ShieldAlert, Inbox } from 'lucide-react'
 import { STORY_TAGS as TOPIC_TAGS, DATE_OPTIONS } from '../../constants'

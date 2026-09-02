@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../api/supabase'
-import { useAuth } from './useAuth'
+import { identityDb } from '../../api/supabase'
+import { useAuth } from '../core/useAuth'
 
 export function useUser() {
   const { user } = useAuth()
@@ -17,8 +17,8 @@ export function useUser() {
 
   async function fetchProfile() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('users')
+    const { data, error } = await identityDb
+      .from('profiles')
       .select('id, username, role, score')
       .eq('id', user.id)
       .single()
@@ -27,8 +27,8 @@ export function useUser() {
   }
 
   async function updateProfile(updates) {
-    const { error } = await supabase
-      .from('users')
+    const { error } = await identityDb
+      .from('profiles')
       .update(updates)
       .eq('id', user.id)
 

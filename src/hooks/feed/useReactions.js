@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../api/supabase'
-import { useAuth } from './useAuth'
+import { socialDb } from '../../api/supabase'
+import { useAuth } from '../core/useAuth'
 import { ShieldCheck, Star, AlertTriangle, Zap } from 'lucide-react'
 
 export const REACTION_TYPES = [
@@ -23,9 +23,9 @@ export function useReactions(postId) {
 
   async function load() {
     const [allRes, userRes] = await Promise.all([
-      supabase.from('reactions').select('type').eq('post_id', postId),
+      socialDb.from('reactions').select('type').eq('post_id', postId),
       user?.id
-        ? supabase.from('reactions').select('type').eq('post_id', postId).eq('user_id', user.id).maybeSingle()
+        ? socialDb.from('reactions').select('type').eq('post_id', postId).eq('user_id', user.id).maybeSingle()
         : Promise.resolve({ data: null }),
     ])
     const c = { verified: 0, confirmed: 0, disputed: 0, breaking: 0 }
@@ -39,17 +39,17 @@ export function useReactions(postId) {
     if (!user?.id) return
 
     if (userReaction === type) {
-      await supabase.from('reactions').delete()
+      await socialDb.from('reactions').delete()
         .eq('post_id', postId).eq('user_id', user.id)
       setCounts(c => ({ ...c, [type]: Math.max(0, c[type] - 1) }))
       setUserReaction(null)
     } else if (userReaction) {
-      await supabase.from('reactions').update({ type })
+      await socialDb.from('reactions').update({ type })
         .eq('post_id', postId).eq('user_id', user.id)
       setCounts(c => ({ ...c, [userReaction]: Math.max(0, c[userReaction] - 1), [type]: c[type] + 1 }))
       setUserReaction(type)
     } else {
-      await supabase.from('reactions').insert({ post_id: postId, user_id: user.id, type })
+      await socialDb.from('reactions').insert({ post_id: postId, user_id: user.id, type })
       setCounts(c => ({ ...c, [type]: c[type] + 1 }))
       setUserReaction(type)
     }

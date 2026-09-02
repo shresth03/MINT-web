@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageShell from '../../components/PageShell'
-import { useVideos } from '../../hooks/useVideos'
-import { useAuth } from '../../hooks/useAuth'
+import { useVideos } from '../../hooks/feed/useVideos'
+import { useAuth } from '../../hooks/core/useAuth'
 import { Heart, BadgeCheck, PenLine } from 'lucide-react'
 
 function timeAgo(dateStr) {

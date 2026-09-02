@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { usePosts } from '../../hooks/usePosts'
-import { useAuth } from '../../hooks/useAuth'
-import { supabase } from '../../api/supabase'
+import { usePosts } from '../../hooks/feed/usePosts'
+import { useAuth } from '../../hooks/core/useAuth'
+import { supabase, identityDb, socialDb } from '../../api/supabase'
 import { useNavigate } from 'react-router-dom'
-import { useNotifications } from '../../hooks/useNotifications'
+import { useNotifications } from '../../hooks/social/useNotifications'
 import { useLocation } from 'react-router-dom'
-import { useIsMobile } from '../../hooks/useIsMobile'
+import { useIsMobile } from '../../hooks/core/useIsMobile'
 import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck } from 'lucide-react'
 
 function timeAgo(dateStr) {
@@ -440,9 +440,13 @@ function ReplyThread({ postId, authorId, createReply, fetchReplies, createNotifi
   }
 
   async function fetchNewReply(id) {
-    const { data } = await supabase
-      .from('replies').select('*, users(username, role)').eq('id', id).single()
-    if (data) setReplies(prev => prev.some(r => r.id === data.id) ? prev : [...prev, data])
+    const { data } = await socialDb
+      .from('replies').select('*').eq('id', id).single()
+    if (!data) return
+    const { data: author } = await identityDb
+      .from('profiles').select('username, role').eq('id', data.author_id).maybeSingle()
+    const enriched = { ...data, users: author || null }
+    setReplies(prev => prev.some(r => r.id === enriched.id) ? prev : [...prev, enriched])
   }
 
   useEffect(() => {
@@ -450,7 +454,7 @@ function ReplyThread({ postId, authorId, createReply, fetchReplies, createNotifi
     const sub = supabase
       .channel(`replies:${postId}`)
       .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'replies',
+        event: 'INSERT', schema: 'social', table: 'replies',
         filter: `post_id=eq.${postId}`
       }, payload => { fetchNewReply(payload.new.id) })
       .subscribe()
@@ -693,7 +697,7 @@ export default function GeneralFeed() {
 
   useEffect(() => {
     if (!user?.id) return
-    supabase.from('follows').select('following_id').eq('follower_id', user.id)
+    identityDb.from('follows').select('following_id').eq('follower_id', user.id)
       .then(({ data }) => setFollowedIds((data || []).map(f => f.following_id)))
   }, [user?.id])
 

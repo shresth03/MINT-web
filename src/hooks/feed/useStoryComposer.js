@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
-import { supabase } from '../api/supabase'
-import { useAuth } from './useAuth'
-import { ingest } from '../lib/ingestion/index.js'
+import { supabase, contentDb, identityDb } from '../../api/supabase'
+import { useAuth } from '../core/useAuth'
+import { ingest } from '../../lib/ingestion/index.js'
 
 const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/anthropic-proxy`
 
@@ -113,22 +113,30 @@ Output only the summary text. No preamble, no labels.`
   }, [])
 
   async function refreshStorySummary(storyId, currentHeadline) {
-    const { data: sources } = await supabase
+    const { data: sources } = await contentDb
       .from('story_sources')
-      .select('post_id, posts(body, users(username))')
+      .select('post_id, posts(body, author_id)')
       .eq('story_id', storyId)
 
     if (!sources || sources.length === 0) return
 
+    // posts.author_id points into `identity`, a separate schema — fetch
+    // profiles separately and merge them back in.
+    const authorIds = [...new Set(sources.map(s => s.posts?.author_id).filter(Boolean))]
+    const { data: authors } = authorIds.length
+      ? await identityDb.from('profiles').select('id, username').in('id', authorIds)
+      : { data: [] }
+    const authorsById = new Map((authors || []).map(a => [a.id, a]))
+
     const sourcePosts = sources.map(s => ({
       body: s.posts.body,
-      users: s.posts.users
+      users: authorsById.get(s.posts?.author_id) || null,
     }))
 
     const newSummary = await generateSummary(currentHeadline, sourcePosts)
 
     if (newSummary) {
-      await supabase
+      await contentDb
         .from('stories')
         .update({ summary: newSummary })
         .eq('id', storyId)
@@ -143,7 +151,7 @@ Output only the summary text. No preamble, no labels.`
     const { text: normalizedBody } = await ingest(body, jwt)
 
     // Insert the post, carrying manual_story_id so the trigger skips auto-clustering
-    const { data: post, error } = await supabase
+    const { data: post, error } = await contentDb
       .from('posts')
       .insert({
         author_id: user.id,
@@ -168,7 +176,7 @@ Output only the summary text. No preamble, no labels.`
     if (threadId) {
       // Trigger already inserted story_sources via manual_story_id
       // Just refresh the story summary with all sources including new post
-      const { data: story } = await supabase
+      const { data: story } = await contentDb
         .from('stories')
         .select('headline')
         .eq('id', threadId)
@@ -183,7 +191,7 @@ Output only the summary text. No preamble, no labels.`
     let newSources = null
     for (let i = 0; i < 5; i++) {
       await new Promise(r => setTimeout(r, 400))
-      const { data } = await supabase
+      const { data } = await contentDb
         .from('story_sources')
         .select('story_id')
         .eq('post_id', post.id)
@@ -195,7 +203,7 @@ Output only the summary text. No preamble, no labels.`
     // Clean up duplicates if trigger somehow linked to multiple stories
     if (newSources.length > 1) {
       const removeIds = newSources.slice(0, -1).map(s => s.story_id)
-      await supabase
+      await contentDb
         .from('story_sources')
         .delete()
         .eq('post_id', post.id)
@@ -224,7 +232,7 @@ Output only the summary text. No preamble, no labels.`
       }
     }
 
-    await supabase
+    await contentDb
       .from('stories')
       .update({ headline: finalHeadline, summary: finalSummary, tag, region, region_lat: regionLat ?? null, region_lng: regionLng ?? null })
       .eq('id', storyId)
@@ -233,7 +241,7 @@ Output only the summary text. No preamble, no labels.`
   }
 
   async function searchThreads(query) {
-    const { data: ftsData } = await supabase
+    const { data: ftsData } = await contentDb
       .from('stories')
       .select('id, headline, tag, region, confidence, created_at')
       .textSearch('fts', query)
@@ -242,7 +250,7 @@ Output only the summary text. No preamble, no labels.`
 
     if (ftsData && ftsData.length > 0) return ftsData
 
-    const { data: likeData } = await supabase
+    const { data: likeData } = await contentDb
       .from('stories')
       .select('id, headline, tag, region, confidence, created_at')
       .ilike('headline', `%${query}%`)
@@ -253,7 +261,7 @@ Output only the summary text. No preamble, no labels.`
   }
 
   async function getRecentThreads() {
-    const { data } = await supabase
+    const { data } = await contentDb
       .from('stories')
       .select('id, headline, tag, region, confidence, created_at')
       .order('created_at', { ascending: false })

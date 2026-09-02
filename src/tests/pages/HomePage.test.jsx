@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import HomePage from '../../pages/public/HomePage'
+import HomePage from '../../pages/home/HomePage'
 
 const mockNavigate = vi.fn()
 
@@ -10,13 +10,13 @@ vi.mock('react-router-dom', async (importOriginal) => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
-vi.mock('../../hooks/useTheme', () => ({
+vi.mock('../../hooks/core/useTheme', () => ({
   useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn() }),
 }))
 
 // Unauthenticated by default; overridden per-test when needed
 const mockUseAuth = vi.fn(() => ({ user: null }))
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../hooks/core/useAuth', () => ({
   useAuth: () => mockUseAuth(),
 }))
 

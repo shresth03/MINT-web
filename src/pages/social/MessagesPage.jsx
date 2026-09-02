@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useMessages } from '../../hooks/useMessages'
-import { useAuth } from '../../hooks/useAuth'
-import { supabase } from '../../api/supabase'
+import { useMessages } from '../../hooks/social/useMessages'
+import { useAuth } from '../../hooks/core/useAuth'
+import { supabase, identityDb, socialDb } from '../../api/supabase'
 import { MessageSquare, BadgeCheck, Inbox } from 'lucide-react'
-import { useIsMobile } from '../../hooks/useIsMobile'
+import { useIsMobile } from '../../hooks/core/useIsMobile'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -44,10 +44,10 @@ export default function MessagesPage() {
     const sub = supabase
       .channel(`conv:${activeConv.id}`)
       .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'messages',
+        event: 'INSERT', schema: 'social', table: 'messages',
         filter: `conversation_id=eq.${activeConv.id}`
       }, async payload => {
-        const { data } = await supabase.from('messages').select('*').eq('id', payload.new.id).single()
+        const { data } = await socialDb.from('messages').select('*').eq('id', payload.new.id).single()
         if (data) setMessages(prev => [...prev, data])
       })
       .subscribe()
@@ -62,7 +62,7 @@ export default function MessagesPage() {
   }
 
   async function openConversationWithUser(userId) {
-    const { data: userData } = await supabase.from('users').select('*').eq('id', userId).single()
+    const { data: userData } = await identityDb.from('profiles').select('*').eq('id', userId).single()
     if (!userData) return
     const conv = await getOrCreateConversation(userId)
     if (conv) {

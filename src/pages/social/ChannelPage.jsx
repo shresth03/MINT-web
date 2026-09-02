@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useChannel } from '../../hooks/useChannel'
-import { useAuth } from '../../hooks/useAuth'
-import { useFollow } from '../../hooks/useFollow'
+import { useChannel } from '../../hooks/social/useChannel'
+import { useAuth } from '../../hooks/core/useAuth'
+import { useFollow } from '../../hooks/social/useFollow'
 import { Inbox, BadgeCheck, ShieldAlert, CircleDot, Check, Heart, MessageCircle, Repeat2, UserCheck, UserPlus } from 'lucide-react'
-import { useMessages } from '../../hooks/useMessages'
-import { useCredibility } from '../../hooks/useCredibility'
+import { useMessages } from '../../hooks/social/useMessages'
+import { useCredibility } from '../../hooks/social/useCredibility'
 import PageShell from '../../components/PageShell'
 
 function timeAgo(dateStr) {

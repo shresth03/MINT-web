@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useClaims } from '../hooks/useClaims'
+import { useClaims } from '../hooks/feed/useClaims'
 import EditNoteSection from './EditNoteSection'
 
 const CLAIM_STYLE = {

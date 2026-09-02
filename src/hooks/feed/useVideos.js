@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../api/supabase'
-import { useAuth } from './useAuth'
+import { supabase, identityDb, mediaDb } from '../../api/supabase'
+import { useAuth } from '../core/useAuth'
+
+async function attachAuthors(rows) {
+  const ids = [...new Set(rows.map(r => r.author_id).filter(Boolean))]
+  if (ids.length === 0) return rows
+  const { data } = await identityDb.from('profiles').select('id, username, role, score').in('id', ids)
+  const byId = new Map((data || []).map(p => [p.id, p]))
+  return rows.map(r => ({ ...r, users: byId.get(r.author_id) || null }))
+}
 
 export function useVideos(type = null) {
   const { user } = useAuth()
@@ -9,15 +17,15 @@ export function useVideos(type = null) {
   const [uploading, setUploading] = useState(false)
 
   async function fetchVideos() {
-    let q = supabase
+    let q = mediaDb
       .from('videos')
-      .select('*, users!videos_author_id_fkey(id, username, role, score)')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(50)
     if (type) q = q.eq('type', type)
 
     const { data } = await q
-    setVideos(data || [])
+    setVideos(await attachAuthors(data || []))
     setLoading(false)
   }
 
@@ -25,7 +33,7 @@ export function useVideos(type = null) {
     fetchVideos()
     const sub = supabase
       .channel('videos_changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'videos' }, payload => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'media', table: 'videos' }, payload => {
         fetchSingleVideo(payload.new.id)
       })
       .subscribe()
@@ -33,12 +41,15 @@ export function useVideos(type = null) {
   }, [type]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchSingleVideo(id) {
-    const { data } = await supabase
+    const { data } = await mediaDb
       .from('videos')
-      .select('*, users!videos_author_id_fkey(id, username, role, score)')
+      .select('*')
       .eq('id', id)
       .single()
-    if (data) setVideos(prev => [data, ...prev])
+    if (data) {
+      const [enriched] = await attachAuthors([data])
+      setVideos(prev => [enriched, ...prev])
+    }
   }
 
   async function uploadVideo(file, meta = {}) {
@@ -54,7 +65,7 @@ export function useVideos(type = null) {
 
     const { data: { publicUrl } } = supabase.storage.from('videos').getPublicUrl(path)
 
-    const { data, error } = await supabase
+    const { data, error } = await mediaDb
       .from('videos')
       .insert({
         author_id: user.id,
@@ -68,7 +79,10 @@ export function useVideos(type = null) {
       .single()
 
     setUploading(false)
-    if (!error) setVideos(prev => [data, ...prev])
+    if (!error) {
+      const [enriched] = await attachAuthors([data])
+      setVideos(prev => [enriched, ...prev])
+    }
     return { data, error }
   }
 
@@ -77,18 +91,18 @@ export function useVideos(type = null) {
     const liked = video?._liked
 
     if (liked) {
-      await supabase.from('video_likes').delete().eq('user_id', user.id).eq('video_id', videoId)
-      await supabase.from('videos').update({ likes: Math.max(0, (video.likes || 1) - 1) }).eq('id', videoId)
+      await mediaDb.from('video_likes').delete().eq('user_id', user.id).eq('video_id', videoId)
+      await mediaDb.from('videos').update({ likes: Math.max(0, (video.likes || 1) - 1) }).eq('id', videoId)
       setVideos(prev => prev.map(v => v.id === videoId ? { ...v, likes: Math.max(0, (v.likes || 1) - 1), _liked: false } : v))
     } else {
-      await supabase.from('video_likes').insert({ user_id: user.id, video_id: videoId })
-      await supabase.from('videos').update({ likes: (video?.likes || 0) + 1 }).eq('id', videoId)
+      await mediaDb.from('video_likes').insert({ user_id: user.id, video_id: videoId })
+      await mediaDb.from('videos').update({ likes: (video?.likes || 0) + 1 }).eq('id', videoId)
       setVideos(prev => prev.map(v => v.id === videoId ? { ...v, likes: (v.likes || 0) + 1, _liked: true } : v))
     }
   }
 
   async function incrementView(videoId) {
-    await supabase.from('videos').update({ view_count: supabase.rpc('increment', { x: 1 }) }).eq('id', videoId)
+    await mediaDb.from('videos').update({ view_count: supabase.rpc('increment', { x: 1 }) }).eq('id', videoId)
   }
 
   return { videos, loading, uploading, uploadVideo, likeVideo, incrementView, refetch: fetchVideos }

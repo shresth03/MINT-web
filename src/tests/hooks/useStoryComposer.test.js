@@ -4,10 +4,10 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../mocks/server'
 import '../mocks/supabase.js'
 import { mockSupabase } from '../mocks/supabase.js'
-import { useStoryComposer } from '../../hooks/useStoryComposer'
+import { useStoryComposer } from '../../hooks/feed/useStoryComposer'
 
 // Mock useAuth
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../hooks/core/useAuth', () => ({
   useAuth: () => ({ user: { id: 'test-user-id', email: 'test@test.com' } })
 }))
 

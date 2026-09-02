@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../../hooks/useAuth'
-import { useTheme } from '../../hooks/useTheme'
+import { useAuth } from '../../hooks/core/useAuth'
+import { useTheme } from '../../hooks/core/useTheme'
 import { supabase } from '../../api/supabase'
 import { CheckCircle, Lock } from 'lucide-react'
 

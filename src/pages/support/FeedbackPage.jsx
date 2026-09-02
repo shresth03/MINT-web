@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useAuth } from '../../hooks/useAuth'
-import { useUser } from '../../hooks/useUser'
-import { supabase } from '../../api/supabase'
+import { useAuth } from '../../hooks/core/useAuth'
+import { useUser } from '../../hooks/account/useUser'
+import { moderationDb } from '../../api/supabase'
 import { useNavigate } from 'react-router-dom'
 import { MessageSquareDashed, Loader2, Send } from 'lucide-react'
 import PageShell from '../../components/PageShell'
@@ -81,7 +81,7 @@ export default function FeedbackPage() {
       }
     })
 
-    const { error: err } = await supabase.from('feedback').insert({
+    const { error: err } = await moderationDb.from('feedback').insert({
       user_id: user?.id || null,
       username: profile?.username || null,
       ratings: payload,

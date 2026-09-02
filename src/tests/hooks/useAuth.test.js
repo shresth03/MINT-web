@@ -34,7 +34,7 @@ vi.mock('../../api/supabase', () => ({
   },
 }))
 
-import { AuthProvider, useAuth } from '../../hooks/useAuth'
+import { AuthProvider, useAuth } from '../../hooks/core/useAuth'
 
 const wrapper = ({ children }) => React.createElement(AuthProvider, null, children)
 

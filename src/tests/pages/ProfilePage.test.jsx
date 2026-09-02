@@ -14,17 +14,17 @@ vi.mock('react-router-dom', async (importOriginal) => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
-vi.mock('../../hooks/useTheme', () => ({
+vi.mock('../../hooks/core/useTheme', () => ({
   useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn() }),
 }))
 
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../hooks/core/useAuth', () => ({
   useAuth: () => ({ user: { id: 'u1', email: 'alice@test.com' } }),
 }))
 
 const MOCK_PROFILE = { username: 'alice', role: 'public', score: 42 }
 
-vi.mock('../../hooks/useUser', () => ({
+vi.mock('../../hooks/account/useUser', () => ({
   useUser: () => ({
     profile: MOCK_PROFILE,
     loading: false,
@@ -32,7 +32,7 @@ vi.mock('../../hooks/useUser', () => ({
   }),
 }))
 
-vi.mock('../../hooks/usePosts', () => ({
+vi.mock('../../hooks/feed/usePosts', () => ({
   usePosts: () => ({ fetchSavedPosts: mockFetchSavedPosts }),
 }))
 

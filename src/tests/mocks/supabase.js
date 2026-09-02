@@ -47,4 +47,14 @@ mockSupabase.auth = {
   }),
 }
 
-vi.mock('../../api/supabase', () => ({ supabase: mockSupabase }))
+// Schema-scoped clients (content/identity/media/moderation/social) share the
+// same chainable mock as `supabase` — tests assert against mockSupabase.from
+// etc. regardless of which schema-scoped export the hook actually called.
+vi.mock('../../api/supabase', () => ({
+  supabase: mockSupabase,
+  contentDb: mockSupabase,
+  identityDb: mockSupabase,
+  mediaDb: mockSupabase,
+  moderationDb: mockSupabase,
+  socialDb: mockSupabase,
+}))

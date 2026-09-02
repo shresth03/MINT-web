@@ -1,21 +1,21 @@
-import { useUser } from '../../hooks/useUser'
-import { useRegions } from '../../hooks/useRegions'
-import { useTrending, TRENDING_WINDOWS } from '../../hooks/useTrending'
+import { useUser } from '../../hooks/account/useUser'
+import { useRegions } from '../../hooks/feed/useRegions'
+import { useTrending, TRENDING_WINDOWS } from '../../hooks/feed/useTrending'
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useAuth } from '../../hooks/useAuth'
-import { supabase } from '../../api/supabase'
+import { useAuth } from '../../hooks/core/useAuth'
+import { supabase, contentDb, identityDb } from '../../api/supabase'
 import { MAP_FILTERS } from '../../constants'
 import GeneralFeed from '../../components/feed/GeneralFeed'
 import { useNavigate } from 'react-router-dom'
-import { useStories } from '../../hooks/useStories'
+import { useStories } from '../../hooks/feed/useStories'
 import StoryList from '../../components/feed/StoryList'
-import { useFollow } from '../../hooks/useFollow'
-import { useNotifications } from '../../hooks/useNotifications'
+import { useFollow } from '../../hooks/social/useFollow'
+import { useNotifications } from '../../hooks/social/useNotifications'
 import NotificationPanel from '../../components/NotificationPanel'
-import { useMessages } from '../../hooks/useMessages'
+import { useMessages } from '../../hooks/social/useMessages'
 import StoryComposer from '../../components/StoryComposer'
-import { useIsMobile } from '../../hooks/useIsMobile'
-import { useTheme } from '../../hooks/useTheme'
+import { useIsMobile } from '../../hooks/core/useIsMobile'
+import { useTheme } from '../../hooks/core/useTheme'
 import ThemeRipple from '../../components/ThemeRipple'
 import EditNoteSection from '../../components/EditNoteSection'
 import SourceNoteButton from '../../components/SourceNoteButton'
@@ -313,17 +313,17 @@ export default function App() {
   const [verifiedCount, setVerifiedCount] = useState(null)
   useEffect(() => {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    supabase.from('stories').select('id', { count: 'exact', head: true })
+    contentDb.from('stories').select('id', { count: 'exact', head: true })
       .gte('created_at', since)
       .then(({ count }) => setTrendingCount(count))
-    supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'osint')
+    identityDb.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'osint')
       .then(({ count }) => setVerifiedCount(count))
   }, [])
 
   const [suggestions, setSuggestions] = useState([])
   const [analysts, setAnalysts] = useState([])
   useEffect(() => {
-    supabase.from('users').select('id, username, role, score').eq('role', 'osint')
+    identityDb.from('profiles').select('id, username, role, score').eq('role', 'osint')
       .order('score', { ascending: false })
       .then(({ data }) => {
         setAnalysts(data || [])
@@ -333,7 +333,7 @@ export default function App() {
 
   useEffect(() => {
     if (!user?.id) return
-    supabase.from('osint_applications').select('id').eq('user_id', user.id)
+    identityDb.from('osint_applications').select('id').eq('user_id', user.id)
       .then(({ data }) => { if (data && data.length > 0) setHasApplied(true) })
   }, [user])
 
@@ -379,28 +379,46 @@ export default function App() {
 
   const refreshStory = async (storyId) => {
     if (!storyId) return
-    const { data } = await supabase
+    const { data } = await contentDb
       .from('stories')
       .select(`
         id, headline, summary, tag, region, confidence, is_breaking, created_at,
         story_sources(
           post_id,
-          posts(id, body, created_at, users(id, username, role, score))
+          posts(id, body, created_at, author_id)
         )
       `)
       .eq('id', storyId)
       .single()
-    if (data) setStory(data)
+    if (!data) return
+
+    // posts.author_id points into `identity`, a separate schema — fetch
+    // profiles separately and merge them back in.
+    const authorIds = [...new Set(
+      (data.story_sources || []).map(s => s.posts?.author_id).filter(Boolean)
+    )]
+    const { data: authors } = authorIds.length
+      ? await identityDb.from('profiles').select('id, username, role, score').in('id', authorIds)
+      : { data: [] }
+    const authorsById = new Map((authors || []).map(a => [a.id, a]))
+
+    setStory({
+      ...data,
+      story_sources: (data.story_sources || []).map(s => ({
+        ...s,
+        posts: s.posts ? { ...s.posts, users: authorsById.get(s.posts.author_id) || null } : null,
+      })),
+    })
   }
 
   useEffect(() => {
     if (!story?.id) return
-  
+
     const sub = supabase
       .channel(`story-${story.id}`)
       .on('postgres_changes', {
         event: 'UPDATE',
-        schema: 'public',
+        schema: 'content',
         table: 'stories',
         filter: `id=eq.${story.id}`
       }, (payload) => {
@@ -422,7 +440,7 @@ export default function App() {
   const doApply = async () => {
     if (!form.channel || !form.handle) return
     setApplied(true)
-    const { error } = await supabase.from('osint_applications').insert({
+    const { error } = await identityDb.from('osint_applications').insert({
       user_id: user.id, channel_name: form.channel, handle: form.handle,
       portfolio: form.portfolio, why: form.why, status: 'pending'
     })
@@ -1115,7 +1133,7 @@ export default function App() {
             // Wait for refreshStorySummary to finish writing to DB
             await new Promise(r => setTimeout(r, 3000))
             // Find which story this post belongs to and refresh it
-            const { data } = await supabase
+            const { data } = await contentDb
               .from('story_sources')
               .select('story_id')
               .eq('post_id', post.id)

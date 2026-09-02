@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import '../mocks/supabase.js'
 import { mockSupabase } from '../mocks/supabase.js'
-import { useVideos } from '../../hooks/useVideos'
+import { useVideos } from '../../hooks/feed/useVideos'
 
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../hooks/core/useAuth', () => ({
   useAuth: () => ({ user: { id: 'test-user', email: 'test@test.com' } }),
 }))
 

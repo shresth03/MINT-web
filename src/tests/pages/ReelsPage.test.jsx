@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import '../mocks/supabase.js'
 import ReelsPage from '../../pages/feed/ReelsPage'
 
-vi.mock('../../hooks/useTheme', () => ({
+vi.mock('../../hooks/core/useTheme', () => ({
   useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn(), followSystem: vi.fn() }),
   ThemeProvider: ({ children }) => children,
 }))
@@ -30,7 +30,7 @@ const mockVideos = [
   },
 ]
 
-vi.mock('../../hooks/useVideos', () => ({
+vi.mock('../../hooks/feed/useVideos', () => ({
   useVideos: () => ({
     videos: mockVideos,
     loading: false,
@@ -42,7 +42,7 @@ vi.mock('../../hooks/useVideos', () => ({
   }),
 }))
 
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../hooks/core/useAuth', () => ({
   useAuth: () => ({ user: { id: 'test-user', email: 'test@test.com' } }),
 }))
 

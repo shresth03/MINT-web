@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageShell from '../../components/PageShell'
-import { useLiveStreams, useStreamViewers } from '../../hooks/useLiveStreams'
-import { useAuth } from '../../hooks/useAuth'
+import { useLiveStreams, useStreamViewers } from '../../hooks/feed/useLiveStreams'
+import { useAuth } from '../../hooks/core/useAuth'
 import { BadgeCheck, PenLine, Play, Radio, Inbox } from 'lucide-react'
-import { supabase } from '../../api/supabase'
+import { identityDb } from '../../api/supabase'
 
 function timeAgo(dateStr) {
   if (!dateStr) return ''
@@ -279,7 +279,7 @@ export default function LivePage() {
 
   useEffect(() => {
     if (!user?.id) return
-    supabase.from('users').select('role').eq('id', user.id).single()
+    identityDb.from('profiles').select('role').eq('id', user.id).single()
       .then(({ data }) => setUserRole(data?.role || null))
   }, [user?.id])
 

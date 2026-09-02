@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useStoryComposer } from '../hooks/useStoryComposer'
+import { useStoryComposer } from '../hooks/feed/useStoryComposer'
 import { X, Check, MapPin } from 'lucide-react'
 import { COMPOSER_TAGS as TAGS } from '../constants'
 

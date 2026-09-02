@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '../api/supabase'
+import { contentDb, identityDb } from '../../api/supabase'
 
 function dateFilterCutoff(filter) {
   if (filter === '1h')  return new Date(Date.now() - 60 * 60 * 1000).toISOString()
@@ -30,14 +30,14 @@ export function useSearch() {
     // Strip leading # so "#cyber" and "cyber" both work
     const tagQuery = trimmed.startsWith('#') ? trimmed.slice(1).toUpperCase() : null
 
-    let storiesQ = supabase
+    let storiesQ = contentDb
       .from('stories')
       .select('id, headline, tag, region, confidence, is_breaking, created_at')
       .limit(20)
 
-    let postsQ = supabase
+    let postsQ = contentDb
       .from('posts')
-      .select('id, body, tag, created_at, likes, reply_count, author_id, users(username, role)')
+      .select('id, body, tag, created_at, likes, reply_count, author_id')
       .eq('is_osint', false)
       .limit(20)
 
@@ -65,16 +65,23 @@ export function useSearch() {
     const [storiesRes, postsRes, usersRes] = await Promise.all([
       storiesQ,
       postsQ,
-      supabase
-        .from('users')
+      identityDb
+        .from('profiles')
         .select('id, username, role, score')
         .ilike('username', `%${trimmed}%`)
         .limit(10)
     ])
 
+    // posts.author_id lives in a different schema than profiles — attach separately
+    const authorIds = [...new Set((postsRes.data || []).map(p => p.author_id).filter(Boolean))]
+    const { data: authors } = authorIds.length
+      ? await identityDb.from('profiles').select('id, username, role').in('id', authorIds)
+      : { data: [] }
+    const authorsById = new Map((authors || []).map(a => [a.id, a]))
+
     setResults({
       stories: storiesRes.data || [],
-      posts: postsRes.data || [],
+      posts: (postsRes.data || []).map(p => ({ ...p, users: authorsById.get(p.author_id) || null })),
       users: usersRes.data || []
     })
     setLoading(false)

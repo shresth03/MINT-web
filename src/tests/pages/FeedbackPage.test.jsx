@@ -5,10 +5,10 @@ import '../mocks/supabase.js'
 import { mockSupabase } from '../mocks/supabase.js'
 import FeedbackPage from '../../pages/support/FeedbackPage'
 
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../hooks/core/useAuth', () => ({
   useAuth: () => ({ user: { id: 'test-user' } })
 }))
-vi.mock('../../hooks/useUser', () => ({
+vi.mock('../../hooks/account/useUser', () => ({
   useUser: () => ({ profile: { username: 'shresth' } })
 }))
 vi.mock('../../components/PageShell', () => ({

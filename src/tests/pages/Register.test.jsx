@@ -6,7 +6,7 @@ import Register from '../../pages/auth/Register'
 const mockSignUp = vi.fn()
 const mockNavigate = vi.fn()
 
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../hooks/core/useAuth', () => ({
   useAuth: () => ({ signUp: mockSignUp }),
 }))
 
@@ -15,7 +15,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
-vi.mock('../../hooks/useTheme', () => ({
+vi.mock('../../hooks/core/useTheme', () => ({
   useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn() }),
 }))
 

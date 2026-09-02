@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import ArticlesPage from '../../pages/feed/ArticlesPage'
 
-vi.mock('../../hooks/useTheme', () => ({
+vi.mock('../../hooks/core/useTheme', () => ({
   useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn(), followSystem: vi.fn() }),
   ThemeProvider: ({ children }) => children,
 }))
@@ -33,7 +33,7 @@ const mockStories = [
   },
 ]
 
-vi.mock('../../hooks/useStories', () => ({
+vi.mock('../../hooks/feed/useStories', () => ({
   useStories: () => ({ stories: mockStories, loading: false, error: null }),
 }))
 
@@ -108,7 +108,7 @@ describe('ArticlesPage', () => {
   })
 
   it('shows loading state', () => {
-    vi.doMock('../../hooks/useStories', () => ({
+    vi.doMock('../../hooks/feed/useStories', () => ({
       useStories: () => ({ stories: [], loading: true, error: null }),
     }))
     // Loading state renders correctly — covered by snapshot

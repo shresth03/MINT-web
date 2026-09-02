@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../api/supabase'
-import { useAuth } from './useAuth'
+import { identityDb, socialDb } from '../../api/supabase'
+import { useAuth } from '../core/useAuth'
 
 export function useFollow(targetUserId) {
   const { user } = useAuth()
@@ -19,19 +19,19 @@ export function useFollow(targetUserId) {
 
     const [followersRes, followingRes, isFollowingRes] = await Promise.all([
       // How many people follow this user
-      supabase
+      identityDb
         .from('follows')
         .select('id', { count: 'exact' })
         .eq('following_id', targetUserId),
 
       // How many people this user follows
-      supabase
+      identityDb
         .from('follows')
         .select('id', { count: 'exact' })
         .eq('follower_id', targetUserId),
 
       // Does current user follow this user
-      user ? supabase
+      user ? identityDb
         .from('follows')
         .select('id')
         .eq('follower_id', user.id)
@@ -48,17 +48,17 @@ export function useFollow(targetUserId) {
   async function toggleFollow() {
     if (!user || !targetUserId) return
     if (following) {
-      await supabase.from('follows').delete()
+      await identityDb.from('follows').delete()
         .eq('follower_id', user.id)
         .eq('following_id', targetUserId)
       setFollowing(false)
       setFollowerCount(c => Math.max(0, c - 1))
     } else {
-      await supabase.from('follows').insert({
+      await identityDb.from('follows').insert({
         follower_id: user.id,
         following_id: targetUserId,
       })
-      await supabase.from('notifications').insert({
+      await socialDb.from('notifications').insert({
         to_user_id: targetUserId,
         from_user_id: user.id,
         type: 'follow',
@@ -71,7 +71,7 @@ export function useFollow(targetUserId) {
 
   async function getFollowedUserIds() {
     if (!user) return []
-    const { data } = await supabase
+    const { data } = await identityDb
       .from('follows')
       .select('following_id')
       .eq('follower_id', user.id)
