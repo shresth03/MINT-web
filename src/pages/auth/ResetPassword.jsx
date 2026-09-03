@@ -7,7 +7,7 @@ import { CheckCircle, Lock } from 'lucide-react'
 
 export default function ResetPassword() {
   const { theme } = useTheme()
-  const { updatePassword } = useAuth()
+  const { } = useAuth()
   const navigate = useNavigate()
 
   // null = still checking, true = recovery session found, false = no session
@@ -51,20 +51,69 @@ export default function ResetPassword() {
     return () => clearTimeout(t)
   }, [done])
 
-  const handleSubmit = async () => {
-    if (!password) { setError('Enter a new password'); return }
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return }
-    if (password !== confirm) { setError('Passwords do not match'); return }
-    setLoading(true)
-    setError('')
-    const { error: err } = await updatePassword(password)
-    setLoading(false)
-    if (err) setError(err.message)
-    else {
-      sessionStorage.removeItem('mint_recovery')
-      setDone(true)
-    }
+const handleSubmit = async () => {
+  if (!password) {
+    setError('Enter a new password')
+    return
   }
+
+  if (password.length < 6) {
+    setError('Password must be at least 6 characters')
+    return
+  }
+
+  if (password !== confirm) {
+    setError('Passwords do not match')
+    return
+  }
+
+  setLoading(true)
+  setError('')
+
+  try {
+    // Get the current recovery session from Supabase
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session?.access_token) {
+      setError('Your reset link is invalid or has expired')
+      setLoading(false)
+      return
+    }
+
+    // Send the password update request to our Express backend
+    const response = await fetch(
+      'http://localhost:3000/api/auth/password',
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          password,
+        }),
+      }
+    )
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      setError(result.error || 'Failed to update password')
+      setLoading(false)
+      return
+    }
+
+    sessionStorage.removeItem('mint_recovery')
+    setLoading(false)
+    setDone(true)
+  } catch (error) {
+    console.error('Password update error:', error)
+    setError('Unable to connect to the server')
+    setLoading(false)
+  }
+}
 
   const inputStyle = {
     width: '100%', background: 'var(--bg)',

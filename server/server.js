@@ -1,9 +1,10 @@
-import express from "express";
-import cors from "cors";
 import dotenv from "dotenv";
-import router from "./routes/index.js";
 
 dotenv.config();
+
+const { default: express } = await import("express");
+const { default: cors } = await import("cors");
+const { default: router } = await import("./routes/index.js");
 
 const app = express();
 
