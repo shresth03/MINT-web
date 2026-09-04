@@ -4,6 +4,7 @@ import {
   signup,
   forgotPassword,
   updatePassword,
+  resendVerification,
 } from "../controllers/auth.controller.js";
 
 const router = express.Router();
@@ -20,8 +21,6 @@ router.post("/forgot-password", forgotPassword);
 
 router.patch("/password", updatePassword);
 
-router.post("/resend-verification", (req, res) => {
-  res.json({ message: "Resend verification route working" });
-});
+router.post("/resend-verification", resendVerification);
 
 export default router;

@@ -102,7 +102,8 @@ export const forgotPassword = async (req, res) => {
     }
 
     return res.status(200).json({
-      message: "Password reset email sent",
+       message:
+        "If an account exists with this email address, a password reset link has been sent.",
     });
   } catch (error) {
     console.error("Forgot password error:", error);
@@ -115,7 +116,11 @@ export const forgotPassword = async (req, res) => {
 
 export const updatePassword = async (req, res) => {
   try {
-    const { password } = req.body;
+    const {
+      password,
+      access_token,
+      refresh_token,
+    } = req.body;
 
     if (!password) {
       return res.status(400).json({
@@ -123,40 +128,33 @@ export const updatePassword = async (req, res) => {
       });
     }
 
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!access_token || !refresh_token) {
       return res.status(401).json({
-        error: "Authorization token is required",
-      });
-    }
-
-    const accessToken = authHeader.split(" ")[1];
-
-    const { data: userData, error: userError } =
-      await supabase.auth.getUser(accessToken);
-
-    if (userError || !userData.user) {
-      return res.status(401).json({
-        error: "Invalid or expired authentication token",
+        error: "Authentication session is required",
       });
     }
 
     const userSupabase = createClient(
       process.env.SUPABASE_URL,
-      process.env.SUPABASE_ANON_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      }
+      process.env.SUPABASE_ANON_KEY
     );
 
-    const { data, error } = await userSupabase.auth.updateUser({
-      password,
-    });
+    const { data: sessionData, error: sessionError } =
+      await userSupabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
+
+    if (sessionError || !sessionData.session) {
+      return res.status(401).json({
+        error: sessionError?.message || "Invalid authentication session",
+      });
+    }
+
+    const { data, error } =
+      await userSupabase.auth.updateUser({
+        password,
+      });
 
     if (error) {
       return res.status(400).json({
@@ -170,6 +168,39 @@ export const updatePassword = async (req, res) => {
     });
   } catch (error) {
     console.error("Update password error:", error);
+
+    return res.status(500).json({
+      error: "Internal server error",
+    });
+  }
+};
+
+export const resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        error: "Email is required",
+      });
+    }
+
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+    });
+
+    if (error) {
+      return res.status(400).json({
+        error: error.message,
+      });
+    }
+
+    return res.status(200).json({
+      message: "Verification email sent successfully",
+    });
+  } catch (error) {
+    console.error("Resend verification error:", error);
 
     return res.status(500).json({
       error: "Internal server error",

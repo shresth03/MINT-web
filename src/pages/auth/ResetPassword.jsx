@@ -7,7 +7,6 @@ import { CheckCircle, Lock } from 'lucide-react'
 
 export default function ResetPassword() {
   const { theme } = useTheme()
-  const { } = useAuth()
   const navigate = useNavigate()
 
   // null = still checking, true = recovery session found, false = no session
@@ -89,10 +88,11 @@ const handleSubmit = async () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           password,
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
         }),
       }
     )
