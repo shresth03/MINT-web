@@ -23,7 +23,7 @@ import WorldMap from '../../components/map/WorldMap'
 import {
   Rss, Search, TrendingUp, Globe2, BadgeCheck, Plus, Clock,
   MessageSquare, Bell, User, Settings, ShieldAlert, Compass,
-  Cpu, Flag, Award, Inbox, Film, X, Radio,
+  Cpu, Flag, Award, Inbox, Film, X, Radio, Flame,
 } from 'lucide-react'
 
 const styles = `
@@ -233,6 +233,11 @@ const styles = `
   .mil-label { font-family:var(--mono); font-size:8px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:4px; }
   .mil-val { font-family:var(--mono); font-size:22px; font-weight:700; }
   .mil-sub { font-size:9px; color:var(--muted); font-family:var(--sans); margin-top:2px; }
+  .mil-row { display:flex; padding:10px 12px; gap:6px; border-bottom:1px solid var(--border); }
+  .mil-row-stat { flex:1; display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .mil-row-top { display:flex; align-items:center; gap:4px; }
+  .mil-row-label { font-family:var(--mono); font-size:7px; letter-spacing:1px; color:var(--muted); text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mil-row-val { font-family:var(--mono); font-size:15px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .mil-section { padding:10px 14px 4px; font-family:var(--mono); font-size:8px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; }
   .mil-tags { padding:10px 14px 12px; display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--border); }
   .mil-story { border:none; border-bottom:1px solid var(--border); background:none; width:100%; text-align:left; font:inherit; color:inherit; display:block; padding:10px 14px; cursor:pointer; transition:background 0.12s; }
@@ -612,6 +617,7 @@ export default function App() {
                 : `${dbStories.length} stories`}
             </span>
             <div className="ml-auto" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {!isMobile && (nav === "feed" || nav === "map") && <NavToggle nav={nav} setNav={setNav} />}
               {isMobile && (
                 <button
                   onClick={toggleTheme}
@@ -673,30 +679,28 @@ export default function App() {
                   {selRegion ? (
                     <>
                       <button className="map-intel-back" onClick={() => setSelRegion(null)}>← ALL REGIONS</button>
-                      {selRegion.breaking && <span className="breaking-tag" style={{fontSize:7}}>BREAKING</span>}
+                      {selRegion.breaking && <span className="breaking-tag" style={{marginLeft:"auto",fontSize:7}}>BREAKING</span>}
                     </>
                   ) : (
                     <span className="map-intel-hd-title">GLOBAL INTELLIGENCE</span>
                   )}
-                  <NavToggle nav={nav} setNav={setNav} style={{marginLeft:"auto"}} />
                 </div>
 
                 {!selRegion ? (
                   <>
-                    <div className="mil-stat">
-                      <div className="mil-label">Total Events</div>
-                      <div className="mil-val" style={{color:"var(--accent)"}}>{totalEv}</div>
-                      <div className="mil-sub">{dbRegions.length} active regions</div>
-                    </div>
-                    <div className="mil-stat">
-                      <div className="mil-label">Breaking Zones</div>
-                      <div className="mil-val" style={{color:"var(--accent2)"}}>{breakZones}</div>
-                      <div className="mil-sub">live right now</div>
-                    </div>
-                    <div className="mil-stat">
-                      <div className="mil-label">Hottest Region</div>
-                      <div className="mil-val" style={{fontSize:14,lineHeight:1.3,color:"var(--warn)"}}>{hottest?.name ?? '—'}</div>
-                      <div className="mil-sub">{hottest?.count ?? 0} events</div>
+                    <div className="mil-row">
+                      <div className="mil-row-stat">
+                        <div className="mil-row-top"><Globe2 size={9} style={{color:"var(--accent)"}} /><span className="mil-row-label">Events</span></div>
+                        <div className="mil-row-val" style={{color:"var(--accent)"}}>{totalEv}</div>
+                      </div>
+                      <div className="mil-row-stat">
+                        <div className="mil-row-top"><Flag size={9} style={{color:"var(--accent2)"}} /><span className="mil-row-label">Breaking</span></div>
+                        <div className="mil-row-val" style={{color:"var(--accent2)"}}>{breakZones}</div>
+                      </div>
+                      <div className="mil-row-stat">
+                        <div className="mil-row-top"><Flame size={9} style={{color:"var(--warn)"}} /><span className="mil-row-label">Hottest</span></div>
+                        <div className="mil-row-val" style={{fontSize:12,color:"var(--warn)"}}>{hottest?.name ?? '—'}</div>
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -1005,7 +1009,6 @@ export default function App() {
                       {(story.breaking || story.is_breaking) && <span className="breaking-tag">BREAKING</span>}
                       <span className="story-tag">{story.tag}</span>
                       <span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--muted)"}}>First reported {story.time}</span>
-                      {!isMobile && <NavToggle nav={nav} setNav={setNav} style={{marginLeft:"auto"}} />}
                     </div>
                     <div className="detail-headline">{story.headline}</div>
                     <div className="conf-bar">
