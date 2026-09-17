@@ -273,13 +273,13 @@ export default function ProfilePage() {
             onClick={async () => { await signOut(); navigate('/login') }}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              background: 'none', border: '1px solid var(--border)',
+              background: 'transparent', border: '1px solid var(--accent2)',
               borderRadius: 6, padding: '10px 16px', cursor: 'pointer',
-              fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)',
-              letterSpacing: 1, transition: 'all 0.15s',
+              fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: 'var(--accent2)',
+              letterSpacing: 1, transition: 'background 0.15s',
             }}
-            onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--accent2)'; e.currentTarget.style.color = 'var(--accent2)' }}
-            onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)' }}
+            onMouseOver={e => { e.currentTarget.style.background = 'rgba(232,72,72,0.08)' }}
+            onMouseOut={e => { e.currentTarget.style.background = 'transparent' }}
           >
             <LogOut size={13} /> SIGN OUT
           </button>
