@@ -22,7 +22,7 @@ import SourceNoteButton from '../../components/SourceNoteButton'
 import WorldMap from '../../components/map/WorldMap'
 import {
   Rss, Search, TrendingUp, Globe2, BadgeCheck, Plus, Clock,
-  MessageSquare, Bell, User, Settings, ShieldAlert, MapPin,
+  MessageSquare, Bell, User, Settings, ShieldAlert, Compass,
   Cpu, Flag, Award, Inbox, Film, X, Radio,
 } from 'lucide-react'
 
@@ -973,7 +973,7 @@ export default function App() {
                       <span className="story-tag">{story.tag}</span>
                       <span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--muted)"}}>First reported {story.time}</span>
                       {!isMobile && (
-                        <button onClick={()=>setNav("map")} style={{marginLeft:"auto",background:"transparent",border:"1px solid var(--border)",borderRadius:3,padding:"3px 9px",fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",cursor:"pointer",letterSpacing:1, display:'flex',alignItems:'center',gap:4}}><MapPin size={8} /> VIEW ON MAP</button>
+                        <button onClick={()=>setNav("map")} style={{marginLeft:"auto",background:"transparent",border:"1px solid var(--border)",borderRadius:3,padding:"3px 9px",fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",cursor:"pointer",letterSpacing:1, display:'flex',alignItems:'center',gap:4}}><Compass size={8} /> VIEW ON MAP</button>
                       )}
                     </div>
                     <div className="detail-headline">{story.headline}</div>
