@@ -278,6 +278,38 @@ const styles = `
 
 
 
+// ─── FEED / MAP TOGGLE ───────────────────────────────────────────────────────
+function NavToggle({ nav, setNav, style }) {
+  const seg = (id, Icon, label) => {
+    const active = nav === id
+    return (
+      <button
+        type="button"
+        onClick={() => setNav(id)}
+        style={{
+          fontFamily: "var(--mono)", fontSize: 10, letterSpacing: 1, padding: "5px 12px",
+          borderRadius: 4, border: "none", cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 5,
+          background: active ? "var(--accent)" : "transparent",
+          color: active ? "var(--bg)" : "var(--muted)",
+          fontWeight: active ? 700 : 500,
+          transition: "color 0.12s ease",
+        }}
+        onMouseOver={e => { if (!active) e.currentTarget.style.color = "var(--accent)" }}
+        onMouseOut={e => { if (!active) e.currentTarget.style.color = "var(--muted)" }}
+      >
+        <Icon size={10} /> {label}
+      </button>
+    )
+  }
+  return (
+    <div style={{ display: "flex", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, padding: 2, gap: 2, ...style }}>
+      {seg("feed", Rss, "FEED")}
+      {seg("map", Compass, "MAP")}
+    </div>
+  )
+}
+
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const { theme, toggleTheme } = useTheme()
@@ -641,11 +673,12 @@ export default function App() {
                   {selRegion ? (
                     <>
                       <button className="map-intel-back" onClick={() => setSelRegion(null)}>← ALL REGIONS</button>
-                      {selRegion.breaking && <span className="breaking-tag" style={{marginLeft:"auto",fontSize:7}}>BREAKING</span>}
+                      {selRegion.breaking && <span className="breaking-tag" style={{fontSize:7}}>BREAKING</span>}
                     </>
                   ) : (
                     <span className="map-intel-hd-title">GLOBAL INTELLIGENCE</span>
                   )}
+                  <NavToggle nav={nav} setNav={setNav} style={{marginLeft:"auto"}} />
                 </div>
 
                 {!selRegion ? (
@@ -972,18 +1005,7 @@ export default function App() {
                       {(story.breaking || story.is_breaking) && <span className="breaking-tag">BREAKING</span>}
                       <span className="story-tag">{story.tag}</span>
                       <span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--muted)"}}>First reported {story.time}</span>
-                      {!isMobile && (
-                        <div style={{marginLeft:"auto",display:'flex',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:5,padding:2,gap:2}}>
-                          <button type="button" onClick={()=>setNav("feed")} style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:1,padding:"3px 8px",borderRadius:3,border:'none',background:'var(--accent)',color:'var(--bg)',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}>
-                            <Rss size={8} /> FEED
-                          </button>
-                          <button type="button" onClick={()=>setNav("map")} style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:1,padding:"3px 8px",borderRadius:3,border:'none',background:'transparent',color:'var(--muted)',cursor:'pointer',display:'flex',alignItems:'center',gap:4,transition:'color 0.12s ease'}}
-                            onMouseOver={e => e.currentTarget.style.color='var(--accent)'}
-                            onMouseOut={e => e.currentTarget.style.color='var(--muted)'}>
-                            <Compass size={8} /> MAP
-                          </button>
-                        </div>
-                      )}
+                      {!isMobile && <NavToggle nav={nav} setNav={setNav} style={{marginLeft:"auto"}} />}
                     </div>
                     <div className="detail-headline">{story.headline}</div>
                     <div className="conf-bar">
