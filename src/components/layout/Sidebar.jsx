@@ -187,7 +187,14 @@ export default function Sidebar({ setShowApply }) {
         </div>
         <button
           onClick={async () => { await signOut(); navigate('/login') }}
-          style={{ marginTop: 10, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', cursor: 'pointer', letterSpacing: 1, background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
+          style={{
+            marginTop: 10, fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700,
+            color: 'var(--accent2)', cursor: 'pointer', letterSpacing: 1,
+            background: 'transparent', border: '1px solid var(--accent2)', borderRadius: 4,
+            padding: '6px 12px', textAlign: 'left', transition: 'background 0.15s',
+          }}
+          onMouseOver={e => { e.currentTarget.style.background = 'rgba(232,72,72,0.08)' }}
+          onMouseOut={e => { e.currentTarget.style.background = 'transparent' }}
         >
           <LogOut size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} /> SIGN OUT
         </button>
