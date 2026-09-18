@@ -98,8 +98,8 @@ const styles = `
   .user-name { font-size: 12px; font-weight: 500; color: var(--text); font-family: var(--sans); }
   .user-role { font-size: 10px; color: var(--muted); font-family: var(--mono); }
   .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; transition: background 0.4s ease; }
-  .topbar { height: 52px; min-height: 52px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 16px; background: var(--surface); flex-shrink: 0; transition: background 0.4s ease; }
-  .topbar-title { font-family: var(--mono); font-size: 12px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+  .topbar { height: 52px; min-height: 52px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 16px; background: var(--surface); flex-shrink: 0; transition: background 0.4s ease; position: relative; }
+  .topbar-title { font-family: var(--mono); font-size: 12px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; white-space: nowrap; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
   .live-indicator { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--accent2); white-space: nowrap; }
   .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); animation: blink 1.4s ease-in-out infinite; }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
@@ -603,7 +603,7 @@ export default function App() {
               <button className="hamburger" aria-label="Open navigation" onClick={() => setSidebarOpen(true)}>☰</button>
             )}
             <span className="topbar-title">
-              {nav==="map"?"Event Map":nav==="trending"?"Trending":"Intel Feed"}
+              {nav==="map"?"Event Map":nav==="trending"?"Trending":""}
             </span>
             <div className="live-indicator"><div className="live-dot" />LIVE</div>
             <span className="topbar-stats" style={{fontSize:10,color:"var(--muted)",fontFamily:"var(--mono)"}}>
