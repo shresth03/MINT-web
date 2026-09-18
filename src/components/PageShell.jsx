@@ -83,18 +83,6 @@ export default function PageShell({ children, title, showBack = true }) {
           </span>
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button
-            onClick={toggleTheme}
-            title={theme === 'dark' ? 'Switch to Ghost' : 'Switch to Void'}
-            style={{
-              background: 'none', border: '1px solid var(--border)',
-              borderRadius: 4, padding: '5px 8px', cursor: 'pointer',
-              color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 9,
-              letterSpacing: 1, flexShrink: 0,
-            }}
-          >
-            {theme === 'dark' ? '☀ GHOST' : '☾ VOID'}
-          </button>
           {showBack && <BackButton />}
         </div>
       </div>
