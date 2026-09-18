@@ -76,8 +76,8 @@ export default function PageShell({ children, title, showBack = true }) {
         {title && (
           <span style={{
             position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-            fontFamily: 'var(--mono)', fontSize: 12,
-            letterSpacing: 1, color: 'var(--muted)',
+            fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700,
+            letterSpacing: 1, color: 'var(--accent)',
             textTransform: 'uppercase',
             pointerEvents: 'none',
           }}>

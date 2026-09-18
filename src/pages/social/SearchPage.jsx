@@ -111,7 +111,7 @@ export default function SearchPage() {
   }
 
   return (
-    <PageShell>
+    <PageShell title="MINT — SEARCH">
       <style>{`
         @keyframes loadbar { 0%{width:0;margin-left:0} 50%{width:60%;margin-left:20%} 100%{width:0;margin-left:100%} }
       `}</style>
