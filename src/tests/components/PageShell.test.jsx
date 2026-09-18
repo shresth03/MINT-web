@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import PageShell from '../../components/PageShell'
 
@@ -60,18 +60,19 @@ describe('PageShell', () => {
 
   it('renders BACK button by default', () => {
     renderShell()
-    expect(screen.getByText(/← BACK/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /go back/i })).toBeInTheDocument()
   })
 
   it('hides BACK button when showBack=false', () => {
     renderShell({ showBack: false })
-    expect(screen.queryByText(/← BACK/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /go back/i })).not.toBeInTheDocument()
   })
 
-  it('calls navigate(-1) when BACK is clicked', () => {
+  it('calls navigate(-1) when BACK is clicked', async () => {
     renderShell()
-    fireEvent.click(screen.getByText(/← BACK/i))
-    expect(mockNavigate).toHaveBeenCalledWith(-1)
+    fireEvent.click(screen.getByRole('button', { name: /go back/i }))
+    // BackButton plays an exit animation before navigating
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(-1))
   })
 
   // ── Theme toggle ─────────────────────────────────────────────────────────

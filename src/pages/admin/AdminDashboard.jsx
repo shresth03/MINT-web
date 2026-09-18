@@ -282,7 +282,7 @@ export default function AdminDashboard() {
   if (!userRole) return null
 
   return (
-    <PageShell title="MINT — ADMIN DASHBOARD" showBack={false}>
+    <PageShell title="MINT — ADMIN DASHBOARD">
 
       {/* Sticky tab bar */}
       <div style={{

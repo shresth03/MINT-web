@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/core/useAuth'
 import { supabase, identityDb, socialDb } from '../../api/supabase'
 import { MessageSquare, BadgeCheck, Inbox } from 'lucide-react'
 import { useIsMobile } from '../../hooks/core/useIsMobile'
+import BackButton from '../../components/BackButton'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -111,29 +112,9 @@ export default function MessagesPage() {
             : 'MINT — MESSAGES'}
         </span>
         {isMobile && activeConv ? (
-          <button
-            onClick={() => setActiveConv(null)}
-            style={{
-              marginLeft: 'auto', background: 'transparent',
-              border: '1px solid var(--border)', color: 'var(--muted)',
-              padding: '6px 14px', borderRadius: 4,
-              fontFamily: 'var(--mono)', fontSize: 10, cursor: 'pointer',
-            }}
-          >
-            ← Back
-          </button>
+          <BackButton onClick={() => setActiveConv(null)} style={{ marginLeft: 'auto' }} />
         ) : (
-          <button
-            onClick={() => navigate('/feed')}
-            style={{
-              marginLeft: 'auto', background: 'transparent',
-              border: '1px solid var(--border)', color: 'var(--muted)',
-              padding: '6px 14px', borderRadius: 4,
-              fontFamily: 'var(--mono)', fontSize: 10, cursor: 'pointer',
-            }}
-          >
-            ← Back to Feed
-          </button>
+          <BackButton to="/feed" ariaLabel="Back to feed" style={{ marginLeft: 'auto' }} />
         )}
       </div>
 

@@ -1,10 +1,9 @@
 import { useTheme } from '../hooks/core/useTheme'
-import { useNavigate } from 'react-router-dom'
+import BackButton from './BackButton'
 import MobileBottomNav from './layout/MobileBottomNav'
 
 export default function PageShell({ children, title, showBack = true }) {
   const { theme, toggleTheme } = useTheme()
-  const navigate = useNavigate()
 
   return (
     <div style={{
@@ -36,20 +35,7 @@ export default function PageShell({ children, title, showBack = true }) {
           />
         </div>
 
-        {showBack && (
-          <button
-            onClick={() => navigate(-1)}
-            style={{
-              background: 'none', border: 'none',
-              color: 'var(--muted)', cursor: 'pointer',
-              fontFamily: 'var(--mono)', fontSize: 10,
-              letterSpacing: 1, display: 'flex',
-              alignItems: 'center', gap: 6, padding: 0,
-            }}
-          >
-            ← BACK
-          </button>
-        )}
+        {showBack && <BackButton />}
         {title && (
           <span style={{
             fontFamily: 'var(--mono)', fontSize: 12,

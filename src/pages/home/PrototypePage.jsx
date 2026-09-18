@@ -20,6 +20,7 @@ import ThemeRipple from '../../components/ThemeRipple'
 import EditNoteSection from '../../components/EditNoteSection'
 import SourceNoteButton from '../../components/SourceNoteButton'
 import WorldMap from '../../components/map/WorldMap'
+import BackButton from '../../components/BackButton'
 import {
   Rss, Search, TrendingUp, Globe2, BadgeCheck, Plus, Clock,
   MessageSquare, Bell, User, Settings, ShieldAlert, Compass,
@@ -272,12 +273,6 @@ const styles = `
   @media (max-width: 768px) {
     .hamburger { display:flex; align-items:center; }
     .topbar-stats { display:none; }
-  }
-
-  /* MOBILE BACK */
-  .mobile-back { border:none; border-bottom:1px solid var(--border); background:var(--surface); width:100%; text-align:left; display:none; align-items:center; gap:8px; padding:10px 16px; cursor:pointer; font-family:var(--mono); font-size:10px; color:var(--accent); letter-spacing:1px; flex-shrink:0; }
-  @media (max-width: 768px) {
-    .mobile-back { display:flex; }
   }
 `
 
@@ -1000,9 +995,9 @@ export default function App() {
                 <div style={{flex:1, overflow:'hidden', display:'flex', flexDirection:'column'}}>
                   {/* Mobile back button */}
                   {isMobile && (
-                    <button type="button" className="mobile-back" onClick={() => setMobileDetail(false)}>
-                      ← BACK TO FEED
-                    </button>
+                    <div style={{padding:'10px 14px', borderBottom:'1px solid var(--border)', background:'var(--surface)', flexShrink:0}}>
+                      <BackButton onClick={() => setMobileDetail(false)} ariaLabel="Back to feed" />
+                    </div>
                   )}
                   <div key={story.id} className="detail-panel">
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,flexWrap:"wrap"}}>
