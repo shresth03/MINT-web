@@ -75,21 +75,12 @@ describe('PageShell', () => {
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(-1))
   })
 
-  // ── Theme toggle ─────────────────────────────────────────────────────────
+  // ── Logo hold-to-switch theme ───────────────────────────────────────────
 
-  it('renders theme toggle button', () => {
+  it('calls toggleTheme when the logo is held', () => {
     renderShell()
-    expect(screen.getByText(/GHOST|VOID/i)).toBeInTheDocument()
-  })
-
-  it('shows ☀ GHOST label in dark theme', () => {
-    renderShell()
-    expect(screen.getByText('☀ GHOST')).toBeInTheDocument()
-  })
-
-  it('calls toggleTheme when theme button is clicked', () => {
-    renderShell()
-    fireEvent.click(screen.getByText('☀ GHOST'))
+    const logo = screen.getByRole('img', { name: 'MINT' }).parentElement
+    fireEvent.mouseDown(logo)
     expect(mockToggleTheme).toHaveBeenCalled()
   })
 })
