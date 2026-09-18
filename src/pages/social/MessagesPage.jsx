@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useMessages } from '../../hooks/social/useMessages'
 import { useAuth } from '../../hooks/core/useAuth'
 import { supabase, identityDb, socialDb } from '../../api/supabase'
-import { MessageSquare, BadgeCheck, Inbox } from 'lucide-react'
+import { BadgeCheck, Inbox } from 'lucide-react'
 import { useIsMobile } from '../../hooks/core/useIsMobile'
 import BackButton from '../../components/BackButton'
 
@@ -100,16 +100,21 @@ export default function MessagesPage() {
 
       {/* Topbar */}
       <div style={{
+        position: 'relative',
         height: 52, minHeight: 52, background: 'var(--surface)',
         borderBottom: '1px solid var(--border)',
         display: 'flex', alignItems: 'center',
         padding: '0 24px', gap: 16, flexShrink: 0,
       }}>
-        <MessageSquare size={20} style={{ color: 'var(--accent)' }} />
-        <span style={{ fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: 2, color: 'var(--accent)' }}>
+        <span style={{
+          position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+          fontFamily: 'var(--mono)', fontSize: 15, fontWeight: 700,
+          letterSpacing: 1, color: 'var(--accent)', textTransform: 'uppercase',
+          pointerEvents: 'none', whiteSpace: 'nowrap',
+        }}>
           {isMobile && activeConv
             ? otherUser?.username?.toUpperCase() || 'MESSAGES'
-            : 'MINT — MESSAGES'}
+            : 'My Tell'}
         </span>
         {isMobile && activeConv ? (
           <BackButton onClick={() => setActiveConv(null)} style={{ marginLeft: 'auto' }} />
