@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useAuth } from '../../hooks/core/useAuth'
 import { useUser } from '../../hooks/account/useUser'
 import { moderationDb } from '../../api/supabase'
-import { useNavigate } from 'react-router-dom'
 import { MessageSquareDashed, Loader2, Send } from 'lucide-react'
 import PageShell from '../../components/PageShell'
+import BackButton from '../../components/BackButton'
 
 const FEATURES = [
   { id: 'intel_feed',        label: 'Intel Feed',              desc: 'Main OSINT story feed with multi-source stories' },
@@ -54,7 +54,6 @@ const RATINGS = [
 export default function FeedbackPage() {
   const { user } = useAuth()
   const { profile } = useUser()
-  const navigate = useNavigate()
 
   const [ratings, setRatings] = useState({})
   const [inlineComments, setInlineComments] = useState({})
@@ -105,17 +104,7 @@ export default function FeedbackPage() {
         <div style={{ fontSize: 11, color: 'var(--muted)', maxWidth: 320, textAlign: 'center', lineHeight: 1.7 }}>
           Your feedback has been logged and will directly shape what gets built next.
         </div>
-        <button
-          onClick={() => navigate('/feed')}
-          style={{
-            marginTop: 16, padding: '10px 24px',
-            background: 'transparent', border: '1px solid var(--border)',
-            color: 'var(--muted)', borderRadius: 6, fontFamily: 'var(--mono)',
-            fontSize: 11, cursor: 'pointer', letterSpacing: 1
-          }}
-        >
-          ← RETURN TO FEED
-        </button>
+        <BackButton to="/feed" ariaLabel="Return to feed" style={{ marginTop: 16 }} />
       </div>
     </PageShell>
   )

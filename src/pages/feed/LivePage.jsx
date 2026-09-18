@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageShell from '../../components/PageShell'
+import BackButton from '../../components/BackButton'
 import { useLiveStreams, useStreamViewers } from '../../hooks/feed/useLiveStreams'
 import { useAuth } from '../../hooks/core/useAuth'
 import { BadgeCheck, PenLine, Play, Radio, Inbox } from 'lucide-react'
@@ -327,10 +328,7 @@ export default function LivePage() {
         {activeStream && (
           <div style={{ marginBottom: 32 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <button onClick={() => setActiveStream(null)} style={{
-                background: 'none', border: 'none', color: 'var(--muted)',
-                fontFamily: 'var(--mono)', fontSize: 10, cursor: 'pointer',
-              }}>← BACK</button>
+              <BackButton onClick={() => setActiveStream(null)} />
             </div>
             <StreamRoom
               stream={activeStream}
