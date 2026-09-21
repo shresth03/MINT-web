@@ -91,7 +91,7 @@ const styles = `
 
   .logo { padding: 20px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 10px; }
   .logo-img { height: 38px; width: auto; transition: height 0.22s ease; }
-  .sidebar.collapsed .logo-img { height: 32px; }
+  .sidebar.collapsed .logo-img { height: 22px; }
   .logo-icon { width: 32px; height: 32px; background: var(--accent); clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--bg); font-family: var(--mono); }
   .logo-text { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 2px; }
   .logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 1px; font-family: var(--mono); }
@@ -580,7 +580,7 @@ export default function App() {
             onTouchEnd={cancelHold}
           >
             <img
-              src={!isMobile && sidebarCollapsed ? '/favicon-192x192.png' : (theme === 'dark' ? '/logo-dark.png' : '/logo-light.png')}
+              src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
               alt="MINT"
               draggable={false}
               className="logo-img"
