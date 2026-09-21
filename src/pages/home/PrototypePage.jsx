@@ -68,7 +68,7 @@ const styles = `
   }
 
   .app { display: flex; height: 100vh; overflow: hidden; }
-  .sidebar { width: 220px; min-width: 220px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: transform 0.25s ease, background 0.4s ease; }
+  .sidebar { width: 220px; min-width: 220px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: width 0.22s ease, min-width 0.22s ease, transform 0.25s ease, background 0.4s ease; }
   .sidebar.mobile-hidden { transform: translateX(-100%); }
   .sidebar.collapsed { width: 68px; min-width: 68px; }
   .sidebar.collapsed .logo { padding-left: 10px; padding-right: 10px; }
@@ -90,25 +90,25 @@ const styles = `
   }
 
   .logo { padding: 20px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 10px; }
-  .logo-img { height: 38px; width: auto; }
+  .logo-img { height: 38px; width: auto; transition: height 0.22s ease; }
   .sidebar.collapsed .logo-img { height: 22px; }
   .logo-icon { width: 32px; height: 32px; background: var(--accent); clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--bg); font-family: var(--mono); }
   .logo-text { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 2px; }
   .logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 1px; font-family: var(--mono); }
   .nav { flex: 1; padding: 12px 0; overflow-y: auto; overflow-x: hidden; }
-  .nav-section { padding: 8px 18px 4px; font-size: 9px; letter-spacing: 2px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; white-space: nowrap; overflow: hidden; max-height: 30px; }
+  .nav-section { padding: 8px 18px 4px; font-size: 9px; letter-spacing: 2px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; white-space: nowrap; overflow: hidden; max-height: 30px; transition: opacity 0.15s ease, max-height 0.22s ease, padding 0.22s ease; }
   .nav-item { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 18px; cursor: pointer; font-size: 13px; font-family: var(--sans); color: var(--muted); transition: all 0.15s; border-left: 2px solid transparent; background: none; border-top: none; border-right: none; border-bottom: none; width: 100%; text-align: left; }
   .nav-item:hover { background: var(--surface2); color: var(--text); }
   .nav-item.active { background: var(--active-bg); color: var(--accent); border-left-color: var(--accent); }
   .nav-icon { flex-shrink: 0; }
-  .nav-label { white-space: nowrap; overflow: hidden; opacity: 1; max-width: 160px; }
-  .nav-badge { margin-left: auto; background: var(--accent2); color: #fff; font-size: 9px; padding: 1px 6px; border-radius: 10px; font-family: var(--mono); }
+  .nav-label { white-space: nowrap; overflow: hidden; opacity: 1; max-width: 160px; transition: opacity 0.15s ease, max-width 0.22s ease; }
+  .nav-badge { margin-left: auto; background: var(--accent2); color: #fff; font-size: 9px; padding: 1px 6px; border-radius: 10px; font-family: var(--mono); transition: all 0.15s ease; }
   .nav-badge.green { background: var(--verified); color: #000; }
   .nav-badge.orange { background: var(--accent2); }
   .sidebar-bottom { border-top: 1px solid var(--border); padding: 12px 18px; }
   .user-card { display: flex; align-items: center; gap: 10px; cursor: pointer; background: none; border: none; width: 100%; text-align: left; font: inherit; color: inherit; }
   .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--bg); border: 1px solid var(--border); font-family: var(--mono); flex-shrink: 0; }
-  .user-info { white-space: nowrap; overflow: hidden; opacity: 1; max-width: 160px; }
+  .user-info { white-space: nowrap; overflow: hidden; opacity: 1; max-width: 160px; transition: opacity 0.15s ease, max-width 0.22s ease; }
   .user-name { font-size: 12px; font-weight: 500; color: var(--text); font-family: var(--sans); }
   .user-role { font-size: 10px; color: var(--muted); font-family: var(--mono); }
   .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; transition: background 0.4s ease; }
@@ -229,7 +229,7 @@ const styles = `
 
   /* ── REDUCED MOTION — extend to live/breaking animations ── */
   @media (prefers-reduced-motion:reduce) { .live-dot { animation:none; } .breaking-tag { animation:none; } }
-  @media (prefers-reduced-motion:reduce) { .sidebar { transition:none; } .map-region-sheet { animation:none; } }
+  @media (prefers-reduced-motion:reduce) { .sidebar, .nav-label, .nav-section, .nav-badge, .user-info, .logo-img { transition:none; } .map-region-sheet { animation:none; } }
 
   /* MAP */
   .map-page { flex:1; display:flex; overflow:hidden; }
@@ -348,21 +348,16 @@ export default function App() {
   const [mobileDetail, setMobileDetail] = useState(false) // show detail panel on mobile
 
   // Desktop sidebar starts collapsed to icons-only; hovering it expands
-  // instantly, and it collapses again after a short grace period once the
-  // pointer leaves — so a quick pass-by doesn't snap it shut instantly.
+  // and hovering out collapses it again, both instantly.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
-  const collapseTimer = useRef(null)
   const expandSidebar = useCallback(() => {
     if (isMobile) return
-    clearTimeout(collapseTimer.current)
     setSidebarCollapsed(false)
   }, [isMobile])
   const collapseSidebar = useCallback(() => {
     if (isMobile) return
-    clearTimeout(collapseTimer.current)
-    collapseTimer.current = setTimeout(() => setSidebarCollapsed(true), 450)
+    setSidebarCollapsed(true)
   }, [isMobile])
-  useEffect(() => () => clearTimeout(collapseTimer.current), [])
 
   useEffect(() => { getFollowedUserIds().then(ids => setFollowedIds(ids)) }, [user])
 
