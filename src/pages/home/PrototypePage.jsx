@@ -90,6 +90,8 @@ const styles = `
   }
 
   .logo { padding: 20px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .logo-img { height: 38px; width: auto; transition: height 0.22s ease; }
+  .sidebar.collapsed .logo-img { height: 22px; }
   .logo-icon { width: 32px; height: 32px; background: var(--accent); clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--bg); font-family: var(--mono); }
   .logo-text { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 2px; }
   .logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 1px; font-family: var(--mono); }
@@ -227,7 +229,7 @@ const styles = `
 
   /* ── REDUCED MOTION — extend to live/breaking animations ── */
   @media (prefers-reduced-motion:reduce) { .live-dot { animation:none; } .breaking-tag { animation:none; } }
-  @media (prefers-reduced-motion:reduce) { .sidebar, .nav-label, .nav-section, .nav-badge, .user-info { transition:none; } .map-region-sheet { animation:none; } }
+  @media (prefers-reduced-motion:reduce) { .sidebar, .nav-label, .nav-section, .nav-badge, .user-info, .logo-img { transition:none; } .map-region-sheet { animation:none; } }
 
   /* MAP */
   .map-page { flex:1; display:flex; overflow:hidden; }
@@ -581,7 +583,8 @@ export default function App() {
               src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
               alt="MINT"
               draggable={false}
-              style={{ height: 38, width: 'auto', display: 'block', flexShrink: 0, pointerEvents: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}
+              className="logo-img"
+              style={{ display: 'block', flexShrink: 0, pointerEvents: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}
             />
             {isMobile && (
               <button
