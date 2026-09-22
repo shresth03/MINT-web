@@ -157,7 +157,7 @@ export default function Login() {
                 borderRadius: 4, padding: '12px 14px', color: 'var(--verified)',
                 fontSize: 12, marginBottom: 14, fontFamily: 'var(--sans)', textAlign: 'center',
               }}>
-                Reset link sent — check your inbox.
+                If an account exists with this email address, a reset link has been sent. Please check your inbox.
               </div>
             ) : (
               <>

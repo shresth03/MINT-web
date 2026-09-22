@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/core/useAuth'
 import { useTheme } from '../../hooks/core/useTheme'
-import { supabase } from '../../api/supabase'
 import { CheckCircle, Lock } from 'lucide-react'
+import { supabase } from '../../api/supabase'
 
 export default function ResetPassword() {
   const { theme } = useTheme()
@@ -51,20 +51,43 @@ export default function ResetPassword() {
     return () => clearTimeout(t)
   }, [done])
 
-  const handleSubmit = async () => {
-    if (!password) { setError('Enter a new password'); return }
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return }
-    if (password !== confirm) { setError('Passwords do not match'); return }
-    setLoading(true)
-    setError('')
-    const { error: err } = await updatePassword(password)
-    setLoading(false)
-    if (err) setError(err.message)
-    else {
-      sessionStorage.removeItem('mint_recovery')
-      setDone(true)
-    }
+const handleSubmit = async () => {
+  if (!password) {
+    setError('Enter a new password')
+    return
   }
+
+  if (password.length < 6) {
+    setError('Password must be at least 6 characters')
+    return
+  }
+
+  if (password !== confirm) {
+    setError('Passwords do not match')
+    return
+  }
+
+  setLoading(true)
+  setError('')
+
+  try {
+    const { error } = await updatePassword(password)
+
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+      return
+    }
+
+    sessionStorage.removeItem('mint_recovery')
+    setLoading(false)
+    setDone(true)
+  } catch (error) {
+    console.error('Password update error:', error)
+    setError('Unable to update password')
+    setLoading(false)
+  }
+}
 
   const inputStyle = {
     width: '100%', background: 'var(--bg)',

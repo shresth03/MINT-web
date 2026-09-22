@@ -155,7 +155,9 @@ describe('Login page', () => {
     fireEvent.click(screen.getByText('SEND RESET LINK'))
     await waitFor(() => {
       expect(mockResetPassword).toHaveBeenCalledWith('a@b.com')
-      expect(screen.getByText(/Reset link sent/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/If an account exists with this email address, a reset link has been sent/i)
+      ).toBeInTheDocument()
     })
   })
 
