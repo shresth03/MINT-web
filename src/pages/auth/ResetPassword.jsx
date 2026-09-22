@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/core/useAuth'
 import { useTheme } from '../../hooks/core/useTheme'
-import { supabase } from '../../api/supabase'
 import { CheckCircle, Lock } from 'lucide-react'
+import { supabase } from '../../api/supabase'
 
 export default function ResetPassword() {
   const { theme } = useTheme()
+  const { updatePassword } = useAuth()
   const navigate = useNavigate()
 
   // null = still checking, true = recovery session found, false = no session
@@ -70,37 +71,10 @@ const handleSubmit = async () => {
   setError('')
 
   try {
-    // Get the current recovery session from Supabase
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+    const { error } = await updatePassword(password)
 
-    if (!session?.access_token) {
-      setError('Your reset link is invalid or has expired')
-      setLoading(false)
-      return
-    }
-
-    // Send the password update request to our Express backend
-    const response = await fetch(
-      'http://localhost:3000/api/auth/password',
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          password,
-          access_token: session.access_token,
-          refresh_token: session.refresh_token,
-        }),
-      }
-    )
-
-    const result = await response.json()
-
-    if (!response.ok) {
-      setError(result.error || 'Failed to update password')
+    if (error) {
+      setError(error.message)
       setLoading(false)
       return
     }
@@ -110,7 +84,7 @@ const handleSubmit = async () => {
     setDone(true)
   } catch (error) {
     console.error('Password update error:', error)
-    setError('Unable to connect to the server')
+    setError('Unable to update password')
     setLoading(false)
   }
 }
