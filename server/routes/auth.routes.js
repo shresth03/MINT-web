@@ -1,4 +1,5 @@
 import express from "express";
+import { rateLimit } from "express-rate-limit";
 import {
   login,
   signup,
@@ -9,18 +10,26 @@ import {
 
 const router = express.Router();
 
-router.post("/signup", signup);
+// Throttle credential-guessing and email-spamming endpoints per IP.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
-router.post("/login", login);
+router.post("/signup", authLimiter, signup);
+
+router.post("/login", authLimiter, login);
 
 router.post("/logout", (req, res) => {
   res.json({ message: "Logout route working" });
 });
 
-router.post("/forgot-password", forgotPassword);
+router.post("/forgot-password", authLimiter, forgotPassword);
 
 router.patch("/password", updatePassword);
 
-router.post("/resend-verification", resendVerification);
+router.post("/resend-verification", authLimiter, resendVerification);
 
 export default router;

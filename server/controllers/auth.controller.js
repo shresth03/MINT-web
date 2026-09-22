@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase.js";
+import { FRONTEND_URL } from "../config.js";
 
 export const login = async (req, res) => {
   try {
@@ -17,8 +18,10 @@ export const login = async (req, res) => {
     });
 
     if (error) {
+      console.error("Login error:", error.message);
+
       return res.status(401).json({
-        error: error.message,
+        error: "Invalid email or password",
       });
     }
 
@@ -53,7 +56,7 @@ export const signup = async (req, res) => {
       email,
       password,
       options: {
-        emailRedirectTo: `${process.env.FRONTEND_URL}/`,
+        emailRedirectTo: `${FRONTEND_URL}/`,
         data: {
           username,
           role: validRole,
@@ -62,6 +65,16 @@ export const signup = async (req, res) => {
     });
 
     if (error) {
+      // Don't reveal that this email is already registered — return the
+      // same shape a genuine signup gets so the response can't be used
+      // to enumerate existing accounts.
+      if (error.code === "user_already_exists") {
+        return res.status(200).json({
+          message: "Signup successful",
+          needsEmailConfirmation: true,
+        });
+      }
+
       return res.status(400).json({
         error: error.message,
       });
@@ -92,7 +105,7 @@ export const forgotPassword = async (req, res) => {
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.FRONTEND_URL}/reset-password`,
+      redirectTo: `${FRONTEND_URL}/reset-password`,
     });
 
     if (error) {
