@@ -47,9 +47,7 @@ export function AuthProvider({ children }) {
       },
     })
     if (error) return { error }
-
     // REMOVED the supabase.from('users').insert(...) entirely!
-
     return { data, needsEmailConfirmation: !data.session }
   }
 
