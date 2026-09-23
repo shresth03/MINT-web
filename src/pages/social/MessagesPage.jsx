@@ -6,6 +6,7 @@ import { supabase, identityDb, socialDb } from '../../api/supabase'
 import { BadgeCheck, Inbox } from 'lucide-react'
 import { useIsMobile } from '../../hooks/core/useIsMobile'
 import BackButton from '../../components/BackButton'
+import TopbarLogo from '../../components/TopbarLogo'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -104,8 +105,15 @@ export default function MessagesPage() {
         height: 52, minHeight: 52, background: 'var(--surface)',
         borderBottom: '1px solid var(--border)',
         display: 'flex', alignItems: 'center',
-        padding: '0 24px', gap: 16, flexShrink: 0,
+        padding: '0 20px', gap: 16, flexShrink: 0,
       }}>
+        <TopbarLogo />
+        <span aria-hidden="true" style={{ width: 1, height: 24, background: 'var(--border)', flexShrink: 0 }} />
+        {isMobile && activeConv ? (
+          <BackButton variant="outline" onClick={() => setActiveConv(null)} />
+        ) : (
+          <BackButton variant="outline" />
+        )}
         <span style={{
           position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
           fontFamily: 'var(--mono)', fontSize: 15, fontWeight: 700,
@@ -116,11 +124,6 @@ export default function MessagesPage() {
             ? otherUser?.username?.toUpperCase() || 'MESSAGES'
             : 'My Tell'}
         </span>
-        {isMobile && activeConv ? (
-          <BackButton onClick={() => setActiveConv(null)} style={{ marginLeft: 'auto' }} />
-        ) : (
-          <BackButton to="/feed" ariaLabel="Back to feed" style={{ marginLeft: 'auto' }} />
-        )}
       </div>
 
       {/* Body */}

@@ -4,9 +4,12 @@ import { useNavigate } from 'react-router-dom'
 const EXIT_MS = 260
 
 // Icon-only, filled-accent-circle back control. Default action is
-// navigate(-1); pass `to` for a specific route or `onClick` for local
-// state (e.g. closing a mobile detail view instead of changing routes).
-export default function BackButton({ to, onClick, size = 30, style, ariaLabel = 'Go back' }) {
+// navigate(-1), falling back to /feed when there's no in-app history
+// (page opened from a link or a fresh tab); pass `to` for a specific
+// route or `onClick` for local state (e.g. closing a mobile detail view
+// instead of changing routes). `variant="outline"` swaps the fill for an
+// accent ring, used in top bars so the logo stays the dominant mark.
+export default function BackButton({ to, onClick, size = 30, style, ariaLabel = 'Go back', variant = 'filled' }) {
   const navigate = useNavigate()
   const [exiting, setExiting] = useState(false)
 
@@ -15,7 +18,8 @@ export default function BackButton({ to, onClick, size = 30, style, ariaLabel = 
     const go = () => {
       if (onClick) onClick()
       else if (to) navigate(to)
-      else navigate(-1)
+      else if (window.history.state?.idx > 0) navigate(-1)
+      else navigate('/feed')
     }
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reducedMotion) { go(); return }
@@ -35,6 +39,8 @@ export default function BackButton({ to, onClick, size = 30, style, ariaLabel = 
           cursor: pointer; transition: filter 0.12s ease;
         }
         .mint-backbtn:hover { filter: brightness(1.1); }
+        .mint-backbtn.mint-backbtn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); transition: background 0.12s ease; }
+        .mint-backbtn.mint-backbtn-outline:hover { background: var(--topbar-hover); filter: none; }
         .mint-backbtn.mint-backbtn-exiting {
           animation: mint-backbtn-exit ${EXIT_MS}ms cubic-bezier(.55,0,.85,.15) forwards;
           pointer-events: none;
@@ -65,7 +71,7 @@ export default function BackButton({ to, onClick, size = 30, style, ariaLabel = 
           type="button"
           aria-label={ariaLabel}
           onClick={handleClick}
-          className={`mint-backbtn${exiting ? ' mint-backbtn-exiting' : ''}`}
+          className={`mint-backbtn${variant === 'outline' ? ' mint-backbtn-outline' : ''}${exiting ? ' mint-backbtn-exiting' : ''}`}
         >
           <svg width={Math.round(size * 0.45)} height={Math.round(size * 0.45)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7" />
