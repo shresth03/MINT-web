@@ -93,7 +93,7 @@ export default function FeedbackPage() {
   }
 
   if (submitted) return (
-    <PageShell title="Feedback Terminal">
+    <PageShell title="Feedback">
       <div style={{
         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexDirection: 'column', gap: 16, minHeight: 'calc(100vh - 52px)',
@@ -110,7 +110,7 @@ export default function FeedbackPage() {
   )
 
   return (
-    <PageShell title="Feedback Terminal">
+    <PageShell title="Feedback">
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 24px' }}>
 
         {/* Intro */}

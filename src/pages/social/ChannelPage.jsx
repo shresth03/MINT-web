@@ -27,7 +27,7 @@ export default function ChannelPage() {
   const { getOrCreateConversation } = useMessages()
 
   if (loading) return (
-    <PageShell title="MINT — CHANNEL">
+    <PageShell title="CHANNEL">
       <div style={{
         padding: 40, textAlign: 'center',
         fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)'
@@ -38,7 +38,7 @@ export default function ChannelPage() {
   )
 
   if (!channel) return (
-    <PageShell title="MINT — CHANNEL">
+    <PageShell title="CHANNEL">
       <div style={{ textAlign: 'center', padding: '80px 24px' }}>
         <Inbox size={32} style={{ marginBottom: 16, color: 'var(--border)' }} />
         <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)', letterSpacing: 2 }}>
@@ -55,7 +55,7 @@ export default function ChannelPage() {
   const score = channel.score || 0
 
   return (
-    <PageShell title="MINT — CHANNEL">
+    <PageShell title="CHANNEL">
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 24px' }}>
 
         {/* Header Card */}
