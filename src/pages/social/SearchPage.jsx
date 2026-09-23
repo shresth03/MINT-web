@@ -43,7 +43,7 @@ export default function SearchPage() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [navigate])
 
   function handleInput(val) {
     setQuery(val)
@@ -393,7 +393,7 @@ export default function SearchPage() {
           <div style={{ ...emptyState, marginTop: 48 }}>
             <Inbox size={32} style={{ marginBottom: 16, opacity: 0.3 }} />
             <div>Start typing to search intel stories, posts and channels</div>
-            <div style={{ marginTop: 8, fontSize: 9 }}>Search #hashtags · Filter by topic · Filter by date</div>
+            <div style={{ marginTop: 8, fontSize: 10.5 }}>Search #hashtags · Filter by topic · Filter by date</div>
           </div>
         )}
 
@@ -402,7 +402,7 @@ export default function SearchPage() {
           <div style={{ ...emptyState, marginTop: 48 }}>
             <Inbox size={32} style={{ marginBottom: 16, opacity: 0.3 }} />
             <div>No results found for "{query}"</div>
-            <div style={{ marginTop: 8, fontSize: 9 }}>Try different keywords or remove filters</div>
+            <div style={{ marginTop: 8, fontSize: 10.5 }}>Try different keywords or remove filters</div>
           </div>
         )}
       </div>
