@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { identityDb, socialDb } from '../../api/supabase'
+import { identityDb } from '../../api/supabase'
 import { useAuth } from '../core/useAuth'
 
 export function useFollow(targetUserId) {
@@ -17,56 +17,36 @@ export function useFollow(targetUserId) {
   async function fetchFollowData() {
     setLoading(true)
 
-    const [followersRes, followingRes, isFollowingRes] = await Promise.all([
-      // How many people follow this user
-      identityDb
-        .from('follows')
-        .select('id', { count: 'exact' })
-        .eq('following_id', targetUserId),
+    const { data, error } = await identityDb.rpc('profile_get_stats', {
+      p_profile_id: targetUserId
+    })
 
-      // How many people this user follows
-      identityDb
-        .from('follows')
-        .select('id', { count: 'exact' })
-        .eq('follower_id', targetUserId),
+    if (error) {
+      setLoading(false)
+      return
+    }
 
-      // Does current user follow this user
-      user ? identityDb
-        .from('follows')
-        .select('id')
-        .eq('follower_id', user.id)
-        .eq('following_id', targetUserId)
-        .single() : Promise.resolve({ data: null })
-    ])
-
-    setFollowerCount(followersRes.count || 0)
-    setFollowingCount(followingRes.count || 0)
-    setFollowing(!!isFollowingRes.data)
+    setFollowerCount(data?.followers || 0)
+    setFollowingCount(data?.following || 0)
+    setFollowing(data?.is_following || false)
     setLoading(false)
   }
 
   async function toggleFollow() {
     if (!user || !targetUserId) return
-    if (following) {
-      await identityDb.from('follows').delete()
-        .eq('follower_id', user.id)
-        .eq('following_id', targetUserId)
-      setFollowing(false)
-      setFollowerCount(c => Math.max(0, c - 1))
-    } else {
-      await identityDb.from('follows').insert({
-        follower_id: user.id,
-        following_id: targetUserId,
-      })
-      await socialDb.from('notifications').insert({
-        to_user_id: targetUserId,
-        from_user_id: user.id,
-        type: 'follow',
-        post_id: null,
-      })
-      setFollowing(true)
-      setFollowerCount(c => c + 1)
-    }
+
+    const { data: newFollowing, error } = await identityDb.rpc('social_toggle_follow', {
+      p_target_user_id: targetUserId
+    })
+
+    if (error) return { error }
+
+    setFollowing(newFollowing)
+    setFollowerCount(c =>
+      newFollowing ? c + 1 : Math.max(0, c - 1)
+    )
+
+    return { data: newFollowing, error: null }
   }
 
   async function getFollowedUserIds() {

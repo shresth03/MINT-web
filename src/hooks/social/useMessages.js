@@ -109,36 +109,30 @@ export function useMessages() {
   }
 
   async function sendMessage(conversationId, body) {
-    const { error } = await socialDb.from('messages').insert({
-      conversation_id: conversationId,
-      sender_id: user.id,
-      body
+    const { data: messageId, error } = await socialDb.rpc('messaging_send', {
+      p_conversation_id: conversationId,
+      p_body: body
     })
 
-    if (!error) {
-        await socialDb
-          .from('conversations')
-          .update({
-            last_message: body.length > 60 ? body.substring(0, 60) + '...' : body,
-            last_message_at: new Date().toISOString()
-          })
-          .eq('id', conversationId)
-      
-        // Notify recipient
-        const otherId = await getOtherParticipant(conversationId)
-        if (otherId) {
-          await socialDb.from('notifications').insert({
-            to_user_id: otherId,
-            from_user_id: user.id,
-            type: 'message',
-            post_id: null
-          })
-        }
-      
-        fetchConversations()
-      }
-    return { error }
+    if (error) return { error }
+
+    // Notify recipient
+    const otherId = await getOtherParticipant(conversationId)
+
+    if (otherId) {
+      await socialDb.from('notifications').insert({
+        to_user_id: otherId,
+        from_user_id: user.id,
+        type: 'message',
+        post_id: null
+      })
+    }
+
+    fetchConversations()
+
+    return { data: messageId, error: null }
   }
+
   async function getOtherParticipant(conversationId) {
     const { data } = await socialDb
       .from('conversations')

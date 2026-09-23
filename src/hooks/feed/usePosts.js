@@ -139,46 +139,45 @@ export function usePosts() {
 
   async function createPost(body, mediaUrl = null, region = null, tag = null, postType = 'general') {
     if (!user?.id) return { error: new Error('Not authenticated') }
+
     const extractedTag = tag || (body.match(/#(\w+)/)?.[1]?.toUpperCase() || null)
-    const { error } = await contentDb.from('posts').insert({
-      author_id: user.id,
-      body,
-      region,
-      tag: extractedTag,
-      is_osint: false,
-      post_type: postType,
-      likes: 0,
-      reply_count: 0,
-      repost_count: 0,
-      ...(mediaUrl ? { media_url: mediaUrl } : {})
+
+    const { data, error } = await contentDb.rpc('social_create_post', {
+      p_body: body,
+      p_tag: extractedTag,
+      p_region: region,
+      p_media_url: mediaUrl
     })
-    return { error }
+
+    return { data, error }
   }
 
   async function likePost(id, createNotification = null) {
-    const existing = posts.find(p => p.id === id)?.liked
-    if (existing) {
-      await contentDb.from('likes').delete()
-        .eq('user_id', user.id).eq('post_id', id)
-      await contentDb.from('posts')
-        .update({ likes: Math.max(0, (posts.find(p=>p.id===id)?.likes||1)-1) })
-        .eq('id', id)
-      setPosts(prev => prev.map(p =>
-        p.id === id ? { ...p, likes: Math.max(0,(p.likes||1)-1), liked: false } : p
-      ))
-    } else {
-      await contentDb.from('likes').insert({ user_id: user.id, post_id: id })
-      const post = posts.find(p => p.id === id)
-      if (createNotification && post?.users?.id) {
-        createNotification(post.users.id, 'like', id)
-      }
-      await contentDb.from('posts')
-        .update({ likes: (posts.find(p=>p.id===id)?.likes||0)+1 })
-        .eq('id', id)
-      setPosts(prev => prev.map(p =>
-        p.id === id ? { ...p, likes: (p.likes||0)+1, liked: true } : p
-      ))
+    const post = posts.find(p => p.id === id)
+
+    const { data, error } = await supabase.rpc('engagement_toggle_like', {
+      p_post_id: id
+    })
+
+    if (error) return { error }
+
+    const result = Array.isArray(data) ? data[0] : data
+
+    if (result?.liked && createNotification && post?.users?.id) {
+      createNotification(post.users.id, 'like', id)
     }
+
+    setPosts(prev => prev.map(p =>
+      p.id === id
+        ? {
+            ...p,
+            likes: result?.likes ?? p.likes,
+            liked: result?.liked ?? p.liked
+          }
+        : p
+    ))
+
+    return { data: result, error: null }
   }
 
   async function savePost(id) {
@@ -224,49 +223,45 @@ export function usePosts() {
   }
 
   async function createReply(postId, body, parentReplyId = null) {
-    const { data: insertData, error } = await socialDb
-      .from('replies')
-      .insert({
-        post_id: postId,
-        author_id: user.id,
-        body,
-        parent_reply_id: parentReplyId || null
-      })
-      .select('id')
-      .single()
+    const { data: replyId, error } = await socialDb.rpc('engagement_create_reply', {
+      p_post_id: postId,
+      p_body: body,
+      p_parent_reply_id: parentReplyId || null
+    })
 
     if (error) return { data: null, error }
 
     const { data: replyRow } = await socialDb
       .from('replies')
       .select('*')
-      .eq('id', insertData.id)
+      .eq('id', replyId)
       .single()
-    const profilesById = await fetchProfilesByIds([replyRow?.author_id])
-    const replyData = replyRow ? { ...replyRow, users: profilesById.get(replyRow.author_id) || null } : null
 
-    // Update reply count
-    const post = posts.find(p => p.id === postId)
-    if (post) {
-      await contentDb.from('posts')
-        .update({ reply_count: (post.reply_count || 0) + 1 })
-        .eq('id', postId)
-      setPosts(prev => prev.map(p =>
-        p.id === postId ? { ...p, reply_count: (p.reply_count || 0) + 1 } : p
-      ))
-    }
+    const profilesById = await fetchProfilesByIds([replyRow?.author_id])
+    const replyData = replyRow
+      ? { ...replyRow, users: profilesById.get(replyRow.author_id) || null }
+      : null
+
+    // Update local reply count
+    setPosts(prev => prev.map(p =>
+      p.id === postId
+        ? { ...p, reply_count: (p.reply_count || 0) + 1 }
+        : p
+    ))
 
     // Parse @mentions and notify mentioned users
     const mentions = [...body.matchAll(/@(\w+)/g)].map(m => m[1])
+
     if (mentions.length > 0) {
       const { data: mentionedUsers } = await identityDb
         .from('profiles')
         .select('id, username')
         .in('username', mentions)
+
       if (mentionedUsers) {
         await Promise.all(
           mentionedUsers
-            .filter(u => u.id !== user.id) // don't notify yourself
+            .filter(u => u.id !== user.id)
             .map(u => socialDb.from('notifications').insert({
               to_user_id: u.id,
               from_user_id: user.id,
