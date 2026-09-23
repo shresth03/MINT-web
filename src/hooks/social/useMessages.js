@@ -104,7 +104,7 @@ export function useMessages() {
       .from('messages')
       .select('id, conversation_id, sender_id, body, read, created_at')
       .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(100)
 
     // Mark received messages as read
@@ -115,7 +115,9 @@ export function useMessages() {
       .neq('sender_id', user.id)
       .eq('read', false)
 
-    return data || []
+    // Fetched newest-first so the limit keeps the latest 100; flip back to
+    // oldest-first for display
+    return (data || []).reverse()
   }
 
   async function sendMessage(conversationId, body) {
