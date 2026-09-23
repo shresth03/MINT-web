@@ -104,8 +104,12 @@ function ConversationSearch({ value, onChange }) {
         padding: '0 8px 0 10px', transition: 'border-color 0.15s',
       }}>
         <Search size={13} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+        {/* type="text" rather than "search": browsers add their own clear ×
+            to search inputs, which doubled up with ours */}
         <input
-          type="search"
+          type="text"
+          role="searchbox"
+          enterKeyHint="search"
           value={value}
           onChange={e => onChange(e.target.value)}
           onKeyDown={e => { if (e.key === 'Escape') onChange('') }}
