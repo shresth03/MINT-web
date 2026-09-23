@@ -162,4 +162,59 @@ describe('MessagesPage', () => {
     const composer = screen.getByLabelText('Message').parentElement
     expect(within(composer).getByRole('button', { name: /send message/i })).toBeDisabled()
   })
+
+  // ── List extras ──────────────────────────────────────────────────────────
+
+  it('filters conversations by name or message text', () => {
+    renderPage()
+    const search = screen.getByLabelText('Search conversations')
+    fireEvent.change(search, { target: { value: 'SIGNAL' } })
+    expect(screen.getByText('signal_desk')).toBeInTheDocument()
+    expect(screen.queryByText('geo_watch')).not.toBeInTheDocument()
+
+    fireEvent.change(search, { target: { value: 'share it' } })
+    expect(screen.getByText('geo_watch')).toBeInTheDocument()
+    expect(screen.queryByText('signal_desk')).not.toBeInTheDocument()
+  })
+
+  it('says when nothing matches and clears with the × button', () => {
+    renderPage()
+    fireEvent.change(screen.getByLabelText('Search conversations'), { target: { value: 'zzz' } })
+    expect(screen.getByText('No conversations match “zzz”.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /clear search/i }))
+    expect(screen.getByText('geo_watch')).toBeInTheDocument()
+    expect(screen.getByText('signal_desk')).toBeInTheDocument()
+  })
+
+  it('hides the search box when there are no conversations', () => {
+    hook.conversations = []
+    renderPage()
+    expect(screen.queryByLabelText('Search conversations')).not.toBeInTheDocument()
+  })
+
+  it('shows message previews on mobile too', () => {
+    const width = window.innerWidth
+    window.innerWidth = 400
+    try {
+      renderPage()
+      expect(screen.getByText('Thanks, sending now')).toBeInTheDocument()
+      expect(screen.getByLabelText('2 unread')).toBeInTheDocument()
+    } finally {
+      window.innerWidth = width
+    }
+  })
+
+  it('highlights a conversation when a new message arrives, not on first load', () => {
+    const { rerender } = renderPage()
+    expect(document.querySelector('.conv-arrived')).toBeNull()
+
+    hook.conversations = [
+      { ...CONVERSATIONS[1], last_message: 'Quick question', last_message_at: new Date(Date.now() + 1000).toISOString(), lastSenderId: 'u2', unreadCount: 1 },
+      CONVERSATIONS[0],
+    ]
+    rerender(<MemoryRouter><MessagesPage /></MemoryRouter>)
+    const glow = document.querySelectorAll('.conv-arrived')
+    expect(glow).toHaveLength(1)
+    expect(glow[0].closest('div').textContent).toContain('signal_desk')
+  })
 })
