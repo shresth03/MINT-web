@@ -125,12 +125,13 @@ const styles = `
   .topbar-btn:hover { background: var(--topbar-hover); }
   .topbar-btn.primary { background: var(--accent); color: var(--bg); font-weight: 600; }
   .feed-layout { flex: 1; display: flex; overflow: hidden; min-height: 0; }
-  .intel-feed { width: 360px; min-width: 360px; border-right: 1px solid var(--border); overflow-y: auto; background: var(--bg); }
+  .intel-feed-col { position: relative; display: flex; width: 360px; min-width: 360px; border-right: 1px solid var(--border); background: var(--bg); }
+  .intel-feed { flex: 1; min-width: 0; overflow-y: auto; background: var(--bg); }
   .intel-feed::-webkit-scrollbar { width: 3px; }
   .intel-feed::-webkit-scrollbar-thumb { background: var(--border); }
 
   @media (max-width: 768px) {
-    .intel-feed { width: 100%; min-width: unset; border-right: none; }
+    .intel-feed-col { width: 100%; min-width: unset; border-right: none; flex: 1; min-height: 0; }
     .feed-layout { flex-direction: column; }
     .detail-panel-wrap { display: none; }
     .detail-panel-wrap.mobile-visible { display: flex; flex: 1; overflow-y: auto; }
@@ -141,6 +142,13 @@ const styles = `
   .section-header { position: sticky; top: 0; z-index: 10; background: var(--section-bg); backdrop-filter: blur(8px); padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
   .section-label { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); font-weight: 600; }
   .count-badge { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-left: auto; }
+  .post-fab { position: absolute; right: 16px; bottom: 16px; z-index: 20; display: flex; align-items: center; gap: 8px; height: 44px; max-width: 44px; padding: 0 13px; overflow: hidden; border: none; border-radius: 22px; background: var(--accent); color: var(--bg); cursor: pointer; font-family: var(--mono); transition: max-width 0.2s ease, padding 0.2s ease, filter 0.15s; }
+  .post-fab svg { flex-shrink: 0; }
+  .post-fab-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; white-space: nowrap; opacity: 0; transition: opacity 0.15s; }
+  .post-fab:hover, .post-fab:focus-visible { max-width: 120px; padding: 0 18px 0 13px; filter: brightness(1.1); }
+  .post-fab:hover .post-fab-label, .post-fab:focus-visible .post-fab-label { opacity: 1; }
+  .post-fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  @media (prefers-reduced-motion:reduce) { .post-fab, .post-fab-label { transition: none; } }
   .story-card { border: none; border-bottom: 1px solid var(--border); background: none; width: 100%; text-align: left; font: inherit; color: inherit; padding: 14px 16px; cursor: pointer; transition: background 0.15s; position: relative; display: block; }
   .story-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:transparent; transition:background 0.15s; }
   .story-card:hover { background: var(--surface2); }
@@ -986,7 +994,8 @@ export default function App() {
           {nav !== "map" && nav !== "trending" && nav !== "verified" && (
             <div className="feed-layout">
               {/* Left panel — hide on mobile when viewing detail */}
-              <div className="intel-feed" style={isMobile && mobileDetail ? {display:'none'} : {}}>
+              <div className="intel-feed-col" style={isMobile && mobileDetail ? {display:'none'} : {}}>
+              <div className="intel-feed">
                 <div className="tabs" role="tablist">
                   <button className={`tab ${tab==="intel"?"active":""}`} role="tab" aria-selected={tab==="intel"} onClick={()=>setTab("intel")}>Intel Stories</button>
                   <button className={`tab ${tab==="general"?"active":""}`} role="tab" aria-selected={tab==="general"} onClick={()=>setTab("general")}>General</button>
@@ -996,11 +1005,6 @@ export default function App() {
                   <div className="section-header">
                     <span className="section-label"><Cpu size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Multi-Source Stories</span>
                     <span className="count-badge">{dbStories.length} threads</span>
-                    {(profile?.role === 'osint' || profile?.role === 'admin') && (
-                      <button onClick={() => setShowComposer(true)} style={{marginLeft:8,padding:'4px 10px',background:'var(--active-bg)',border:'1px solid var(--verified)',borderRadius:4,fontFamily:'var(--mono)',fontSize:9,color:'var(--verified)',cursor:'pointer',letterSpacing:1}}>
-                        <BadgeCheck size={10} style={{display:'inline',verticalAlign:'middle',marginRight:3}} /> NEW
-                      </button>
-                    )}
                   </div>
                   <div role="tablist" style={{display:'flex', borderBottom:'1px solid var(--border)', background:'var(--surface)'}}>
                     {['all','following'].map(t => (
@@ -1022,6 +1026,13 @@ export default function App() {
                   />
                 </>}
                 {tab === "general" && <GeneralFeed />}
+              </div>
+              {tab === "intel" && (profile?.role === 'osint' || profile?.role === 'admin') && (
+                <button className="post-fab" onClick={() => setShowComposer(true)} aria-label="Post story">
+                  <Plus size={18} />
+                  <span className="post-fab-label">POST</span>
+                </button>
+              )}
               </div>
 
               {/* Right detail — full screen on mobile */}
