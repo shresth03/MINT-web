@@ -57,6 +57,9 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false)
   const [otherUser, setOtherUser] = useState(null)
   const [initialized, setInitialized] = useState(false)
+  // First message that was unread when the chat was opened, for the
+  // "New messages" divider
+  const [firstUnreadId, setFirstUnreadId] = useState(null)
   const isMobile = useIsMobile()
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
@@ -120,11 +123,17 @@ export default function MessagesPage() {
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [activeConv])
 
+  function firstUnread(msgs) {
+    return msgs.find(m => !m.read && m.sender_id !== user?.id)?.id || null
+  }
+
   async function openConversation(conv) {
     setActiveConv(conv)
     setOtherUser(conv.otherUser || null)
+    setFirstUnreadId(null)
     const msgs = await fetchMessages(conv.id)
     setMessages(msgs)
+    setFirstUnreadId(firstUnread(msgs))
   }
 
   async function openConversationWithUser(userId) {
@@ -134,8 +143,10 @@ export default function MessagesPage() {
     if (conv) {
       setActiveConv(conv)
       setOtherUser(userData)
+      setFirstUnreadId(null)
       const msgs = await fetchMessages(conv.id)
       setMessages(msgs)
+      setFirstUnreadId(firstUnread(msgs))
     }
   }
 
@@ -146,6 +157,10 @@ export default function MessagesPage() {
     setBody('')
     setSending(false)
   }
+
+  // Total shown in the list header; the open chat counts as read
+  const listUnread = conversations.reduce(
+    (sum, c) => sum + (c.id === activeConv?.id ? 0 : c.unreadCount || 0), 0)
 
   const avatarStyle = {
     width: 38, height: 38, borderRadius: '50%',
@@ -207,6 +222,9 @@ export default function MessagesPage() {
             letterSpacing: 2, color: 'var(--muted)', flexShrink: 0,
           }}>
             CONVERSATIONS
+            {listUnread > 0 && (
+              <> · <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{listUnread} UNREAD</span></>
+            )}
           </div>
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {loading ? (
@@ -220,6 +238,21 @@ export default function MessagesPage() {
             ) : conversations.map(conv => {
               const other = conv.otherUser
               const isActive = activeConv?.id === conv.id
+              // The open chat is being read, so never badge it
+              const unread = isActive ? 0 : conv.unreadCount || 0
+              const badge = unread > 0 && (
+                <span
+                  aria-label={`${unread} unread`}
+                  style={{
+                    flexShrink: 0, minWidth: 18, height: 18, padding: '0 6px', borderRadius: 9,
+                    background: 'var(--accent)', color: 'var(--bg)',
+                    fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  {unread > 99 ? '99+' : unread}
+                </span>
+              )
               return (
                 <div
                   key={conv.id}
@@ -239,36 +272,46 @@ export default function MessagesPage() {
                     {other?.username?.[0]?.toUpperCase() || '?'}
                   </div>
                   {isMobile ? (
-                    <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                       <div style={{
-                        fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 600,
+                        fontFamily: 'var(--mono)', fontSize: 11, fontWeight: unread ? 700 : 600,
                         color: other?.role === 'osint' ? 'var(--verified)' : 'var(--text)'
                       }}>
                         {other?.username || 'Unknown'}
                         {other?.role === 'osint' && <BadgeCheck size={10} style={{ color: 'var(--verified)', marginLeft: 3 }} />}
                       </div>
+                      {badge}
                     </div>
                   ) : (
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                         <div style={{
-                          fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 600,
+                          fontFamily: 'var(--mono)', fontSize: 11, fontWeight: unread ? 700 : 600,
                           color: other?.role === 'osint' ? 'var(--verified)' : 'var(--text)'
                         }}>
                           {other?.username || 'Unknown'}
                           {other?.role === 'osint' && <BadgeCheck size={10} style={{ color: 'var(--verified)', marginLeft: 3 }} />}
                         </div>
-                        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                        <div style={{
+                          fontFamily: 'var(--mono)', fontSize: 9, whiteSpace: 'nowrap',
+                          color: unread ? 'var(--accent)' : 'var(--muted)', fontWeight: unread ? 700 : 400,
+                        }}>
                           {timeAgo(conv.last_message_at)}
                         </div>
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {conv.last_message ? (
-                          <>
-                            {conv.lastSenderId === user?.id && <span style={{ color: 'var(--text)', fontWeight: 500 }}>You: </span>}
-                            {conv.last_message}
-                          </>
-                        ) : 'No messages yet'}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                        <div style={{
+                          fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
+                          color: unread ? 'var(--text)' : 'var(--muted)', fontWeight: unread ? 600 : 400,
+                        }}>
+                          {conv.last_message ? (
+                            <>
+                              {conv.lastSenderId === user?.id && <span style={{ color: 'var(--text)', fontWeight: 500 }}>You: </span>}
+                              {conv.last_message}
+                            </>
+                          ) : 'No messages yet'}
+                        </div>
+                        {badge}
                       </div>
                     </div>
                   )}
@@ -396,8 +439,9 @@ export default function MessagesPage() {
                   const next = messages[i + 1]
                   const isSent = msg.sender_id === user?.id
                   const newDay = !prev || !sameDay(prev.created_at, msg.created_at)
-                  const groupStart = startsGroup(prev, msg)
-                  const groupEnd = !next || startsGroup(msg, next)
+                  const isFirstUnread = msg.id === firstUnreadId
+                  const groupStart = startsGroup(prev, msg) || isFirstUnread
+                  const groupEnd = !next || startsGroup(msg, next) || next.id === firstUnreadId
                   const R = 16, TIGHT = 4
                   return (
                     <Fragment key={msg.id}>
@@ -413,10 +457,22 @@ export default function MessagesPage() {
                           <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                         </div>
                       )}
+                      {isFirstUnread && (
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          margin: `${i === 0 || newDay ? 0 : 18}px 0 10px`,
+                          fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 2, fontWeight: 700,
+                          textTransform: 'uppercase', color: 'var(--accent)',
+                        }}>
+                          <span style={{ flex: 1, height: 1, background: 'var(--accent)', opacity: 0.5 }} />
+                          New messages
+                          <span style={{ flex: 1, height: 1, background: 'var(--accent)', opacity: 0.5 }} />
+                        </div>
+                      )}
                       <div style={{
                         display: 'flex', flexDirection: 'column',
                         alignItems: isSent ? 'flex-end' : 'flex-start',
-                        marginTop: newDay ? 0 : groupStart ? 14 : 3,
+                        marginTop: newDay || isFirstUnread ? 0 : groupStart ? 14 : 3,
                       }}>
                         <div style={{
                           maxWidth: '70%', padding: '10px 14px',

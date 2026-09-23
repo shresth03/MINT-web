@@ -51,4 +51,30 @@ describe('useMessages', () => {
     expect(mockSupabase.neq).toHaveBeenCalledWith('sender_id', 'test-user')
     expect(mockSupabase.eq).toHaveBeenCalledWith('read', false)
   })
+
+  it('counts unread messages per conversation and in total', async () => {
+    const resolveOnce = data => mockSupabase.then.mockImplementationOnce(resolve =>
+      Promise.resolve({ data, error: null }).then(resolve))
+    // 1st await: conversations list; 2nd await: unread messages
+    resolveOnce([
+      { id: 'c1', participant_1: 'test-user', participant_2: 'u2', last_message_at: '2026-09-23T09:00:00Z' },
+      { id: 'c2', participant_1: 'u3', participant_2: 'test-user', last_message_at: '2026-09-23T10:00:00Z' },
+    ])
+    resolveOnce([
+      { conversation_id: 'c1' }, { conversation_id: 'c1' }, { conversation_id: 'c1' },
+      { conversation_id: 'c2' },
+    ])
+
+    const { result } = renderHook(() => useMessages())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    const byId = Object.fromEntries(result.current.conversations.map(c => [c.id, c.unreadCount]))
+    expect(byId).toEqual({ c1: 3, c2: 1 })
+    expect(result.current.unreadCount).toBe(4)
+
+    // Opening a conversation clears its count
+    await act(async () => { await result.current.markConversationRead('c1') })
+    expect(result.current.conversations.find(c => c.id === 'c1').unreadCount).toBe(0)
+    expect(result.current.unreadCount).toBe(1)
+  })
 })

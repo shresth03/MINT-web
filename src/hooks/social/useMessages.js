@@ -2,11 +2,15 @@ import { useState, useEffect } from 'react'
 import { supabase, identityDb, socialDb } from '../../api/supabase'
 import { useAuth } from '../core/useAuth'
 
+function preview(body) {
+  return body.length > 60 ? body.substring(0, 60) + '...' : body
+}
+
 export function useMessages() {
   const { user } = useAuth()
   const [conversations, setConversations] = useState([])
-  const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const unreadCount = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0)
 
   useEffect(() => {
     if (!user?.id) return
@@ -35,8 +39,8 @@ export function useMessages() {
 
     if (!data) { setLoading(false); return }
 
-    // Enrich each conversation with the other user's profile and who sent
-    // the last message (for the "You:" prefix in the list)
+    // Enrich each conversation with the other user's profile and its newest
+    // message (who sent it, for the "You:" prefix, and its text/time)
     const enriched = await Promise.all(data.map(async conv => {
       const otherId = conv.participant_1 === user.id ? conv.participant_2 : conv.participant_1
       const [{ data: otherUser }, { data: lastMsg }] = await Promise.all([
@@ -47,24 +51,37 @@ export function useMessages() {
           .single(),
         socialDb
           .from('messages')
-          .select('sender_id')
+          .select('sender_id, body, created_at')
           .eq('conversation_id', conv.id)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
       ])
-      return { ...conv, otherUser, lastSenderId: lastMsg?.sender_id || null }
+      return {
+        ...conv,
+        otherUser,
+        lastSenderId: lastMsg?.sender_id || null,
+        // Read from the message itself: a realtime refetch can land before the
+        // sender's client has updated conversations.last_message
+        last_message: lastMsg ? preview(lastMsg.body) : conv.last_message,
+        last_message_at: lastMsg?.created_at || conv.last_message_at,
+      }
     }))
+    enriched.sort((a, b) => new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0))
 
-    setConversations(enriched)
+    // Unread per conversation: messages from the other person not yet read
+    const counts = {}
+    if (enriched.length) {
+      const { data: unread } = await socialDb
+        .from('messages')
+        .select('conversation_id')
+        .in('conversation_id', enriched.map(c => c.id))
+        .eq('read', false)
+        .neq('sender_id', user.id)
+      for (const m of unread || []) counts[m.conversation_id] = (counts[m.conversation_id] || 0) + 1
+    }
 
-    const { count } = await socialDb
-      .from('messages')
-      .select('id', { count: 'exact' })
-      .eq('read', false)
-      .neq('sender_id', user.id)
-
-    setUnreadCount(count || 0)
+    setConversations(enriched.map(c => ({ ...c, unreadCount: counts[c.id] || 0 })))
     setLoading(false)
   }
 
@@ -122,6 +139,7 @@ export function useMessages() {
       .eq('conversation_id', conversationId)
       .neq('sender_id', user.id)
       .eq('read', false)
+    setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c))
   }
 
   async function sendMessage(conversationId, body) {
@@ -135,7 +153,7 @@ export function useMessages() {
         await socialDb
           .from('conversations')
           .update({
-            last_message: body.length > 60 ? body.substring(0, 60) + '...' : body,
+            last_message: preview(body),
             last_message_at: new Date().toISOString()
           })
           .eq('id', conversationId)
