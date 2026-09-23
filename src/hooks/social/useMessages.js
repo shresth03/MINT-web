@@ -107,17 +107,21 @@ export function useMessages() {
       .order('created_at', { ascending: false })
       .limit(100)
 
-    // Mark received messages as read
+    await markConversationRead(conversationId)
+
+    // Fetched newest-first so the limit keeps the latest 100; flip back to
+    // oldest-first for display
+    return (data || []).reverse()
+  }
+
+  // Mark every message the other person sent in this conversation as read
+  async function markConversationRead(conversationId) {
     await socialDb
       .from('messages')
       .update({ read: true })
       .eq('conversation_id', conversationId)
       .neq('sender_id', user.id)
       .eq('read', false)
-
-    // Fetched newest-first so the limit keeps the latest 100; flip back to
-    // oldest-first for display
-    return (data || []).reverse()
   }
 
   async function sendMessage(conversationId, body) {
@@ -162,6 +166,6 @@ export function useMessages() {
   }
   return {
     conversations, unreadCount, loading,
-    getOrCreateConversation, fetchMessages, sendMessage
+    getOrCreateConversation, fetchMessages, sendMessage, markConversationRead
   }
 }

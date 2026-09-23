@@ -50,7 +50,7 @@ export default function MessagesPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { user } = useAuth()
-  const { conversations, loading, getOrCreateConversation, fetchMessages, sendMessage } = useMessages()
+  const { conversations, loading, getOrCreateConversation, fetchMessages, sendMessage, markConversationRead } = useMessages()
   const [activeConv, setActiveConv] = useState(null)
   const [messages, setMessages] = useState([])
   const [body, setBody] = useState('')
@@ -89,10 +89,35 @@ export default function MessagesPage() {
         filter: `conversation_id=eq.${activeConv.id}`
       }, async payload => {
         const { data } = await socialDb.from('messages').select('*').eq('id', payload.new.id).single()
-        if (data) setMessages(prev => [...prev, data])
+        if (!data) return
+        setMessages(prev => [...prev, data])
+        // They sent it while this chat is open: count it as seen, unless the
+        // tab is in the background (the visibility effect below covers that)
+        if (data.sender_id !== user?.id && document.visibilityState === 'visible') {
+          markConversationRead(activeConv.id)
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'social', table: 'messages',
+        filter: `conversation_id=eq.${activeConv.id}`
+      }, payload => {
+        // Flip "Sent" to "Seen" live when the other person reads our message
+        setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, read: payload.new.read } : m))
       })
       .subscribe()
     return () => supabase.removeChannel(sub)
+    // Resubscribe only when the open conversation changes; markConversationRead
+    // is recreated every render and would otherwise churn the channel
+  }, [activeConv])
+
+  // Coming back to a background tab with a chat open marks it as read
+  useEffect(() => {
+    if (!activeConv) return
+    function onVisible() {
+      if (document.visibilityState === 'visible') markConversationRead(activeConv.id)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [activeConv])
 
   async function openConversation(conv) {
@@ -414,6 +439,7 @@ export default function MessagesPage() {
                             color: 'var(--muted)', marginTop: 4,
                           }}>
                             {clockTime(msg.created_at)}
+                            {isSent && !next && ` · ${msg.read ? 'Seen' : 'Sent'}`}
                           </div>
                         )}
                       </div>

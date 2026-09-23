@@ -37,4 +37,18 @@ describe('useMessages', () => {
     expect(mockSupabase.limit).toHaveBeenCalledWith(100)
     expect(msgs.map(m => m.id)).toEqual(['m1', 'm2', 'm3'])
   })
+
+  it('markConversationRead marks only unread messages from the other person', async () => {
+    const { result } = renderHook(() => useMessages())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    vi.clearAllMocks()
+    mockSupabase.or = vi.fn().mockReturnValue(mockSupabase)
+
+    await act(async () => { await result.current.markConversationRead('conv-1') })
+
+    expect(mockSupabase.update).toHaveBeenCalledWith({ read: true })
+    expect(mockSupabase.eq).toHaveBeenCalledWith('conversation_id', 'conv-1')
+    expect(mockSupabase.neq).toHaveBeenCalledWith('sender_id', 'test-user')
+    expect(mockSupabase.eq).toHaveBeenCalledWith('read', false)
+  })
 })
