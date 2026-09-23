@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useMessages } from '../../hooks/social/useMessages'
 import { useAuth } from '../../hooks/core/useAuth'
@@ -11,6 +11,11 @@ import EmptyThread from '../../components/messages/EmptyThread'
 import ThreadHeader from '../../components/messages/ThreadHeader'
 import MessageList from '../../components/messages/MessageList'
 import Composer from '../../components/messages/Composer'
+
+// First message the other person sent that we hadn't read yet
+function firstUnreadIdIn(msgs, currentUserId) {
+  return msgs.find(m => !m.read && m.sender_id !== currentUserId)?.id || null
+}
 
 export default function MessagesPage() {
   const [searchParams] = useSearchParams()
@@ -26,13 +31,29 @@ export default function MessagesPage() {
   // "New messages" divider
   const [firstUnreadId, setFirstUnreadId] = useState(null)
   const isMobile = useIsMobile()
+  const currentUserId = user?.id
+
+  // Opened from a channel profile's Message button (?user=<id>)
+  const openConversationWithUser = useCallback(async otherUserId => {
+    const { data: userData } = await identityDb.from('profiles').select('*').eq('id', otherUserId).single()
+    if (!userData) return
+    const conv = await getOrCreateConversation(otherUserId)
+    if (conv) {
+      setActiveConv(conv)
+      setOtherUser(userData)
+      setFirstUnreadId(null)
+      const msgs = await fetchMessages(conv.id)
+      setMessages(msgs)
+      setFirstUnreadId(firstUnreadIdIn(msgs, currentUserId))
+    }
+  }, [getOrCreateConversation, fetchMessages, currentUserId])
 
   useEffect(() => {
     if (loading || initialized) return
-    const userId = searchParams.get('user')
-    if (userId) { setInitialized(true); openConversationWithUser(userId) }
-    else setInitialized(true)
-  }, [loading, searchParams, initialized])
+    const otherUserId = searchParams.get('user')
+    setInitialized(true)
+    if (otherUserId) openConversationWithUser(otherUserId)
+  }, [loading, searchParams, initialized, openConversationWithUser])
 
   useEffect(() => {
     if (!activeConv) return
@@ -47,7 +68,7 @@ export default function MessagesPage() {
         setMessages(prev => [...prev, data])
         // They sent it while this chat is open: count it as seen, unless the
         // tab is in the background (the visibility effect below covers that)
-        if (data.sender_id !== user?.id && document.visibilityState === 'visible') {
+        if (data.sender_id !== currentUserId && document.visibilityState === 'visible') {
           markConversationRead(activeConv.id)
         }
       })
@@ -60,9 +81,7 @@ export default function MessagesPage() {
       })
       .subscribe()
     return () => supabase.removeChannel(sub)
-    // Resubscribe only when the open conversation changes; markConversationRead
-    // is recreated every render and would otherwise churn the channel
-  }, [activeConv])
+  }, [activeConv, currentUserId, markConversationRead])
 
   // Coming back to a background tab with a chat open marks it as read
   useEffect(() => {
@@ -72,11 +91,7 @@ export default function MessagesPage() {
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [activeConv])
-
-  function firstUnread(msgs) {
-    return msgs.find(m => !m.read && m.sender_id !== user?.id)?.id || null
-  }
+  }, [activeConv, markConversationRead])
 
   async function openConversation(conv) {
     setActiveConv(conv)
@@ -84,21 +99,7 @@ export default function MessagesPage() {
     setFirstUnreadId(null)
     const msgs = await fetchMessages(conv.id)
     setMessages(msgs)
-    setFirstUnreadId(firstUnread(msgs))
-  }
-
-  async function openConversationWithUser(userId) {
-    const { data: userData } = await identityDb.from('profiles').select('*').eq('id', userId).single()
-    if (!userData) return
-    const conv = await getOrCreateConversation(userId)
-    if (conv) {
-      setActiveConv(conv)
-      setOtherUser(userData)
-      setFirstUnreadId(null)
-      const msgs = await fetchMessages(conv.id)
-      setMessages(msgs)
-      setFirstUnreadId(firstUnread(msgs))
-    }
+    setFirstUnreadId(firstUnreadIdIn(msgs, currentUserId))
   }
 
   async function handleSend() {
@@ -152,7 +153,7 @@ export default function MessagesPage() {
           activeConvId={activeConv?.id}
           isMobile={isMobile}
           hidden={isMobile && !!activeConv}
-          currentUserId={user?.id}
+          currentUserId={currentUserId}
           onOpen={openConversation}
         />
 
@@ -169,7 +170,7 @@ export default function MessagesPage() {
               {!isMobile && <ThreadHeader otherUser={otherUser} />}
               <MessageList
                 messages={messages}
-                currentUserId={user?.id}
+                currentUserId={currentUserId}
                 otherUser={otherUser}
                 firstUnreadId={firstUnreadId}
               />
