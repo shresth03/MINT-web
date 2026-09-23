@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useMessages } from '../../hooks/social/useMessages'
 import { useAuth } from '../../hooks/core/useAuth'
 import { supabase, identityDb, socialDb } from '../../api/supabase'
-import { BadgeCheck, Inbox, Search } from 'lucide-react'
+import { BadgeCheck, Inbox, Search, ArrowUp } from 'lucide-react'
 import { useIsMobile } from '../../hooks/core/useIsMobile'
 import BackButton from '../../components/BackButton'
 import TopbarLogo from '../../components/TopbarLogo'
@@ -15,6 +15,36 @@ function timeAgo(dateStr) {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`
   return `${Math.floor(diff / 86400)}d`
 }
+
+function dayLabel(dateStr) {
+  const d = new Date(dateStr)
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
+  if (d.toDateString() === today.toDateString()) return 'Today'
+  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday'
+  return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
+function clockTime(dateStr) {
+  return new Date(dateStr).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+}
+
+function sameDay(a, b) {
+  return new Date(a).toDateString() === new Date(b).toDateString()
+}
+
+// Back-to-back messages from the same sender, on the same day and within
+// 5 minutes of each other, render as one group with a single timestamp.
+const GROUP_GAP_MS = 5 * 60 * 1000
+function startsGroup(prev, msg) {
+  return !prev
+    || prev.sender_id !== msg.sender_id
+    || !sameDay(prev.created_at, msg.created_at)
+    || new Date(msg.created_at) - new Date(prev.created_at) > GROUP_GAP_MS
+}
+
+const ROLE_LABEL = { osint: 'VERIFIED OSINT', admin: 'ADMIN' }
 
 export default function MessagesPage() {
   const navigate = useNavigate()
@@ -29,6 +59,15 @@ export default function MessagesPage() {
   const [initialized, setInitialized] = useState(false)
   const isMobile = useIsMobile()
   const bottomRef = useRef(null)
+  const inputRef = useRef(null)
+
+  // Grow the composer with its content, up to ~5 lines
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`
+  }, [body, activeConv])
 
   useEffect(() => {
     if (loading || initialized) return
@@ -76,7 +115,7 @@ export default function MessagesPage() {
   }
 
   async function handleSend() {
-    if (!body.trim() || !activeConv) return
+    if (!body.trim() || !activeConv || sending) return
     setSending(true)
     await sendMessage(activeConv.id, body.trim())
     setBody('')
@@ -199,7 +238,12 @@ export default function MessagesPage() {
                         </div>
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {conv.last_message || 'No messages yet'}
+                        {conv.last_message ? (
+                          <>
+                            {conv.lastSenderId === user?.id && <span style={{ color: 'var(--text)', fontWeight: 500 }}>You: </span>}
+                            {conv.last_message}
+                          </>
+                        ) : 'No messages yet'}
                       </div>
                     </div>
                   )}
@@ -289,44 +333,91 @@ export default function MessagesPage() {
               {/* Messages */}
               <div style={{
                 flex: 1, minHeight: 0, overflowY: 'auto',
-                padding: 20, display: 'flex', flexDirection: 'column', gap: 12,
+                padding: 20, display: 'flex', flexDirection: 'column',
               }}>
                 {messages.length === 0 ? (
                   <div style={{
-                    textAlign: 'center', padding: 40,
-                    fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)',
+                    margin: 'auto', padding: 20,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    textAlign: 'center', gap: 8,
                   }}>
-                    No messages yet. Say hello!
-                  </div>
-                ) : messages.map(msg => {
-                  const isSent = msg.sender_id === user?.id
-                  return (
-                    <div key={msg.id} style={{
-                      display: 'flex', flexDirection: 'column',
-                      alignItems: isSent ? 'flex-end' : 'flex-start',
-                    }}>
-                      <div style={{
-                        maxWidth: '70%', padding: '10px 14px',
-                        borderRadius: 12, fontSize: 13, lineHeight: 1.5,
-                        wordBreak: 'break-word', fontFamily: 'var(--sans)',
-                        ...(isSent ? {
-                          background: 'var(--accent)', color: 'var(--bg)',
-                          borderBottomRightRadius: 4,
-                        } : {
-                          background: 'var(--surface2)', color: 'var(--text)',
-                          borderBottomLeftRadius: 4, border: '1px solid var(--border)',
-                        })
-                      }}>
-                        {msg.body}
-                      </div>
-                      <div style={{
-                        fontFamily: 'var(--mono)', fontSize: 9,
-                        color: 'var(--muted)', marginTop: 4,
-                        textAlign: isSent ? 'right' : 'left',
-                      }}>
-                        {timeAgo(msg.created_at)} ago
-                      </div>
+                    <div style={{ ...avatarStyle, width: 64, height: 64, fontSize: 24 }}>
+                      {otherUser?.username?.[0]?.toUpperCase() || '?'}
                     </div>
+                    <div style={{
+                      fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, marginTop: 6,
+                      color: otherUser?.role === 'osint' ? 'var(--verified)' : 'var(--text)',
+                    }}>
+                      {otherUser?.username || 'Unknown'}
+                      {otherUser?.role === 'osint' && <BadgeCheck size={12} style={{ color: 'var(--verified)', marginLeft: 4 }} />}
+                    </div>
+                    <span style={{
+                      fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
+                      padding: '2px 8px', borderRadius: 10,
+                      color: otherUser?.role === 'osint' ? 'var(--verified)' : otherUser?.role === 'admin' ? 'var(--accent)' : 'var(--muted)',
+                      border: `1px solid ${otherUser?.role === 'osint' ? 'var(--verified)' : otherUser?.role === 'admin' ? 'var(--accent)' : 'var(--border)'}`,
+                    }}>
+                      {ROLE_LABEL[otherUser?.role] || 'PUBLIC USER'}
+                    </span>
+                    <div style={{
+                      fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: 0.5,
+                      color: 'var(--muted)', maxWidth: '36ch', marginTop: 4, lineHeight: 1.6,
+                    }}>
+                      This is the start of your conversation with @{otherUser?.username || 'them'}. Say hello!
+                    </div>
+                  </div>
+                ) : messages.map((msg, i) => {
+                  const prev = messages[i - 1]
+                  const next = messages[i + 1]
+                  const isSent = msg.sender_id === user?.id
+                  const newDay = !prev || !sameDay(prev.created_at, msg.created_at)
+                  const groupStart = startsGroup(prev, msg)
+                  const groupEnd = !next || startsGroup(msg, next)
+                  const R = 16, TIGHT = 4
+                  return (
+                    <Fragment key={msg.id}>
+                      {newDay && (
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          margin: `${i === 0 ? 0 : 18}px 0 10px`,
+                          fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 2,
+                          textTransform: 'uppercase', color: 'var(--muted)',
+                        }}>
+                          <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                          {dayLabel(msg.created_at)}
+                          <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                        </div>
+                      )}
+                      <div style={{
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: isSent ? 'flex-end' : 'flex-start',
+                        marginTop: newDay ? 0 : groupStart ? 14 : 3,
+                      }}>
+                        <div style={{
+                          maxWidth: '70%', padding: '10px 14px',
+                          fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word', fontFamily: 'var(--sans)',
+                          ...(isSent ? {
+                            background: 'var(--accent)', color: 'var(--bg)',
+                            borderRadius: `${R}px ${groupStart ? R : TIGHT}px ${groupEnd ? R : TIGHT}px ${R}px`,
+                          } : {
+                            background: 'var(--surface2)', color: 'var(--text)',
+                            border: '1px solid var(--border)',
+                            borderRadius: `${groupStart ? R : TIGHT}px ${R}px ${R}px ${groupEnd ? R : TIGHT}px`,
+                          })
+                        }}>
+                          {msg.body}
+                        </div>
+                        {groupEnd && (
+                          <div style={{
+                            fontFamily: 'var(--mono)', fontSize: 9,
+                            color: 'var(--muted)', marginTop: 4,
+                          }}>
+                            {clockTime(msg.created_at)}
+                          </div>
+                        )}
+                      </div>
+                    </Fragment>
                   )
                 })}
                 <div ref={bottomRef} />
@@ -334,40 +425,65 @@ export default function MessagesPage() {
 
               {/* Composer */}
               <div style={{
-                padding: '16px 20px', borderTop: '1px solid var(--border)',
-                display: 'flex', gap: 10, background: 'var(--surface)', flexShrink: 0,
+                padding: isMobile ? '12px 16px' : '12px 16px 8px',
+                borderTop: '1px solid var(--border)',
+                background: 'var(--surface)', flexShrink: 0,
               }}>
-                <textarea
-                  value={body}
-                  onChange={e => setBody(e.target.value)}
-                  placeholder="Write a message... (Cmd+Enter to send)"
-                  rows={2}
-                  maxLength={1000}
-                  onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSend() }}
-                  style={{
-                    flex: 1, background: 'var(--bg)',
-                    border: '1px solid var(--border)', borderRadius: 8,
-                    padding: '10px 14px', color: 'var(--text)',
-                    fontFamily: 'var(--sans)', fontSize: 13,
-                    outline: 'none', resize: 'none', transition: 'border-color 0.15s',
-                  }}
-                  onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                  onBlur={e => e.target.style.borderColor = 'var(--border)'}
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={!body.trim() || sending}
-                  style={{
-                    padding: '10px 18px', background: 'var(--accent)',
-                    color: 'var(--bg)', border: 'none', borderRadius: 8,
-                    fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700,
-                    cursor: !body.trim() || sending ? 'not-allowed' : 'pointer',
-                    letterSpacing: 1, opacity: !body.trim() || sending ? 0.4 : 1,
-                    transition: 'opacity 0.15s', alignSelf: 'flex-end',
-                  }}
-                >
-                  {sending ? '...' : 'SEND'}
-                </button>
+                <div style={{
+                  display: 'flex', alignItems: 'flex-end', gap: 8,
+                  background: 'var(--bg)', border: '1px solid var(--border)',
+                  borderRadius: 22, padding: '6px 6px 6px 16px',
+                  transition: 'border-color 0.15s',
+                }}>
+                  <textarea
+                    ref={inputRef}
+                    value={body}
+                    onChange={e => setBody(e.target.value)}
+                    placeholder="Message…"
+                    aria-label="Message"
+                    rows={1}
+                    maxLength={1000}
+                    onKeyDown={e => {
+                      // Desktop: Enter sends, Shift+Enter adds a line. Mobile keyboards
+                      // have no Shift+Enter, so Enter stays a newline there.
+                      if (!isMobile && e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                        e.preventDefault()
+                        handleSend()
+                      }
+                    }}
+                    style={{
+                      flex: 1, background: 'transparent', border: 'none',
+                      padding: '6px 0', color: 'var(--text)',
+                      fontFamily: 'var(--sans)', fontSize: 13, lineHeight: 1.5,
+                      outline: 'none', resize: 'none', maxHeight: 120, overflowY: 'auto',
+                    }}
+                    onFocus={e => { e.target.parentElement.style.borderColor = 'var(--accent)' }}
+                    onBlur={e => { e.target.parentElement.style.borderColor = 'var(--border)' }}
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={!body.trim() || sending}
+                    aria-label="Send message"
+                    style={{
+                      width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                      background: 'var(--accent)', color: 'var(--bg)', border: 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: !body.trim() || sending ? 'not-allowed' : 'pointer',
+                      opacity: !body.trim() || sending ? 0.35 : 1,
+                      transition: 'opacity 0.15s',
+                    }}
+                  >
+                    <ArrowUp size={15} strokeWidth={2.4} />
+                  </button>
+                </div>
+                {!isMobile && (
+                  <div style={{
+                    fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)',
+                    letterSpacing: 0.5, marginTop: 6, paddingLeft: 16,
+                  }}>
+                    Enter to send · Shift+Enter for a new line
+                  </div>
+                )}
               </div>
             </>
           )}

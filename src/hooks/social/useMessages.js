@@ -35,15 +35,25 @@ export function useMessages() {
 
     if (!data) { setLoading(false); return }
 
-    // Enrich each conversation with the other user's profile
+    // Enrich each conversation with the other user's profile and who sent
+    // the last message (for the "You:" prefix in the list)
     const enriched = await Promise.all(data.map(async conv => {
       const otherId = conv.participant_1 === user.id ? conv.participant_2 : conv.participant_1
-      const { data: otherUser } = await identityDb
-        .from('profiles')
-        .select('id, username, role')
-        .eq('id', otherId)
-        .single()
-      return { ...conv, otherUser }
+      const [{ data: otherUser }, { data: lastMsg }] = await Promise.all([
+        identityDb
+          .from('profiles')
+          .select('id, username, role')
+          .eq('id', otherId)
+          .single(),
+        socialDb
+          .from('messages')
+          .select('sender_id')
+          .eq('conversation_id', conv.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ])
+      return { ...conv, otherUser, lastSenderId: lastMsg?.sender_id || null }
     }))
 
     setConversations(enriched)
