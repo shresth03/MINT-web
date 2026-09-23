@@ -108,11 +108,6 @@ export default function SettingsPage() {
     marginBottom: 20,
   }
 
-  const dangerCard = {
-    ...card,
-    borderColor: 'rgba(255,71,87,0.3)',
-  }
-
   const inputStyle = {
     width: '100%',
     background: 'var(--bg)',
@@ -384,7 +379,7 @@ export default function SettingsPage() {
         </div>
 
         {/* ── DANGER ZONE ── */}
-        <div style={dangerCard}>
+        <div style={card}>
           <SectionLabel>Danger Zone</SectionLabel>
 
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: showDeleteConfirm ? 20 : 0 }}>
@@ -432,8 +427,8 @@ export default function SettingsPage() {
           {/* Inline delete confirmation */}
           {showDeleteConfirm && (
             <div style={{
-              background: 'rgba(232,72,72,0.06)',
-              border: '1px solid rgba(232,72,72,0.25)',
+              background: 'var(--active-bg)',
+              border: '1px solid var(--border)',
               borderRadius: 8, padding: '16px 18px',
             }}>
               <p style={{
@@ -465,12 +460,12 @@ export default function SettingsPage() {
                   title="Contact support to delete your account"
                   style={{
                     padding: '8px 18px',
-                    background: 'rgba(232,72,72,0.3)',
-                    color: 'rgba(255,255,255,0.4)',
-                    border: '1px solid rgba(232,72,72,0.2)',
+                    background: 'var(--accent)',
+                    color: 'var(--bg)',
+                    border: '1px solid var(--accent)',
                     borderRadius: 4,
                     fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,
-                    letterSpacing: 1, cursor: 'not-allowed',
+                    letterSpacing: 1, cursor: 'not-allowed', opacity: 0.4,
                   }}
                 >
                   YES, DELETE MY ACCOUNT
