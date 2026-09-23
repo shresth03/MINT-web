@@ -66,9 +66,9 @@ describe('MessagesPage', () => {
 
   // ── Conversation list ────────────────────────────────────────────────────
 
-  it('shows the Messages title and total unread in the list header', () => {
+  it('shows the My Tell title and total unread in the list header', () => {
     renderPage()
-    expect(screen.getByText('Messages')).toBeInTheDocument()
+    expect(screen.getByText('My Tell')).toBeInTheDocument()
     expect(screen.getByText('2 UNREAD')).toBeInTheDocument()
   })
 

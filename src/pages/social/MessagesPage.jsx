@@ -141,7 +141,7 @@ export default function MessagesPage() {
         }}>
           {isMobile && activeConv
             ? otherUser?.username?.toUpperCase() || 'MESSAGES'
-            : 'Messages'}
+            : 'My Tell'}
         </span>
       </div>
 
