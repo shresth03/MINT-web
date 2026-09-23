@@ -137,13 +137,13 @@ export default function SettingsPage() {
     textTransform: 'uppercase',
   }
 
-  function SectionLabel({ children, danger }) {
+  function SectionLabel({ children }) {
     return (
       <div style={{
         fontFamily: 'var(--mono)',
         fontSize: 9,
         letterSpacing: 2,
-        color: danger ? 'var(--accent2)' : 'var(--muted)',
+        color: 'var(--muted)',
         marginBottom: 16,
         display: 'flex',
         alignItems: 'center',
@@ -385,7 +385,7 @@ export default function SettingsPage() {
 
         {/* ── DANGER ZONE ── */}
         <div style={dangerCard}>
-          <SectionLabel danger>Danger Zone</SectionLabel>
+          <SectionLabel>Danger Zone</SectionLabel>
 
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: showDeleteConfirm ? 20 : 0 }}>
             {/* Sign out */}
@@ -394,14 +394,14 @@ export default function SettingsPage() {
               style={{
                 padding: '9px 20px',
                 background: 'transparent',
-                color: 'var(--accent2)',
-                border: '1px solid var(--accent2)',
+                color: 'var(--accent)',
+                border: '1px solid var(--accent)',
                 borderRadius: 4,
                 fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,
                 letterSpacing: 1, cursor: 'pointer',
                 transition: 'all 0.15s',
               }}
-              onMouseOver={e => { e.currentTarget.style.background = 'rgba(232,72,72,0.08)' }}
+              onMouseOver={e => { e.currentTarget.style.background = 'var(--topbar-hover)' }}
               onMouseOut={e => { e.currentTarget.style.background = 'transparent' }}
             >
               SIGN OUT
@@ -413,9 +413,9 @@ export default function SettingsPage() {
                 onClick={() => setShowDeleteConfirm(true)}
                 style={{
                   padding: '9px 20px',
-                  background: 'var(--accent2)',
-                  color: '#fff',
-                  border: '1px solid var(--accent2)',
+                  background: 'var(--accent)',
+                  color: 'var(--bg)',
+                  border: '1px solid var(--accent)',
                   borderRadius: 4,
                   fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,
                   letterSpacing: 1, cursor: 'pointer',
