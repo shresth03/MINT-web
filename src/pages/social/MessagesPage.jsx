@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useMessages } from '../../hooks/social/useMessages'
 import { useAuth } from '../../hooks/core/useAuth'
 import { supabase, identityDb, socialDb } from '../../api/supabase'
-import { BadgeCheck, Inbox } from 'lucide-react'
+import { BadgeCheck, Inbox, Search } from 'lucide-react'
 import { useIsMobile } from '../../hooks/core/useIsMobile'
 import BackButton from '../../components/BackButton'
 import TopbarLogo from '../../components/TopbarLogo'
@@ -122,7 +122,7 @@ export default function MessagesPage() {
         }}>
           {isMobile && activeConv
             ? otherUser?.username?.toUpperCase() || 'MESSAGES'
-            : 'My Tell'}
+            : 'Messages'}
         </span>
       </div>
 
@@ -221,13 +221,32 @@ export default function MessagesPage() {
               alignItems: 'center', justifyContent: 'center',
               color: 'var(--muted)', gap: 12,
             }}>
-              <Inbox size={32} style={{ opacity: 0.2 }} />
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: 1 }}>
-                Select a conversation
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, fontFamily: 'var(--sans)' }}>
-                or visit a channel profile to start a new one
-              </div>
+              <Inbox size={32} style={{ opacity: 0.3 }} />
+              {!loading && conversations.length === 0 ? (
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: 1, textAlign: 'center' }}>
+                  <div>No messages yet</div>
+                  <div style={{ marginTop: 8, fontSize: 10.5 }}>Visit a channel profile and click Message</div>
+                </div>
+              ) : (
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: 1, textAlign: 'center' }}>
+                  <div>Select a conversation</div>
+                  <div style={{ marginTop: 8, fontSize: 10.5 }}>or find a channel to start a new one</div>
+                </div>
+              )}
+              <button
+                onClick={() => navigate('/search')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7, marginTop: 6,
+                  padding: '8px 18px', background: 'transparent',
+                  color: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 4,
+                  fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: 1,
+                  cursor: 'pointer', transition: 'background 0.15s',
+                }}
+                onMouseOver={e => { e.currentTarget.style.background = 'var(--topbar-hover)' }}
+                onMouseOut={e => { e.currentTarget.style.background = 'transparent' }}
+              >
+                <Search size={12} /> FIND CHANNELS
+              </button>
             </div>
           ) : (
             <>
