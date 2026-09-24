@@ -101,7 +101,8 @@ const styles = `
   .nav-item { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 18px; cursor: pointer; font-size: 13px; font-family: var(--sans); color: var(--muted); transition: all 0.15s; border-left: 2px solid transparent; background: none; border-top: none; border-right: none; border-bottom: none; width: 100%; text-align: left; }
   .nav-item:hover { background: var(--surface2); color: var(--text); }
   .nav-item.active { background: var(--active-bg); color: var(--accent); border-left-color: var(--accent); }
-  .nav-icon { flex-shrink: 0; }
+  .nav-icon { flex-shrink: 0; width: 16px; height: 16px; }
+  .sidebar.collapsed .nav-icon { width: 20px; height: 20px; }
   .nav-label { white-space: nowrap; overflow: hidden; opacity: 1; max-width: 160px; transition: opacity 0.15s ease, max-width 0.22s ease; }
   .nav-badge { margin-left: auto; background: var(--accent2); color: #fff; font-size: 9px; padding: 1px 6px; border-radius: 10px; font-family: var(--mono); transition: all 0.15s ease; }
   .nav-badge.green { background: var(--verified); color: #000; }
@@ -619,7 +620,7 @@ export default function App() {
                     setNavAndSave(n.id)
                   }}
                 >
-                  <n.Icon size={14} className="nav-icon" />
+                  <n.Icon size={16} className="nav-icon" />
                   <span className="nav-label">{n.label}</span>
                   {n.badge && <span className={`nav-badge ${n.bc||""}`}>{n.badge}</span>}
                 </button>

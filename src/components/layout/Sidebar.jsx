@@ -125,7 +125,7 @@ export default function Sidebar({ setShowApply }) {
                 onMouseDown={(e) => { e.stopPropagation(); setShowNotifs(v => !v) }}
                 style={{ cursor: 'pointer' }}
               >
-                <Bell size={14} />
+                <Bell size={16} />
                 Notifications
                 {unreadCount > 0 && (
                   <span style={{
@@ -150,7 +150,7 @@ export default function Sidebar({ setShowApply }) {
               onClick={() => handleNav(n)}
               style={n.accent && active ? { color: n.accent } : undefined}
             >
-              <n.Icon size={14} color={n.accent && active ? n.accent : undefined} />
+              <n.Icon size={16} color={n.accent && active ? n.accent : undefined} />
               {n.label}
               {n.id === 'live' && (
                 <span style={{
@@ -168,7 +168,7 @@ export default function Sidebar({ setShowApply }) {
           <>
             <div className="nav-section">OSINT</div>
             <div className="nav-item" onClick={() => setShowApply?.(true)}>
-              <Plus size={14} />
+              <Plus size={16} />
               Apply for OSINT
             </div>
           </>
