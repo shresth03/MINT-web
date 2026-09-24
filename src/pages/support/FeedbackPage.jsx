@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../../hooks/core/useAuth'
 import { useUser } from '../../hooks/account/useUser'
 import { moderationDb } from '../../api/supabase'
-import { MessageSquareDashed, Loader2, Send } from 'lucide-react'
+import { ClipboardPen, Loader2, Send } from 'lucide-react'
 import PageShell from '../../components/PageShell'
 import BackButton from '../../components/BackButton'
 
@@ -99,7 +99,7 @@ export default function FeedbackPage() {
         flexDirection: 'column', gap: 16, minHeight: 'calc(100vh - 52px)',
         fontFamily: 'var(--mono)'
       }}>
-        <MessageSquareDashed size={40} style={{ color: 'var(--verified)' }} />
+        <ClipboardPen size={40} style={{ color: 'var(--verified)' }} />
         <div style={{ fontSize: 14, letterSpacing: 2, color: 'var(--verified)' }}>REPORT SUBMITTED</div>
         <div style={{ fontSize: 11, color: 'var(--muted)', maxWidth: 320, textAlign: 'center', lineHeight: 1.7 }}>
           Your feedback has been logged and will directly shape what gets built next.
@@ -122,7 +122,7 @@ export default function FeedbackPage() {
           fontSize: 10, color: 'var(--muted)',
           lineHeight: 1.8, letterSpacing: 0.5
         }}>
-          <MessageSquareDashed size={11} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Rate each feature you've used. You don't need to rate everything — skip what you haven't tried.
+          <ClipboardPen size={11} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Rate each feature you've used. You don't need to rate everything — skip what you haven't tried.
           Use the field next to each rating to add specific feedback.
         </div>
 

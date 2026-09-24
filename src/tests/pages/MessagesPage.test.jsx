@@ -140,21 +140,23 @@ describe('MessagesPage', () => {
 
   // ── Composer ─────────────────────────────────────────────────────────────
 
-  it('sends on Enter and clears the box', async () => {
+  it('sends only with the send button and clears the box', async () => {
     await openGeoWatch()
     const box = screen.getByLabelText('Message')
     fireEvent.change(box, { target: { value: 'On my way' } })
-    fireEvent.keyDown(box, { key: 'Enter' })
+    fireEvent.click(screen.getByRole('button', { name: /send message/i }))
     await waitFor(() => expect(hook.sendMessage).toHaveBeenCalledWith('c1', 'On my way'))
     await waitFor(() => expect(box).toHaveValue(''))
   })
 
-  it('does not send on Shift+Enter', async () => {
+  it('does not send on Enter, with or without Shift', async () => {
     await openGeoWatch()
     const box = screen.getByLabelText('Message')
     fireEvent.change(box, { target: { value: 'line one' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
     fireEvent.keyDown(box, { key: 'Enter', shiftKey: true })
     expect(hook.sendMessage).not.toHaveBeenCalled()
+    expect(box).toHaveValue('line one')
   })
 
   it('disables the send button while the box is empty', async () => {
