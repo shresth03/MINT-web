@@ -34,14 +34,7 @@ export default function Composer({ value, onChange, onSend, sending, isMobile, c
           aria-label="Message"
           rows={1}
           maxLength={1000}
-          onKeyDown={e => {
-            // Desktop: Enter sends, Shift+Enter adds a line. Mobile keyboards
-            // have no Shift+Enter, so Enter stays a newline there.
-            if (!isMobile && e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-              e.preventDefault()
-              onSend()
-            }
-          }}
+          // Enter always adds a new line; only the send button sends
           style={{
             flex: 1, background: 'transparent', border: 'none',
             padding: '6px 0', color: 'var(--text)',
@@ -72,7 +65,7 @@ export default function Composer({ value, onChange, onSend, sending, isMobile, c
           fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)',
           letterSpacing: 0.5, marginTop: 6, paddingLeft: 16,
         }}>
-          Enter to send · Shift+Enter for a new line
+          Enter for a new line · press the arrow to send
         </div>
       )}
     </div>
