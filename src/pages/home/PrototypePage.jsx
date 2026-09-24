@@ -373,12 +373,7 @@ export default function App() {
     setSidebarCollapsed(true)
   }, [isMobile])
 
-  useEffect(() => { getFollowedUserIds().then(ids => setFollowedIds(ids)) }, [user])
-
-  // Set the first story from DB once loaded
-  useEffect(() => {
-    if (dbStories.length > 0 && !story) setStory(dbStories[0])
-  }, [dbStories]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { getFollowedUserIds().then(ids => setFollowedIds(ids)) }, [getFollowedUserIds])
 
   // Dynamic nav badge counts
   const [trendingCount, setTrendingCount] = useState(null)
@@ -430,6 +425,10 @@ export default function App() {
     setTab(next)
   }
   const [story, setStory] = useState(null)
+  // Select the first story once stories load (only if none is selected yet)
+  useEffect(() => {
+    if (dbStories.length > 0 && !story) setStory(dbStories[0])
+  }, [dbStories, story])
   const [showApply, setShowApply] = useState(false)
   const [applied, setApplied] = useState(false)
   const [applyError, setApplyError] = useState('')

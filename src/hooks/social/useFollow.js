@@ -70,14 +70,14 @@ export function useFollow(targetUserId) {
     }
   }
 
-  async function getFollowedUserIds() {
-    if (!user) return []
+  const getFollowedUserIds = useCallback(async () => {
+    if (!userId) return []
     const { data } = await identityDb
       .from('follows')
       .select('following_id')
-      .eq('follower_id', user.id)
+      .eq('follower_id', userId)
     return (data || []).map(f => f.following_id)
-  }
+  }, [userId])
 
   return { following, followerCount, followingCount, loading, toggleFollow, getFollowedUserIds }
 }
