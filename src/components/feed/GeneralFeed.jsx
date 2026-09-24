@@ -7,6 +7,7 @@ import { useNotifications } from '../../hooks/social/useNotifications'
 import { useLocation } from 'react-router-dom'
 import { useIsMobile } from '../../hooks/core/useIsMobile'
 import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck, Share2, Check, ImagePlus, MessageSquareText, Newspaper, AlertTriangle } from 'lucide-react'
+import { moderateNewsPost } from '../../lib/moderation/newsModeration'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -727,6 +728,7 @@ export default function GeneralFeed() {
   const [composerOpen, setComposerOpen] = useState(false)
   const [postType, setPostType] = useState('general')
   const [newsConfirmOpen, setNewsConfirmOpen] = useState(false)
+  const [moderating, setModerating] = useState(false)
   const [feedTab, setFeedTab] = useState('all')
   const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000)
   const [followedIds, setFollowedIds] = useState([])
@@ -811,6 +813,26 @@ export default function GeneralFeed() {
 
   function requestPost() {
     if (postType === 'news') { setNewsConfirmOpen(true); return }
+    doPost()
+  }
+
+  async function confirmNewsPost() {
+    setModerating(true)
+    setError('')
+    const { blocked, reason, checked } = await moderateNewsPost(body)
+    setModerating(false)
+
+    if (blocked) {
+      setNewsConfirmOpen(false)
+      setError(
+        checked
+          ? `This post can't be published as News${reason ? `: ${reason}` : ''}.`
+          : "Couldn't verify this post right now — please try again."
+      )
+      return
+    }
+
+    setNewsConfirmOpen(false)
     doPost()
   }
 
@@ -938,7 +960,7 @@ export default function GeneralFeed() {
           position:'fixed', inset:0, background:'rgba(0,0,0,0.7)',
           display:'flex', alignItems:'center', justifyContent:'center',
           zIndex:1000
-        }} onClick={() => setNewsConfirmOpen(false)}>
+        }} onClick={() => { if (!moderating) setNewsConfirmOpen(false) }}>
           <div style={{
             background:'var(--surface)', border:'1px solid var(--border)',
             borderRadius:10, padding:24, width:420, maxWidth:'90vw'
@@ -962,23 +984,27 @@ export default function GeneralFeed() {
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
               <button
                 onClick={() => setNewsConfirmOpen(false)}
+                disabled={moderating}
                 style={{
                   padding:'8px 16px', background:'transparent',
                   border:'1px solid var(--border)', color:'var(--muted)',
-                  borderRadius:4, fontFamily:'var(--mono)', fontSize:10, cursor:'pointer'
+                  borderRadius:4, fontFamily:'var(--mono)', fontSize:10,
+                  cursor: moderating ? 'not-allowed' : 'pointer', opacity: moderating ? 0.5 : 1,
                 }}
               >
                 CANCEL
               </button>
               <button
-                onClick={() => { setNewsConfirmOpen(false); doPost() }}
+                onClick={confirmNewsPost}
+                disabled={moderating}
                 style={{
                   padding:'8px 16px', background:'#b22222', color:'#fff',
                   border:'none', borderRadius:4, fontFamily:'var(--mono)',
-                  fontSize:10, fontWeight:700, cursor:'pointer'
+                  fontSize:10, fontWeight:700,
+                  cursor: moderating ? 'not-allowed' : 'pointer', opacity: moderating ? 0.7 : 1,
                 }}
               >
-                POST AS NEWS
+                {moderating ? 'CHECKING...' : 'POST AS NEWS'}
               </button>
             </div>
           </div>
