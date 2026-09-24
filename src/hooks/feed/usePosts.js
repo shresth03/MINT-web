@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase, contentDb, identityDb, socialDb } from '../../api/supabase'
 import { useAuth } from '../core/useAuth'
 
@@ -17,25 +17,13 @@ export function usePosts() {
   const { user } = useAuth()
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
+  // Loaders are keyed on the user id, so they re-run once login finishes
+  // instead of keeping whichever user existed when the feed first mounted
+  const userId = user?.id
 
-  useEffect(() => {
-    fetchPosts()
-    const sub = supabase
-      .channel('content:posts')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'content',
-        table: 'posts',
-        filter: 'is_osint=eq.false'
-      }, payload => {
-        fetchSinglePost(payload.new.id)
-      })
-      .subscribe()
-    return () => supabase.removeChannel(sub)
-  }, [])
 
-  async function fetchPosts() {
-    if (!user?.id) { setLoading(false); return }
+  const fetchPosts = useCallback(async () => {
+    if (!userId) { setLoading(false); return }
     const { data, error } = await contentDb
       .from('posts')
       .select('*')
@@ -45,11 +33,11 @@ export function usePosts() {
 
     if (!error && data) {
       const { data: likedData } = await contentDb
-        .from('likes').select('post_id').eq('user_id', user.id)
+        .from('likes').select('post_id').eq('user_id', userId)
       const { data: savedData } = await contentDb
-        .from('saved_posts').select('post_id').eq('user_id', user.id)
+        .from('saved_posts').select('post_id').eq('user_id', userId)
       const { data: repostedData } = await contentDb
-        .from('reposts').select('post_id').eq('user_id', user.id)
+        .from('reposts').select('post_id').eq('user_id', userId)
 
       // Fetch reposts from others to show in feed
       const { data: repostsRaw } = await contentDb
@@ -113,9 +101,10 @@ export function usePosts() {
       setPosts(merged)
     }
     setLoading(false)
-  }
+  }, [userId])
 
-  async function fetchSinglePost(id) {
+  const fetchSinglePost = useCallback(async id => {
+    if (!userId) return
     const { data } = await contentDb
       .from('posts')
       .select('*')
@@ -126,16 +115,32 @@ export function usePosts() {
     const profilesById = await fetchProfilesByIds([data.author_id])
 
     const [{ data: likedRow }, { data: savedRow }, { data: repostedRow }] = await Promise.all([
-      contentDb.from('likes').select('post_id').eq('user_id', user.id).eq('post_id', id).maybeSingle(),
-      contentDb.from('saved_posts').select('post_id').eq('user_id', user.id).eq('post_id', id).maybeSingle(),
-      contentDb.from('reposts').select('post_id').eq('user_id', user.id).eq('post_id', id).maybeSingle(),
+      contentDb.from('likes').select('post_id').eq('user_id', userId).eq('post_id', id).maybeSingle(),
+      contentDb.from('saved_posts').select('post_id').eq('user_id', userId).eq('post_id', id).maybeSingle(),
+      contentDb.from('reposts').select('post_id').eq('user_id', userId).eq('post_id', id).maybeSingle(),
     ])
     setPosts(prev => [{
       ...data,
       users: profilesById.get(data.author_id) || null,
       _type: 'post', liked: !!likedRow, saved: !!savedRow, reposted: !!repostedRow,
     }, ...prev])
-  }
+  }, [userId])
+
+  useEffect(() => {
+    fetchPosts()
+    const sub = supabase
+      .channel('content:posts')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'content',
+        table: 'posts',
+        filter: 'is_osint=eq.false'
+      }, payload => {
+        fetchSinglePost(payload.new.id)
+      })
+      .subscribe()
+    return () => supabase.removeChannel(sub)
+  }, [fetchPosts, fetchSinglePost])
 
   async function createPost(body, mediaUrl = null, region = null, tag = null, postType = 'general') {
     if (!user?.id) return { error: new Error('Not authenticated') }
@@ -349,11 +354,13 @@ export function usePosts() {
     return { delta }
   }
 
-  async function fetchSavedPosts() {
+  // Stable per user, so Profile can reload saved posts once login finishes
+  const fetchSavedPosts = useCallback(async () => {
+    if (!userId) return { data: [], error: null }
     const { data, error } = await contentDb
       .from('saved_posts')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
     if (!data) return { data: [], error }
 
@@ -369,7 +376,7 @@ export function usePosts() {
       return { ...s, posts: post ? { ...post, users: profilesById.get(post.author_id) || null } : null }
     })
     return { data: merged, error }
-  }
+  }, [userId])
 
   async function fetchUserReposts(userId) {
     const { data } = await contentDb

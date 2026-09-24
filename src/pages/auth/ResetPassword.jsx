@@ -49,7 +49,7 @@ export default function ResetPassword() {
     if (!done) return
     const t = setTimeout(() => navigate('/feed', { replace: true }), 2500)
     return () => clearTimeout(t)
-  }, [done])
+  }, [done, navigate])
 
 const handleSubmit = async () => {
   if (!password) {

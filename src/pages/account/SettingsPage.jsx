@@ -8,6 +8,64 @@ import { useTheme } from '../../hooks/core/useTheme'
 import PageShell from '../../components/PageShell'
 import ThemeToggle from '../../components/ThemeToggle'
 
+// Defined outside SettingsPage so React keeps the same components between
+// renders; inside, every keystroke rebuilt these rows and toggles lost focus.
+function SectionLabel({ children }) {
+  return (
+    <div style={{
+      fontFamily: 'var(--mono)',
+      fontSize: 9,
+      letterSpacing: 2,
+      color: 'var(--muted)',
+      marginBottom: 16,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      textTransform: 'uppercase',
+    }}>
+      {children}
+      <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+    </div>
+  )
+}
+
+function NotifRow({ label, desc, enabled, onToggle }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '12px 0', borderBottom: '1px solid var(--border)',
+    }}>
+      <div>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text)', marginBottom: 3 }}>
+          {label}
+        </div>
+        <div style={{ fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--muted)' }}>
+          {desc}
+        </div>
+      </div>
+      <button
+        onClick={onToggle}
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontFamily: 'var(--mono)',
+          fontSize: 18,
+          color: enabled ? 'var(--accent)' : 'var(--muted)',
+          transition: 'color 0.15s',
+          flexShrink: 0,
+          marginLeft: 16,
+          lineHeight: 1,
+          padding: 0,
+        }}
+        title={enabled ? 'Click to disable' : 'Click to enable'}
+      >
+        {enabled ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
+      </button>
+    </div>
+  )
+}
+
 export default function SettingsPage() {
   const { user, signOut, resetPassword } = useAuth()
   const { profile, updateProfile } = useUser()
@@ -45,7 +103,7 @@ export default function SettingsPage() {
         if (typeof prefs.follows === 'boolean') setNotifFollows(prefs.follows)
         if (typeof prefs.breaking === 'boolean') setNotifBreaking(prefs.breaking)
       }
-    } catch (_) { /* ignore */ }
+    } catch { /* ignore */ }
   }, [])
 
   function saveNotifPrefs(overrides) {
@@ -130,62 +188,6 @@ export default function SettingsPage() {
     marginBottom: 6,
     display: 'block',
     textTransform: 'uppercase',
-  }
-
-  function SectionLabel({ children }) {
-    return (
-      <div style={{
-        fontFamily: 'var(--mono)',
-        fontSize: 9,
-        letterSpacing: 2,
-        color: 'var(--muted)',
-        marginBottom: 16,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        textTransform: 'uppercase',
-      }}>
-        {children}
-        <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-      </div>
-    )
-  }
-
-  function NotifRow({ label, desc, enabled, onToggle }) {
-    return (
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 0', borderBottom: '1px solid var(--border)',
-      }}>
-        <div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text)', marginBottom: 3 }}>
-            {label}
-          </div>
-          <div style={{ fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--muted)' }}>
-            {desc}
-          </div>
-        </div>
-        <button
-          onClick={onToggle}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontFamily: 'var(--mono)',
-            fontSize: 18,
-            color: enabled ? 'var(--accent)' : 'var(--muted)',
-            transition: 'color 0.15s',
-            flexShrink: 0,
-            marginLeft: 16,
-            lineHeight: 1,
-            padding: 0,
-          }}
-          title={enabled ? 'Click to disable' : 'Click to enable'}
-        >
-          {enabled ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
-        </button>
-      </div>
-    )
   }
 
   const roleBadgeStyle = {

@@ -1,7 +1,7 @@
 import { useUser } from '../../hooks/account/useUser'
 import { useRegions } from '../../hooks/feed/useRegions'
 import { useTrending, TRENDING_WINDOWS } from '../../hooks/feed/useTrending'
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from '../../hooks/core/useAuth'
 import { supabase, contentDb, identityDb } from '../../api/supabase'
 import { MAP_FILTERS } from '../../constants'
@@ -341,14 +341,13 @@ function NavToggle({ nav, setNav, style }) {
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const { theme, toggleTheme } = useTheme()
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
-  const handleSignOut = async () => { await signOut(); navigate('/login') }
 
   const { stories: dbStories, loading: storiesLoading } = useStories()
   const { profile } = useUser()
-  const { notifications, unreadCount, markAllRead, markRead, createNotification } = useNotifications()
+  const { notifications, unreadCount, markAllRead, markRead } = useNotifications()
   const [showNotifs, setShowNotifs] = useState(false)
   const { getFollowedUserIds } = useFollow()
   const { unreadCount: msgUnreadCount } = useMessages()
@@ -373,12 +372,7 @@ export default function App() {
     setSidebarCollapsed(true)
   }, [isMobile])
 
-  useEffect(() => { getFollowedUserIds().then(ids => setFollowedIds(ids)) }, [user])
-
-  // Set the first story from DB once loaded
-  useEffect(() => {
-    if (dbStories.length > 0 && !story) setStory(dbStories[0])
-  }, [dbStories]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { getFollowedUserIds().then(ids => setFollowedIds(ids)) }, [getFollowedUserIds])
 
   // Dynamic nav badge counts
   const [trendingCount, setTrendingCount] = useState(null)
@@ -419,7 +413,7 @@ export default function App() {
     const handler = (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); navigate('/search') } }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [navigate])
 
   const [tab, setTab] = useState(() => linkedPostId ? "general" : "intel")
   // Set on the first switch only, so the feed doesn't animate on page load
@@ -430,6 +424,10 @@ export default function App() {
     setTab(next)
   }
   const [story, setStory] = useState(null)
+  // Select the first story once stories load (only if none is selected yet)
+  useEffect(() => {
+    if (dbStories.length > 0 && !story) setStory(dbStories[0])
+  }, [dbStories, story])
   const [showApply, setShowApply] = useState(false)
   const [applied, setApplied] = useState(false)
   const [applyError, setApplyError] = useState('')
@@ -440,7 +438,6 @@ export default function App() {
   const holding = useRef(false)
   const logoRef = useRef(null)
 
-  const holdTimer = useRef(null)
   const modalRef  = useRef(null)
 
   const startHold = useCallback(() => {
@@ -1186,7 +1183,7 @@ export default function App() {
               <div className="modal-sub">Verified OSINT channels gain exclusive access to post in the Intel Stories section. Applications are evaluated on a rolling basis.</div>
               <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--accent)",letterSpacing:2,marginBottom:8}}>EVALUATION CRITERIA</div>
               <div className="crit-list">
-                {[[Award,"Accuracy Score","Historical post accuracy, weighted by severity"],[Flag,"Breaking Speed","Time-to-first-report vs other sources"],[Globe2,"Source Quality","Evidence grade: satellite, AIS, intercepts, human OSINT"],[BadgeCheck,"Track Record","90+ days active, 50+ verified posts minimum"]].map(([Ic,lbl,txt],i)=>(
+                {[[Award,"Accuracy Score","Historical post accuracy, weighted by severity"],[Flag,"Breaking Speed","Time-to-first-report vs other sources"],[Globe2,"Source Quality","Evidence grade: satellite, AIS, intercepts, human OSINT"],[BadgeCheck,"Track Record","90+ days active, 50+ verified posts minimum"]].map(([,lbl,txt],i)=>(
                   <div key={i} className="crit-item">
                     <Ic size={13} style={{color:"var(--accent)",flexShrink:0}} />
                     <div><strong style={{color:"var(--text)",fontSize:11}}>{lbl}</strong><br/>{txt}</div>

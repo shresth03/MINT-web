@@ -215,4 +215,25 @@ describe('SettingsPage', () => {
     const confirmBtn = screen.getByText(/YES, DELETE MY ACCOUNT/i)
     expect(confirmBtn).toBeDisabled()
   })
+
+  // ── Stable rows (sub-components defined outside the page) ────────────────
+
+  it('keeps the same toggle element (and keyboard focus) after flipping it', () => {
+    renderPage()
+    const [first] = screen.getAllByTitle('Click to disable')
+    first.focus()
+    fireEvent.click(first)
+    // The row isn't rebuilt: the clicked button is still in the page, still
+    // focused, and now shows the "off" state
+    expect(document.body.contains(first)).toBe(true)
+    expect(document.activeElement).toBe(first)
+    expect(first).toHaveAttribute('title', 'Click to enable')
+  })
+
+  it('does not rebuild notification rows while typing a username', () => {
+    renderPage()
+    const [toggle] = screen.getAllByTitle('Click to disable')
+    fireEvent.change(screen.getByDisplayValue('alice'), { target: { value: 'alice2' } })
+    expect(document.body.contains(toggle)).toBe(true)
+  })
 })

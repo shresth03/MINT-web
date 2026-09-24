@@ -52,7 +52,7 @@ export default function NotificationPanel({ notifications, unreadCount, onMarkAl
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+  }, [onClose])
 
   function handleNotifClick(n) {
     onMarkRead(n.id)
