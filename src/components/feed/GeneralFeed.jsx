@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../../hooks/social/useNotifications'
 import { useLocation } from 'react-router-dom'
 import { useIsMobile } from '../../hooks/core/useIsMobile'
-import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck } from 'lucide-react'
+import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck, Share2, Check, ImagePlus, MessageSquareText, Newspaper } from 'lucide-react'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -558,6 +558,33 @@ function ReplyThread({ postId, authorId, createReply, fetchReplies, createNotifi
   )
 }
 
+function ComposerTools({ mediaFile, fileInputRef, postType, setPostType }) {
+  return (
+    <>
+      <button
+        type="button"
+        className={`compose-tool ${mediaFile ? 'on' : ''}`}
+        onClick={() => fileInputRef.current?.click()}
+        aria-label={mediaFile ? 'Change image' : 'Add image'}
+        title={mediaFile ? 'Change image' : 'Add image'}
+      >
+        <ImagePlus size={18} />
+      </button>
+      <div className={`switch-track post-type ${postType === 'news' ? 'second' : ''}`} role="radiogroup" aria-label="Post type">
+        <span className="switch-thumb" aria-hidden="true" />
+        <button type="button" role="radio" aria-checked={postType === 'general'}
+          className={`switch-btn ${postType === 'general' ? 'active' : ''}`} onClick={() => setPostType('general')}>
+          <MessageSquareText size={12} /> GENERAL
+        </button>
+        <button type="button" role="radio" aria-checked={postType === 'news'}
+          className={`switch-btn ${postType === 'news' ? 'active' : ''}`} onClick={() => setPostType('news')}>
+          <Newspaper size={12} /> NEWS
+        </button>
+      </div>
+    </>
+  )
+}
+
 function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaPreview, fileInputRef, handlePost, handleFileSelect, removeMedia, posting, uploading, postType, setPostType }) {
   return (
     <div style={{ display: 'flex', gap: 10 }}>
@@ -606,50 +633,15 @@ function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaP
           </div>
         )}
         <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileSelect} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: body.length > 450 ? 'var(--accent2)' : 'var(--muted)' }}>
-              {body.length}/500
-            </span>
-            {error && <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent2)' }}>⚠ {error}</span>}
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {/* Post type toggle */}
-            <div style={{ display: 'flex', borderRadius: 4, border: '1px solid var(--border)', overflow: 'hidden' }}>
-              {['general', 'news'].map(t => (
-                <button
-                  key={t}
-                  onClick={() => setPostType(t)}
-                  style={{
-                    padding: '5px 10px', border: 'none', cursor: 'pointer',
-                    fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
-                    background: postType === t
-                      ? t === 'news' ? 'rgba(48,216,128,0.15)' : 'rgba(0,212,255,0.1)'
-                      : 'transparent',
-                    color: postType === t
-                      ? t === 'news' ? 'var(--verified)' : 'var(--accent)'
-                      : 'var(--muted)',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {t === 'news'
-                    ? <><BadgeCheck size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} /> NEWS</>
-                    : 'GENERAL'
-                  }
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                padding: '5px 10px', background: mediaFile ? 'rgba(0,255,180,0.1)' : 'transparent',
-                border: `1px solid ${mediaFile ? 'var(--accent)' : 'var(--border)'}`,
-                borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 10,
-                color: mediaFile ? 'var(--accent)' : 'var(--muted)', cursor: 'pointer',
-              }}
-            >
-              {mediaFile ? '📎 ATTACHED' : '📎 IMAGE'}
-            </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+          <ComposerTools mediaFile={mediaFile} fileInputRef={fileInputRef} postType={postType} setPostType={setPostType} />
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Counter only once it matters */}
+            {body.length > 400 && (
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: body.length > 450 ? 'var(--accent2)' : 'var(--muted)' }}>
+                {body.length}/500
+              </span>
+            )}
             <button
               onClick={handlePost}
               disabled={!body.trim() || posting}
@@ -665,10 +657,53 @@ function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaP
             </button>
           </div>
         </div>
+        {error ? (
+          <div className="compose-hint" style={{ color: 'var(--accent2)', fontFamily: 'var(--mono)', fontSize: 10 }}>⚠ {error}</div>
+        ) : postType === 'news' && (
+          <div className="compose-hint"><b>News:</b> marked as a news report in the feed</div>
+        )}
       </div>
     </div>
   )
 }
+
+// Post action bar: round tinted hover in each action's colour, a bigger tap
+// area than the icon alone, and a pop on the heart when a post is liked.
+const ACTION_CSS = `
+  .post-acts { display: flex; align-items: center; gap: 4px; margin: 2px -8px 0; }
+  .post-acts-right { margin-left: auto; display: flex; gap: 2px; }
+  .post-act {
+    --c: var(--accent);
+    background: none; border: none; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 8px; border-radius: 16px;
+    font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums;
+    color: var(--muted); transition: color 0.15s, background 0.15s;
+  }
+  .post-act:hover { color: var(--c); background: color-mix(in srgb, var(--c) 10%, transparent); }
+  .post-act.on { color: var(--c); }
+  .post-act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .post-act.like { --c: #e05577; }
+  .post-act.repost { --c: var(--verified); }
+  .post-act.save { --c: var(--warn); }
+  .post-act.pop svg { animation: post-act-pop 0.3s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes post-act-pop { 40% { transform: scale(1.3); } }
+  @media (prefers-reduced-motion: reduce) { .post-act { transition: none; } .post-act.pop svg { animation: none; } }
+
+  /* Post box tools: round image button + General/News switch (the shared
+     .switch-* styles from the feed page; News slides to green like its label) */
+  .compose-tool {
+    width: 32px; height: 32px; border-radius: 50%; border: none; background: transparent;
+    color: var(--accent); cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+  }
+  .compose-tool:hover, .compose-tool.on { background: var(--topbar-hover); }
+  .compose-tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .post-type .switch-btn { padding: 5px 9px; gap: 5px; }
+  .post-type.second .switch-thumb { background: var(--verified); }
+  .compose-hint { margin-top: 6px; font-size: 11px; color: var(--muted); font-family: var(--sans); }
+  .compose-hint b { color: var(--verified); font-weight: 600; }
+`
 
 export default function GeneralFeed() {
   const { user } = useAuth()
@@ -694,6 +729,24 @@ export default function GeneralFeed() {
   const [feedTab, setFeedTab] = useState('all')
   const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000)
   const [followedIds, setFollowedIds] = useState([])
+  const [poppedId, setPoppedId] = useState(null)   // heart that just got liked
+  const [copiedId, setCopiedId] = useState(null)   // post whose link was just copied
+
+  function handleLike(post) {
+    if (!post.liked) setPoppedId(post.id)
+    likePost(post.id, createNotification)
+  }
+
+  async function copyPostLink(postId) {
+    const url = `${window.location.origin}/feed?highlight=${postId}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedId(postId)
+      setTimeout(() => setCopiedId(id => (id === postId ? null : id)), 1500)
+    } catch {
+      window.prompt('Copy this link to the post:', url)
+    }
+  }
 
   useEffect(() => {
     if (!user?.id) return
@@ -784,6 +837,7 @@ export default function GeneralFeed() {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+      <style>{ACTION_CSS}</style>
 
       {/* Repost Modal */}
       {repostModal && (
@@ -1010,21 +1064,12 @@ export default function GeneralFeed() {
             background: 'var(--surface)', display: 'flex',
             alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
           }}>
-            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
                 ref={fileInputRef} type="file" accept="image/*"
                 style={{ display: 'none' }} onChange={handleFileSelect}
               />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: mediaFile ? 'var(--accent)' : 'var(--muted)',
-                  fontSize: 20, display: 'flex', alignItems: 'center',
-                }}
-              >
-                📎
-              </button>
+              <ComposerTools mediaFile={mediaFile} fileInputRef={fileInputRef} postType={postType} setPostType={setPostType} />
               {uploading && (
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
                   UPLOADING...
@@ -1254,56 +1299,53 @@ export default function GeneralFeed() {
                     )}
           
                     {/* Actions */}
-                    <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginTop: 4 }}>
+                    <div className="post-acts">
                       <button
-                        onClick={() => likePost(post.id, createNotification)}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 6,
-                          fontFamily: 'var(--mono)', fontSize: 14,
-                          color: post.liked ? '#e05577' : 'var(--muted)',
-                          padding: 0, transition: 'color 0.15s',
-                        }}
+                        className={`post-act like ${post.liked ? 'on' : ''} ${poppedId === post.id ? 'pop' : ''}`}
+                        onClick={() => handleLike(post)}
+                        onAnimationEnd={() => setPoppedId(null)}
+                        aria-pressed={!!post.liked}
+                        aria-label={`Like${post.likes ? `, ${post.likes}` : ''}`}
                       >
-                        <Heart size={14} fill={post.liked ? 'currentColor' : 'none'} /> {post.likes || 0}
+                        <Heart size={16} fill={post.liked ? 'currentColor' : 'none'} />
+                        {post.likes > 0 && <span>{post.likes}</span>}
                       </button>
                       <button
+                        className={`post-act reply ${openThreads.has(post.id) ? 'on' : ''}`}
                         onClick={() => toggleThread(post.id)}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 6,
-                          fontFamily: 'var(--mono)', fontSize: 14,
-                          color: openThreads.has(post.id) ? 'var(--accent)' : 'var(--muted)',
-                          padding: 0, transition: 'color 0.15s',
-                        }}
+                        aria-expanded={openThreads.has(post.id)}
+                        aria-label={`Replies${post.reply_count ? `, ${post.reply_count}` : ''}`}
                       >
-                        <MessageCircle size={14} /> {post.reply_count || 0}
+                        <MessageCircle size={16} />
+                        {post.reply_count > 0 && <span>{post.reply_count}</span>}
                         {openThreads.has(post.id) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                       </button>
                       <button
+                        className={`post-act repost ${post.reposted ? 'on' : ''}`}
                         onClick={() => { setRepostModal(post); setQuoteBody('') }}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 6,
-                          fontFamily: 'var(--mono)', fontSize: 14,
-                          color: post.reposted ? 'var(--verified)' : 'var(--muted)',
-                          padding: 0, transition: 'color 0.15s',
-                        }}
+                        aria-pressed={!!post.reposted}
+                        aria-label={`Repost${post.repost_count ? `, ${post.repost_count}` : ''}`}
                       >
-                        <Repeat2 size={14} /> {post.repost_count || 0}
+                        <Repeat2 size={16} />
+                        {post.repost_count > 0 && <span>{post.repost_count}</span>}
                       </button>
-                      <button
-                        onClick={() => savePost(post.id)}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 6,
-                          fontFamily: 'var(--mono)', fontSize: 14,
-                          color: post.saved ? 'var(--warn)' : 'var(--muted)',
-                          padding: 0, transition: 'color 0.15s', marginLeft: 'auto',
-                        }}
-                      >
-                        <Bookmark size={14} fill={post.saved ? 'currentColor' : 'none'} />
-                      </button>
+                      <span className="post-acts-right">
+                        <button
+                          className={`post-act share ${copiedId === post.id ? 'on' : ''}`}
+                          onClick={() => copyPostLink(post.id)}
+                          aria-label={copiedId === post.id ? 'Link copied' : 'Copy link to post'}
+                        >
+                          {copiedId === post.id ? <><Check size={16} /><span>Copied</span></> : <Share2 size={16} />}
+                        </button>
+                        <button
+                          className={`post-act save ${post.saved ? 'on' : ''}`}
+                          onClick={() => savePost(post.id)}
+                          aria-pressed={!!post.saved}
+                          aria-label={post.saved ? 'Saved' : 'Save'}
+                        >
+                          <Bookmark size={16} fill={post.saved ? 'currentColor' : 'none'} />
+                        </button>
+                      </span>
                     </div>
                   </div>
                 </div>

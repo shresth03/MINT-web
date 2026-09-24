@@ -23,8 +23,8 @@ import WorldMap from '../../components/map/WorldMap'
 import BackButton from '../../components/BackButton'
 import {
   Rss, Search, TrendingUp, Globe2, BadgeCheck, Plus, Clock,
-  MessageSquare, Bell, User, Settings, ShieldAlert, Compass,
-  Cpu, Flag, Award, Inbox, Film, X, Radio, Flame,
+  MessageSquareHeart, Bell, User, Settings, ShieldAlert,
+  Cpu, Flag, Award, Inbox, Film, X, Radio, Flame, ClipboardPen,
 } from 'lucide-react'
 
 const styles = `
@@ -92,7 +92,7 @@ const styles = `
   .logo { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; }
   .logo-img { height: 38px; width: auto; transition: height 0.22s ease, transform 0.15s cubic-bezier(.34,1.56,.64,1); transform: scale(1); }
   .logo:hover .logo-img { transform: scale(1.12); }
-  .sidebar.collapsed .logo-img { height: 22px; }
+  .sidebar.collapsed .logo-img { height: 26px; }  /* ~52px wide: fills the 68px rail with ~8px each side */
   .logo-icon { width: 32px; height: 32px; background: var(--accent); clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--bg); font-family: var(--mono); }
   .logo-text { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 2px; }
   .logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 1px; font-family: var(--mono); }
@@ -101,7 +101,8 @@ const styles = `
   .nav-item { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 18px; cursor: pointer; font-size: 13px; font-family: var(--sans); color: var(--muted); transition: all 0.15s; border-left: 2px solid transparent; background: none; border-top: none; border-right: none; border-bottom: none; width: 100%; text-align: left; }
   .nav-item:hover { background: var(--surface2); color: var(--text); }
   .nav-item.active { background: var(--active-bg); color: var(--accent); border-left-color: var(--accent); }
-  .nav-icon { flex-shrink: 0; }
+  .nav-icon { flex-shrink: 0; width: 16px; height: 16px; }
+  .sidebar.collapsed .nav-icon { width: 18px; height: 18px; }
   .nav-label { white-space: nowrap; overflow: hidden; opacity: 1; max-width: 160px; transition: opacity 0.15s ease, max-width 0.22s ease; }
   .nav-badge { margin-left: auto; background: var(--accent2); color: #fff; font-size: 9px; padding: 1px 6px; border-radius: 10px; font-family: var(--mono); transition: all 0.15s ease; }
   .nav-badge.green { background: var(--verified); color: #000; }
@@ -210,10 +211,22 @@ const styles = `
   .tl-event { flex-shrink:0; font-size:9px; font-family:var(--mono); color:var(--muted); padding:3px 8px; border-radius:3px; border:1px solid var(--border); white-space:nowrap; }
   .tl-event.first { border-color:var(--accent2); color:var(--accent2); }
   .tl-arrow { color:var(--border); font-size:10px; flex-shrink:0; }
-  .tabs { display:flex; border-bottom:1px solid var(--border); padding:0 16px; background:var(--bg); flex-shrink:0; }
-  .tab { padding:10px 16px; font-size:11px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; font-family:var(--mono); letter-spacing:0.5px; transition:all 0.15s; background:none; border-top:none; border-left:none; border-right:none; }
-  .tab:hover { color:var(--text); }
-  .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+  /* Two-way switch (Intel/General, Feed/Map): an accent block slides to the chosen side */
+  .feed-switch { padding:10px 16px; border-bottom:1px solid var(--border); background:var(--bg); flex-shrink:0; }
+  .switch-track { position:relative; display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--border); border-radius:4px; padding:2px; background:var(--surface); }
+  .switch-thumb { position:absolute; top:2px; bottom:2px; left:2px; width:calc(50% - 2px); border-radius:3px; background:var(--accent); transition:transform 0.22s cubic-bezier(.2,.7,.3,1); }
+  .switch-track.second .switch-thumb { transform:translateX(100%); }
+  .switch-btn { position:relative; z-index:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:6px 12px; font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; font-family:var(--mono); border:none; background:none; color:var(--muted); cursor:pointer; transition:color 0.22s; white-space:nowrap; }
+  .switch-btn:hover { color:var(--text); }
+  .switch-btn.active, .switch-btn.active:hover { color:var(--bg); }
+  .switch-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+  .nav-toggle { min-width:170px; }
+  /* The feed slides in from the side of the tab you picked */
+  .feed-pane.from-left { animation:feed-pane-in-left 0.22s cubic-bezier(.2,.7,.3,1); }
+  .feed-pane.from-right { animation:feed-pane-in-right 0.22s cubic-bezier(.2,.7,.3,1); }
+  @keyframes feed-pane-in-left { from { transform:translateX(-24px); opacity:0; } to { transform:none; opacity:1; } }
+  @keyframes feed-pane-in-right { from { transform:translateX(24px); opacity:0; } to { transform:none; opacity:1; } }
+  @media (prefers-reduced-motion:reduce) { .switch-thumb, .switch-btn { transition:none; } .feed-pane.from-left, .feed-pane.from-right { animation:none; } }
   .modal-overlay { position:fixed; inset:0; background:var(--modal-overlay); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:200; padding:16px; animation:modal-overlay-enter 200ms ease-out both; }
   .modal { background:var(--surface); border:1px solid var(--border); border-radius:10px; width:480px; max-width:100%; max-height:80vh; overflow-y:auto; padding:24px; animation:modal-card-enter 250ms cubic-bezier(0.23,1,0.32,1) both; }
   @keyframes modal-overlay-enter { from { opacity:0; } to { opacity:1; } }
@@ -234,7 +247,7 @@ const styles = `
   .btn.primary { background:var(--accent); color:var(--bg); font-weight:600; border-color:var(--accent); }
 
   /* ── FOCUS RINGS ── */
-  button:focus-visible, .nav-item:focus-visible, .topbar-btn:focus-visible, .tab:focus-visible, .bn-item:focus-visible, .story-card:focus-visible, .post-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:focus-visible, .nav-item:focus-visible, .topbar-btn:focus-visible, .bn-item:focus-visible, .story-card:focus-visible, .post-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   /* ── REDUCED MOTION — extend to live/breaking animations ── */
   @media (prefers-reduced-motion:reduce) { .live-dot { animation:none; } .breaking-tag { animation:none; } }
@@ -308,27 +321,19 @@ function NavToggle({ nav, setNav, style }) {
     return (
       <button
         type="button"
+        className={`switch-btn ${active ? "active" : ""}`}
+        aria-pressed={active}
         onClick={() => setNav(id)}
-        style={{
-          fontFamily: "var(--mono)", fontSize: 10, letterSpacing: 1, padding: "5px 12px",
-          borderRadius: 4, border: "none", cursor: "pointer",
-          display: "flex", alignItems: "center", gap: 5,
-          background: active ? "var(--accent)" : "transparent",
-          color: active ? "var(--bg)" : "var(--muted)",
-          fontWeight: active ? 700 : 500,
-          transition: "color 0.12s ease",
-        }}
-        onMouseOver={e => { if (!active) e.currentTarget.style.color = "var(--accent)" }}
-        onMouseOut={e => { if (!active) e.currentTarget.style.color = "var(--muted)" }}
       >
-        <Icon size={10} /> {label}
+        <Icon size={14} /> {label}
       </button>
     )
   }
   return (
-    <div style={{ display: "flex", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, padding: 2, gap: 2, ...style }}>
+    <div className={`switch-track nav-toggle ${nav === "map" ? "second" : ""}`} role="group" aria-label="Feed or map" style={style}>
+      <span className="switch-thumb" aria-hidden="true" />
       {seg("feed", Rss, "FEED")}
-      {seg("map", Compass, "MAP")}
+      {seg("map", Globe2, "MAP")}
     </div>
   )
 }
@@ -404,7 +409,10 @@ export default function App() {
       .then(({ data }) => { if (data && data.length > 0) setHasApplied(true) })
   }, [user])
 
-  const [nav, setNav] = useState(() => localStorage.getItem('sigint_nav') || "feed")
+  // A link to a post (/feed?highlight=<id>, from Share, Search or Profile)
+  // must open the feed on the General tab, where posts live
+  const linkedPostId = new URLSearchParams(window.location.search).get('highlight')
+  const [nav, setNav] = useState(() => linkedPostId ? "feed" : localStorage.getItem('sigint_nav') || "feed")
   const setNavAndSave = (id) => { setNav(id); localStorage.setItem('sigint_nav', id); if (isMobile) setSidebarOpen(false) }
 
   useEffect(() => {
@@ -413,7 +421,14 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  const [tab, setTab] = useState("intel")
+  const [tab, setTab] = useState(() => linkedPostId ? "general" : "intel")
+  // Set on the first switch only, so the feed doesn't animate on page load
+  const [paneFrom, setPaneFrom] = useState(null)
+  function switchTab(next) {
+    if (next === tab) return
+    setPaneFrom(next === "intel" ? "left" : "right")
+    setTab(next)
+  }
   const [story, setStory] = useState(null)
   const [showApply, setShowApply] = useState(false)
   const [applied, setApplied] = useState(false)
@@ -528,9 +543,9 @@ export default function App() {
     {id:"verified",label:"Verified Sources",  Icon:BadgeCheck,   badge: verifiedCount != null ? String(verifiedCount) : null, bc:"green", section:"OSINT Channels"},
     ...(profile?.role === 'public' && !hasApplied ? [{id:"apply",  label:"Apply to Join",        Icon:Plus}] : []),
     ...(profile?.role === 'public' && hasApplied  ? [{id:"status", label:"Application Pending",  Icon:Clock}] : []),
-    {id:"messages",      label:"Messages",      Icon:MessageSquare, section:"Account", badge: msgUnreadCount > 0 ? String(msgUnreadCount) : null, bc:"orange"},
+    {id:"messages",      label:"Messages",      Icon:MessageSquareHeart, section:"Account", badge: msgUnreadCount > 0 ? String(msgUnreadCount) : null, bc:"orange"},
     {id:"notifications", label:"Notifications", Icon:Bell,          badge: unreadCount > 0 ? String(unreadCount) : null, bc:"orange"},
-    {id:"feedback",      label:"Give Feedback", Icon:MessageSquare},
+    {id:"feedback",      label:"Give Feedback", Icon:ClipboardPen},
     {id:"settings",      label:"Settings",      Icon:Settings},
     ...(profile?.role === 'admin' ? [{id:"admin", label:"Admin Dashboard", Icon:ShieldAlert, section:"Admin"}] : []),
   ]
@@ -540,7 +555,7 @@ export default function App() {
     {id:"feed",          Icon:Rss,          label:"Feed"},
     {id:"map",           Icon:Globe2,       label:"Map"},
     {id:"search",        Icon:Search,       label:"Search"},
-    {id:"messages",      Icon:MessageSquare,label:"DMs",   badge: msgUnreadCount > 0 ? msgUnreadCount : null},
+    {id:"messages",      Icon:MessageSquareHeart,label:"DMs",   badge: msgUnreadCount > 0 ? msgUnreadCount : null},
     {id:"notifications", Icon:Bell,         label:"Alerts",badge: unreadCount > 0 ? unreadCount : null},
   ]
 
@@ -619,7 +634,7 @@ export default function App() {
                     setNavAndSave(n.id)
                   }}
                 >
-                  <n.Icon size={14} className="nav-icon" />
+                  <n.Icon size={16} className="nav-icon" />
                   <span className="nav-label">{n.label}</span>
                   {n.badge && <span className={`nav-badge ${n.bc||""}`}>{n.badge}</span>}
                 </button>
@@ -996,11 +1011,15 @@ export default function App() {
               {/* Left panel — hide on mobile when viewing detail */}
               <div className="intel-feed-col" style={isMobile && mobileDetail ? {display:'none'} : {}}>
               <div className="intel-feed">
-                <div className="tabs" role="tablist">
-                  <button className={`tab ${tab==="intel"?"active":""}`} role="tab" aria-selected={tab==="intel"} onClick={()=>setTab("intel")}>Intel Stories</button>
-                  <button className={`tab ${tab==="general"?"active":""}`} role="tab" aria-selected={tab==="general"} onClick={()=>setTab("general")}>General</button>
+                <div className="feed-switch">
+                  <div className={`switch-track ${tab==="general"?"second":""}`} role="tablist" aria-label="Feed">
+                    <span className="switch-thumb" aria-hidden="true" />
+                    <button className={`switch-btn ${tab==="intel"?"active":""}`} role="tab" aria-selected={tab==="intel"} onClick={()=>switchTab("intel")}>Intel Stories</button>
+                    <button className={`switch-btn ${tab==="general"?"active":""}`} role="tab" aria-selected={tab==="general"} onClick={()=>switchTab("general")}>General</button>
+                  </div>
                 </div>
 
+                <div key={tab} className={paneFrom ? `feed-pane from-${paneFrom}` : undefined}>
                 {tab==="intel" && <>
                   <div className="section-header">
                     <span className="section-label"><Cpu size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Multi-Source Stories</span>
@@ -1026,6 +1045,7 @@ export default function App() {
                   />
                 </>}
                 {tab === "general" && <GeneralFeed />}
+                </div>
               </div>
               {tab === "intel" && (profile?.role === 'osint' || profile?.role === 'admin') && (
                 <button className="post-fab" onClick={() => setShowComposer(true)} aria-label="Post story">
