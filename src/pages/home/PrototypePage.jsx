@@ -211,10 +211,21 @@ const styles = `
   .tl-event { flex-shrink:0; font-size:9px; font-family:var(--mono); color:var(--muted); padding:3px 8px; border-radius:3px; border:1px solid var(--border); white-space:nowrap; }
   .tl-event.first { border-color:var(--accent2); color:var(--accent2); }
   .tl-arrow { color:var(--border); font-size:10px; flex-shrink:0; }
-  .tabs { display:flex; border-bottom:1px solid var(--border); padding:0 16px; background:var(--bg); flex-shrink:0; }
-  .tab { padding:10px 16px; font-size:11px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; font-family:var(--mono); letter-spacing:0.5px; transition:all 0.15s; background:none; border-top:none; border-left:none; border-right:none; }
-  .tab:hover { color:var(--text); }
-  .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+  /* Intel Stories / General toggle: an accent block slides to the chosen side */
+  .feed-switch { padding:10px 16px; border-bottom:1px solid var(--border); background:var(--bg); flex-shrink:0; }
+  .feed-switch-track { position:relative; display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--border); border-radius:4px; padding:2px; background:var(--surface); }
+  .feed-switch-thumb { position:absolute; top:2px; bottom:2px; left:2px; width:calc(50% - 2px); border-radius:3px; background:var(--accent); transition:transform 0.22s cubic-bezier(.2,.7,.3,1); }
+  .feed-switch-track.general .feed-switch-thumb { transform:translateX(100%); }
+  .feed-switch-btn { position:relative; z-index:1; padding:6px 0; font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; font-family:var(--mono); border:none; background:none; color:var(--muted); cursor:pointer; transition:color 0.22s; }
+  .feed-switch-btn:hover { color:var(--text); }
+  .feed-switch-btn.active, .feed-switch-btn.active:hover { color:var(--bg); }
+  .feed-switch-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+  /* The feed slides in from the side of the tab you picked */
+  .feed-pane.from-left { animation:feed-pane-in-left 0.22s cubic-bezier(.2,.7,.3,1); }
+  .feed-pane.from-right { animation:feed-pane-in-right 0.22s cubic-bezier(.2,.7,.3,1); }
+  @keyframes feed-pane-in-left { from { transform:translateX(-24px); opacity:0; } to { transform:none; opacity:1; } }
+  @keyframes feed-pane-in-right { from { transform:translateX(24px); opacity:0; } to { transform:none; opacity:1; } }
+  @media (prefers-reduced-motion:reduce) { .feed-switch-thumb, .feed-switch-btn { transition:none; } .feed-pane.from-left, .feed-pane.from-right { animation:none; } }
   .modal-overlay { position:fixed; inset:0; background:var(--modal-overlay); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:200; padding:16px; animation:modal-overlay-enter 200ms ease-out both; }
   .modal { background:var(--surface); border:1px solid var(--border); border-radius:10px; width:480px; max-width:100%; max-height:80vh; overflow-y:auto; padding:24px; animation:modal-card-enter 250ms cubic-bezier(0.23,1,0.32,1) both; }
   @keyframes modal-overlay-enter { from { opacity:0; } to { opacity:1; } }
@@ -235,7 +246,7 @@ const styles = `
   .btn.primary { background:var(--accent); color:var(--bg); font-weight:600; border-color:var(--accent); }
 
   /* ── FOCUS RINGS ── */
-  button:focus-visible, .nav-item:focus-visible, .topbar-btn:focus-visible, .tab:focus-visible, .bn-item:focus-visible, .story-card:focus-visible, .post-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:focus-visible, .nav-item:focus-visible, .topbar-btn:focus-visible, .bn-item:focus-visible, .story-card:focus-visible, .post-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   /* ── REDUCED MOTION — extend to live/breaking animations ── */
   @media (prefers-reduced-motion:reduce) { .live-dot { animation:none; } .breaking-tag { animation:none; } }
@@ -415,6 +426,13 @@ export default function App() {
   }, [])
 
   const [tab, setTab] = useState("intel")
+  // Set on the first switch only, so the feed doesn't animate on page load
+  const [paneFrom, setPaneFrom] = useState(null)
+  function switchTab(next) {
+    if (next === tab) return
+    setPaneFrom(next === "intel" ? "left" : "right")
+    setTab(next)
+  }
   const [story, setStory] = useState(null)
   const [showApply, setShowApply] = useState(false)
   const [applied, setApplied] = useState(false)
@@ -997,11 +1015,15 @@ export default function App() {
               {/* Left panel — hide on mobile when viewing detail */}
               <div className="intel-feed-col" style={isMobile && mobileDetail ? {display:'none'} : {}}>
               <div className="intel-feed">
-                <div className="tabs" role="tablist">
-                  <button className={`tab ${tab==="intel"?"active":""}`} role="tab" aria-selected={tab==="intel"} onClick={()=>setTab("intel")}>Intel Stories</button>
-                  <button className={`tab ${tab==="general"?"active":""}`} role="tab" aria-selected={tab==="general"} onClick={()=>setTab("general")}>General</button>
+                <div className="feed-switch">
+                  <div className={`feed-switch-track ${tab}`} role="tablist" aria-label="Feed">
+                    <span className="feed-switch-thumb" aria-hidden="true" />
+                    <button className={`feed-switch-btn ${tab==="intel"?"active":""}`} role="tab" aria-selected={tab==="intel"} onClick={()=>switchTab("intel")}>Intel Stories</button>
+                    <button className={`feed-switch-btn ${tab==="general"?"active":""}`} role="tab" aria-selected={tab==="general"} onClick={()=>switchTab("general")}>General</button>
+                  </div>
                 </div>
 
+                <div key={tab} className={paneFrom ? `feed-pane from-${paneFrom}` : undefined}>
                 {tab==="intel" && <>
                   <div className="section-header">
                     <span className="section-label"><Cpu size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Multi-Source Stories</span>
@@ -1027,6 +1049,7 @@ export default function App() {
                   />
                 </>}
                 {tab === "general" && <GeneralFeed />}
+                </div>
               </div>
               {tab === "intel" && (profile?.role === 'osint' || profile?.role === 'admin') && (
                 <button className="post-fab" onClick={() => setShowComposer(true)} aria-label="Post story">
