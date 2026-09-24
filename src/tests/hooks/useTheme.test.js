@@ -39,7 +39,7 @@ describe('useTheme', () => {
   })
 
   it('defaults to light when system prefers light', () => {
-    window.matchMedia.mockImplementation(query => ({
+    window.matchMedia.mockImplementation(() => ({
       matches: false,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
