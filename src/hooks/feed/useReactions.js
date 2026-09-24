@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { socialDb } from '../../api/supabase'
 import { useAuth } from '../core/useAuth'
 import { ShieldCheck, Star, AlertTriangle, Zap } from 'lucide-react'
@@ -12,20 +12,16 @@ export const REACTION_TYPES = [
 
 export function useReactions(postId) {
   const { user } = useAuth()
+  const userId = user?.id
   const [counts, setCounts] = useState({ verified: 0, confirmed: 0, disputed: 0, breaking: 0 })
   const [userReaction, setUserReaction] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!postId) return
-    load()
-  }, [postId, user?.id])
-
-  async function load() {
+  const load = useCallback(async () => {
     const [allRes, userRes] = await Promise.all([
       socialDb.from('reactions').select('type').eq('post_id', postId),
-      user?.id
-        ? socialDb.from('reactions').select('type').eq('post_id', postId).eq('user_id', user.id).maybeSingle()
+      userId
+        ? socialDb.from('reactions').select('type').eq('post_id', postId).eq('user_id', userId).maybeSingle()
         : Promise.resolve({ data: null }),
     ])
     const c = { verified: 0, confirmed: 0, disputed: 0, breaking: 0 }
@@ -33,7 +29,12 @@ export function useReactions(postId) {
     setCounts(c)
     setUserReaction(userRes.data?.type || null)
     setLoading(false)
-  }
+  }, [postId, userId])
+
+  useEffect(() => {
+    if (!postId) return
+    load()
+  }, [postId, load])
 
   async function toggle(type) {
     if (!user?.id) return

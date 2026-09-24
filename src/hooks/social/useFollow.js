@@ -1,20 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { identityDb, socialDb } from '../../api/supabase'
 import { useAuth } from '../core/useAuth'
 
 export function useFollow(targetUserId) {
   const { user } = useAuth()
+  const userId = user?.id
   const [following, setFollowing] = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
   const [followingCount, setFollowingCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!targetUserId) return
-    fetchFollowData()
-  }, [targetUserId, user])
-
-  async function fetchFollowData() {
+  const fetchFollowData = useCallback(async () => {
     setLoading(true)
 
     const [followersRes, followingRes, isFollowingRes] = await Promise.all([
@@ -31,10 +27,10 @@ export function useFollow(targetUserId) {
         .eq('follower_id', targetUserId),
 
       // Does current user follow this user
-      user ? identityDb
+      userId ? identityDb
         .from('follows')
         .select('id')
-        .eq('follower_id', user.id)
+        .eq('follower_id', userId)
         .eq('following_id', targetUserId)
         .maybeSingle() : Promise.resolve({ data: null })  // no row = not following, not an error
     ])
@@ -43,7 +39,12 @@ export function useFollow(targetUserId) {
     setFollowingCount(followingRes.count || 0)
     setFollowing(!!isFollowingRes.data)
     setLoading(false)
-  }
+  }, [targetUserId, userId])
+
+  useEffect(() => {
+    if (!targetUserId) return
+    fetchFollowData()
+  }, [targetUserId, fetchFollowData])
 
   async function toggleFollow() {
     if (!user || !targetUserId) return

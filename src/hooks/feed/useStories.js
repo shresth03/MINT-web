@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { contentDb, identityDb } from '../../api/supabase'
 
 export function useStories() {
@@ -6,11 +6,7 @@ export function useStories() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    fetchStories()
-  }, [])
-
-  async function fetchStories() {
+  const fetchStories = useCallback(async () => {
     // story_sources/posts are both in `content`, so that embed works — but
     // posts.author_id points into `identity`, a separate schema PostgREST
     // can't traverse in one query, so profiles are fetched and merged after.
@@ -52,7 +48,11 @@ export function useStories() {
       })),
     })))
     setLoading(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchStories()
+  }, [fetchStories])
 
   return { stories, loading, error, refetch: fetchStories }
 }
