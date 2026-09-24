@@ -23,7 +23,7 @@ import WorldMap from '../../components/map/WorldMap'
 import BackButton from '../../components/BackButton'
 import {
   Rss, Search, TrendingUp, Globe2, BadgeCheck, Plus, Clock,
-  MessageSquare, Bell, User, Settings, ShieldAlert, Compass,
+  MessageSquareHeart, Bell, User, Settings, ShieldAlert, Compass,
   Cpu, Flag, Award, Inbox, Film, X, Radio, Flame, ClipboardPen,
 } from 'lucide-react'
 
@@ -528,7 +528,7 @@ export default function App() {
     {id:"verified",label:"Verified Sources",  Icon:BadgeCheck,   badge: verifiedCount != null ? String(verifiedCount) : null, bc:"green", section:"OSINT Channels"},
     ...(profile?.role === 'public' && !hasApplied ? [{id:"apply",  label:"Apply to Join",        Icon:Plus}] : []),
     ...(profile?.role === 'public' && hasApplied  ? [{id:"status", label:"Application Pending",  Icon:Clock}] : []),
-    {id:"messages",      label:"Messages",      Icon:MessageSquare, section:"Account", badge: msgUnreadCount > 0 ? String(msgUnreadCount) : null, bc:"orange"},
+    {id:"messages",      label:"Messages",      Icon:MessageSquareHeart, section:"Account", badge: msgUnreadCount > 0 ? String(msgUnreadCount) : null, bc:"orange"},
     {id:"notifications", label:"Notifications", Icon:Bell,          badge: unreadCount > 0 ? String(unreadCount) : null, bc:"orange"},
     {id:"feedback",      label:"Give Feedback", Icon:ClipboardPen},
     {id:"settings",      label:"Settings",      Icon:Settings},
@@ -540,7 +540,7 @@ export default function App() {
     {id:"feed",          Icon:Rss,          label:"Feed"},
     {id:"map",           Icon:Globe2,       label:"Map"},
     {id:"search",        Icon:Search,       label:"Search"},
-    {id:"messages",      Icon:MessageSquare,label:"DMs",   badge: msgUnreadCount > 0 ? msgUnreadCount : null},
+    {id:"messages",      Icon:MessageSquareHeart,label:"DMs",   badge: msgUnreadCount > 0 ? msgUnreadCount : null},
     {id:"notifications", Icon:Bell,         label:"Alerts",badge: unreadCount > 0 ? unreadCount : null},
   ]
 

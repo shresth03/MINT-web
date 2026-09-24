@@ -8,7 +8,7 @@ import ThemeRipple from '../ThemeRipple'
 import NotificationPanel from '../NotificationPanel'
 import {
   Rss, Globe, TrendingUp, Newspaper, Radio, Film,
-  Search, MessageSquare, Bell, User, Plus, LogOut,
+  Search, MessageSquareHeart, Bell, User, Plus, LogOut,
   BadgeCheck, PenLine, ShieldAlert, CircleDot,
 } from 'lucide-react'
 
@@ -30,7 +30,7 @@ const NAV = [
   { id: 'reels',    path: '/reels',    label: 'Reels',        Icon: Film },
   { section: 'OSINT' },
   { id: 'search',        path: '/search',   label: 'Search',        Icon: Search },
-  { id: 'messages',      path: '/messages', label: 'Messages',      Icon: MessageSquare },
+  { id: 'messages',      path: '/messages', label: 'Messages',      Icon: MessageSquareHeart },
   { id: 'notifications', label: 'Notifications', Icon: Bell },
   { section: 'Account' },
   { id: 'profile',  path: '/profile',  label: 'My Profile',   Icon: User },
