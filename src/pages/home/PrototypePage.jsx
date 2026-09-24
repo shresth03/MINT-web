@@ -24,7 +24,7 @@ import BackButton from '../../components/BackButton'
 import {
   Rss, Search, TrendingUp, Globe2, BadgeCheck, Plus, Clock,
   MessageSquare, Bell, User, Settings, ShieldAlert, Compass,
-  Cpu, Flag, Award, Inbox, Film, X, Radio, Flame,
+  Cpu, Flag, Award, Inbox, Film, X, Radio, Flame, ClipboardPen,
 } from 'lucide-react'
 
 const styles = `
@@ -530,7 +530,7 @@ export default function App() {
     ...(profile?.role === 'public' && hasApplied  ? [{id:"status", label:"Application Pending",  Icon:Clock}] : []),
     {id:"messages",      label:"Messages",      Icon:MessageSquare, section:"Account", badge: msgUnreadCount > 0 ? String(msgUnreadCount) : null, bc:"orange"},
     {id:"notifications", label:"Notifications", Icon:Bell,          badge: unreadCount > 0 ? String(unreadCount) : null, bc:"orange"},
-    {id:"feedback",      label:"Give Feedback", Icon:MessageSquare},
+    {id:"feedback",      label:"Give Feedback", Icon:ClipboardPen},
     {id:"settings",      label:"Settings",      Icon:Settings},
     ...(profile?.role === 'admin' ? [{id:"admin", label:"Admin Dashboard", Icon:ShieldAlert, section:"Admin"}] : []),
   ]
