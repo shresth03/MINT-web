@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageShell from '../../components/PageShell'
 import { useVideos } from '../../hooks/feed/useVideos'
-import { useAuth } from '../../hooks/core/useAuth'
 import { Heart, BadgeCheck, PenLine } from 'lucide-react'
 
 function timeAgo(dateStr) {
@@ -243,11 +242,9 @@ export default function ReelsPage() {
   const [activeIdx, setActiveIdx] = useState(0)
   const [showUpload, setShowUpload] = useState(false)
   const containerRef = useRef(null)
-  const { user } = useAuth()
 
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return
-    const children = containerRef.current.children
     const containerTop = containerRef.current.scrollTop
     const itemHeight = containerRef.current.clientHeight
     const idx = Math.round(containerTop / itemHeight)

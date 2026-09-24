@@ -45,7 +45,7 @@ export default function SettingsPage() {
         if (typeof prefs.follows === 'boolean') setNotifFollows(prefs.follows)
         if (typeof prefs.breaking === 'boolean') setNotifBreaking(prefs.breaking)
       }
-    } catch (_) { /* ignore */ }
+    } catch { /* ignore */ }
   }, [])
 
   function saveNotifPrefs(overrides) {
