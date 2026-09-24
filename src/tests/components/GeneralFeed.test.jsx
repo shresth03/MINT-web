@@ -73,12 +73,7 @@ describe('GeneralFeed', () => {
 
   it('shows repost modal on repost button click', () => {
     renderFeed()
-    // Repost button renders <Repeat2 SVG> + count; find all action buttons, click the repost one
-    // The repost count for post-1 is 1 — find the button whose text content is "1" in the action bar
-    const allButtons = screen.getAllByRole('button')
-    // The repost button contains only an SVG + a number; find by matching text "1" sibling
-    const repostBtn = allButtons.find(b => b.textContent.trim() === '1' && b.querySelector('svg'))
-    fireEvent.click(repostBtn)
+    fireEvent.click(screen.getByRole('button', { name: 'Repost, 1' }))
     const repostHeaders = screen.getAllByText(/REPOST/i)
     expect(repostHeaders.length).toBeGreaterThan(0)
     expect(screen.getByText('CANCEL')).toBeInTheDocument()
@@ -109,5 +104,32 @@ describe('GeneralFeed', () => {
       const post = screen.getByText('Test post body').closest('div[style]')
       expect(post).toBeTruthy()
     })
+  })
+
+  // ── Action bar ───────────────────────────────────────────────────────────
+
+  it('labels action buttons with their counts for screen readers', () => {
+    renderFeed()
+    expect(screen.getByRole('button', { name: 'Like, 5' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Replies, 2' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Repost, 1' })).toBeInTheDocument()
+  })
+
+  it('hides zero counts', () => {
+    renderFeed()
+    // post-2 has no replies: the button is labelled without a number and shows none
+    const replies = screen.getAllByRole('button', { name: /^Replies/ })
+    const noReplies = replies.find(b => b.getAttribute('aria-label') === 'Replies')
+    expect(noReplies).toBeTruthy()
+    expect(noReplies.textContent).toBe('')
+  })
+
+  it('copies a link to the post that opens the General tab', async () => {
+    const writeText = vi.fn().mockResolvedValue()
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    renderFeed()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Copy link to post' })[0])
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/feed?highlight=post-1`))
+    expect(await screen.findByText('Copied')).toBeInTheDocument()
   })
 })

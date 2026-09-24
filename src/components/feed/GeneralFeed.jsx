@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../../hooks/social/useNotifications'
 import { useLocation } from 'react-router-dom'
 import { useIsMobile } from '../../hooks/core/useIsMobile'
-import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck } from 'lucide-react'
+import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck, Share2, Check } from 'lucide-react'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -670,6 +670,30 @@ function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaP
   )
 }
 
+// Post action bar: round tinted hover in each action's colour, a bigger tap
+// area than the icon alone, and a pop on the heart when a post is liked.
+const ACTION_CSS = `
+  .post-acts { display: flex; align-items: center; gap: 4px; margin: 2px -8px 0; }
+  .post-acts-right { margin-left: auto; display: flex; gap: 2px; }
+  .post-act {
+    --c: var(--accent);
+    background: none; border: none; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 8px; border-radius: 16px;
+    font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums;
+    color: var(--muted); transition: color 0.15s, background 0.15s;
+  }
+  .post-act:hover { color: var(--c); background: color-mix(in srgb, var(--c) 10%, transparent); }
+  .post-act.on { color: var(--c); }
+  .post-act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .post-act.like { --c: #e05577; }
+  .post-act.repost { --c: var(--verified); }
+  .post-act.save { --c: var(--warn); }
+  .post-act.pop svg { animation: post-act-pop 0.3s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes post-act-pop { 40% { transform: scale(1.3); } }
+  @media (prefers-reduced-motion: reduce) { .post-act { transition: none; } .post-act.pop svg { animation: none; } }
+`
+
 export default function GeneralFeed() {
   const { user } = useAuth()
   const { posts, loading, createPost, likePost, savePost, repost, createReply, fetchReplies, voteReply } = usePosts()
@@ -694,6 +718,24 @@ export default function GeneralFeed() {
   const [feedTab, setFeedTab] = useState('all')
   const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000)
   const [followedIds, setFollowedIds] = useState([])
+  const [poppedId, setPoppedId] = useState(null)   // heart that just got liked
+  const [copiedId, setCopiedId] = useState(null)   // post whose link was just copied
+
+  function handleLike(post) {
+    if (!post.liked) setPoppedId(post.id)
+    likePost(post.id, createNotification)
+  }
+
+  async function copyPostLink(postId) {
+    const url = `${window.location.origin}/feed?highlight=${postId}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedId(postId)
+      setTimeout(() => setCopiedId(id => (id === postId ? null : id)), 1500)
+    } catch {
+      window.prompt('Copy this link to the post:', url)
+    }
+  }
 
   useEffect(() => {
     if (!user?.id) return
@@ -784,6 +826,7 @@ export default function GeneralFeed() {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+      <style>{ACTION_CSS}</style>
 
       {/* Repost Modal */}
       {repostModal && (
@@ -1254,56 +1297,53 @@ export default function GeneralFeed() {
                     )}
           
                     {/* Actions */}
-                    <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginTop: 4 }}>
+                    <div className="post-acts">
                       <button
-                        onClick={() => likePost(post.id, createNotification)}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 6,
-                          fontFamily: 'var(--mono)', fontSize: 14,
-                          color: post.liked ? '#e05577' : 'var(--muted)',
-                          padding: 0, transition: 'color 0.15s',
-                        }}
+                        className={`post-act like ${post.liked ? 'on' : ''} ${poppedId === post.id ? 'pop' : ''}`}
+                        onClick={() => handleLike(post)}
+                        onAnimationEnd={() => setPoppedId(null)}
+                        aria-pressed={!!post.liked}
+                        aria-label={`Like${post.likes ? `, ${post.likes}` : ''}`}
                       >
-                        <Heart size={14} fill={post.liked ? 'currentColor' : 'none'} /> {post.likes || 0}
+                        <Heart size={16} fill={post.liked ? 'currentColor' : 'none'} />
+                        {post.likes > 0 && <span>{post.likes}</span>}
                       </button>
                       <button
+                        className={`post-act reply ${openThreads.has(post.id) ? 'on' : ''}`}
                         onClick={() => toggleThread(post.id)}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 6,
-                          fontFamily: 'var(--mono)', fontSize: 14,
-                          color: openThreads.has(post.id) ? 'var(--accent)' : 'var(--muted)',
-                          padding: 0, transition: 'color 0.15s',
-                        }}
+                        aria-expanded={openThreads.has(post.id)}
+                        aria-label={`Replies${post.reply_count ? `, ${post.reply_count}` : ''}`}
                       >
-                        <MessageCircle size={14} /> {post.reply_count || 0}
+                        <MessageCircle size={16} />
+                        {post.reply_count > 0 && <span>{post.reply_count}</span>}
                         {openThreads.has(post.id) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                       </button>
                       <button
+                        className={`post-act repost ${post.reposted ? 'on' : ''}`}
                         onClick={() => { setRepostModal(post); setQuoteBody('') }}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 6,
-                          fontFamily: 'var(--mono)', fontSize: 14,
-                          color: post.reposted ? 'var(--verified)' : 'var(--muted)',
-                          padding: 0, transition: 'color 0.15s',
-                        }}
+                        aria-pressed={!!post.reposted}
+                        aria-label={`Repost${post.repost_count ? `, ${post.repost_count}` : ''}`}
                       >
-                        <Repeat2 size={14} /> {post.repost_count || 0}
+                        <Repeat2 size={16} />
+                        {post.repost_count > 0 && <span>{post.repost_count}</span>}
                       </button>
-                      <button
-                        onClick={() => savePost(post.id)}
-                        style={{
-                          background: 'none', border: 'none', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 6,
-                          fontFamily: 'var(--mono)', fontSize: 14,
-                          color: post.saved ? 'var(--warn)' : 'var(--muted)',
-                          padding: 0, transition: 'color 0.15s', marginLeft: 'auto',
-                        }}
-                      >
-                        <Bookmark size={14} fill={post.saved ? 'currentColor' : 'none'} />
-                      </button>
+                      <span className="post-acts-right">
+                        <button
+                          className={`post-act share ${copiedId === post.id ? 'on' : ''}`}
+                          onClick={() => copyPostLink(post.id)}
+                          aria-label={copiedId === post.id ? 'Link copied' : 'Copy link to post'}
+                        >
+                          {copiedId === post.id ? <><Check size={16} /><span>Copied</span></> : <Share2 size={16} />}
+                        </button>
+                        <button
+                          className={`post-act save ${post.saved ? 'on' : ''}`}
+                          onClick={() => savePost(post.id)}
+                          aria-pressed={!!post.saved}
+                          aria-label={post.saved ? 'Saved' : 'Save'}
+                        >
+                          <Bookmark size={16} fill={post.saved ? 'currentColor' : 'none'} />
+                        </button>
+                      </span>
                     </div>
                   </div>
                 </div>
