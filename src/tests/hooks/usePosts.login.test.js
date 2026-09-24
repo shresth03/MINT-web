@@ -20,4 +20,19 @@ describe('usePosts when login finishes after the feed mounts', () => {
     rerender()
     await waitFor(() => expect(mockSupabase.from).toHaveBeenCalledWith('posts'))
   })
+
+  it('fetchSavedPosts waits for the user instead of throwing, then loads', async () => {
+    const { result, rerender } = renderHook(() => usePosts())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    const before = result.current.fetchSavedPosts
+    await expect(before()).resolves.toEqual({ data: [], error: null })
+
+    mockUser = { id: 'u1' }
+    rerender()
+    // A new loader for the signed-in user, which queries their saved posts
+    expect(result.current.fetchSavedPosts).not.toBe(before)
+    await result.current.fetchSavedPosts()
+    expect(mockSupabase.from).toHaveBeenCalledWith('saved_posts')
+    expect(mockSupabase.eq).toHaveBeenCalledWith('user_id', 'u1')
+  })
 })
