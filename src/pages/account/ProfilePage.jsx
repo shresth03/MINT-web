@@ -265,20 +265,18 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div style={{ height: 40 }} />
-
         {/* Sign out */}
-        <div style={{ padding: '0 24px 32px' }}>
+        <div>
           <button
             onClick={async () => { await signOut(); navigate('/login') }}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              background: 'transparent', border: '1px solid var(--accent2)',
-              borderRadius: 6, padding: '10px 16px', cursor: 'pointer',
-              fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: 'var(--accent2)',
+              background: 'transparent', border: '1px solid var(--accent)',
+              borderRadius: 4, padding: '9px 20px', cursor: 'pointer',
+              fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: 'var(--accent)',
               letterSpacing: 1, transition: 'background 0.15s',
             }}
-            onMouseOver={e => { e.currentTarget.style.background = 'rgba(232,72,72,0.08)' }}
+            onMouseOver={e => { e.currentTarget.style.background = 'var(--topbar-hover)' }}
             onMouseOut={e => { e.currentTarget.style.background = 'transparent' }}
           >
             <LogOut size={13} /> SIGN OUT

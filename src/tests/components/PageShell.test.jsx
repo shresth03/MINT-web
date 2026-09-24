@@ -68,11 +68,28 @@ describe('PageShell', () => {
     expect(screen.queryByRole('button', { name: /go back/i })).not.toBeInTheDocument()
   })
 
-  it('calls navigate(-1) when BACK is clicked', async () => {
+  it('calls navigate(-1) when BACK is clicked with in-app history', async () => {
+    window.history.replaceState({ idx: 1 }, '')
     renderShell()
     fireEvent.click(screen.getByRole('button', { name: /go back/i }))
     // BackButton plays an exit animation before navigating
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(-1))
+    window.history.replaceState(null, '')
+  })
+
+  it('falls back to /feed when there is no in-app history', async () => {
+    window.history.replaceState(null, '')
+    renderShell()
+    fireEvent.click(screen.getByRole('button', { name: /go back/i }))
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/feed'))
+  })
+
+  it('renders BACK button after the logo, outlined', () => {
+    renderShell()
+    const back = screen.getByRole('button', { name: /go back/i })
+    const logo = screen.getByRole('img', { name: 'MINT' })
+    expect(logo.compareDocumentPosition(back) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(back).toHaveClass('mint-backbtn-outline')
   })
 
   // ── Logo hold-to-switch theme ───────────────────────────────────────────

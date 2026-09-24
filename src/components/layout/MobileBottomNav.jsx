@@ -1,10 +1,10 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Rss, Search, MessageSquare, User, Settings } from 'lucide-react'
+import { Rss, Search, MessageSquareHeart, User, Settings } from 'lucide-react'
 
 const NAV_ITEMS = [
   { label: 'Feed',     Icon: Rss,           path: '/feed' },
   { label: 'Search',   Icon: Search,        path: '/search' },
-  { label: 'Messages', Icon: MessageSquare, path: '/messages' },
+  { label: 'Messages', Icon: MessageSquareHeart, path: '/messages' },
   { label: 'Profile',  Icon: User,          path: '/profile' },
   { label: 'Settings', Icon: Settings,      path: '/settings' },
 ]
