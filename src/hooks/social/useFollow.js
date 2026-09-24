@@ -36,7 +36,7 @@ export function useFollow(targetUserId) {
         .select('id')
         .eq('follower_id', user.id)
         .eq('following_id', targetUserId)
-        .single() : Promise.resolve({ data: null })
+        .maybeSingle() : Promise.resolve({ data: null })  // no row = not following, not an error
     ])
 
     setFollowerCount(followersRes.count || 0)
