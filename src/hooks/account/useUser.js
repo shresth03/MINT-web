@@ -1,30 +1,31 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { identityDb } from '../../api/supabase'
 import { useAuth } from '../core/useAuth'
 
 export function useUser() {
   const { user } = useAuth()
+  const userId = user?.id
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!user?.id) {
-      setLoading(false)
-      return
-    }
-    fetchProfile()
-  }, [user?.id])
-
-  async function fetchProfile() {
+  const fetchProfile = useCallback(async () => {
     setLoading(true)
     const { data, error } = await identityDb
       .from('profiles')
       .select('id, username, role, score')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single()
     if (!error && data) setProfile(data)
     setLoading(false)
-  }
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false)
+      return
+    }
+    fetchProfile()
+  }, [userId, fetchProfile])
 
   async function updateProfile(updates) {
     const { error } = await identityDb

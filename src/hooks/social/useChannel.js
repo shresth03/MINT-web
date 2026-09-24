@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { contentDb, identityDb } from '../../api/supabase'
 
 export function useChannel(username) {
@@ -7,12 +7,7 @@ export function useChannel(username) {
   const [stories, setStories] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!username) return
-    fetchChannel()
-  }, [username])
-
-  async function fetchChannel() {
+  const fetchChannel = useCallback(async () => {
     setLoading(true)
 
     // Fetch user profile
@@ -54,7 +49,12 @@ export function useChannel(username) {
     for (const s of sourcesData || []) if (s.stories) byId.set(s.stories.id, s.stories)
     setStories([...byId.values()].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
     setLoading(false)
-  }
+  }, [username])
+
+  useEffect(() => {
+    if (!username) return
+    fetchChannel()
+  }, [username, fetchChannel])
 
   return { channel, posts, stories, loading }
 }
