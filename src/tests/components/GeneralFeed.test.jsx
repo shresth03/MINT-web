@@ -132,4 +132,32 @@ describe('GeneralFeed', () => {
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/feed?highlight=post-1`))
     expect(await screen.findByText('Copied')).toBeInTheDocument()
   })
+
+  // ── Post box tools ───────────────────────────────────────────────────────
+
+  it('switches the post type between General and News', () => {
+    renderFeed()
+    const general = screen.getByRole('radio', { name: /general/i })
+    const news = screen.getByRole('radio', { name: /news/i })
+    expect(general).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(news)
+    expect(news).toHaveAttribute('aria-checked', 'true')
+    expect(general).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByText(/marked as a news report/)).toBeInTheDocument()
+  })
+
+  it('has a labelled image button instead of the 📎 emoji', () => {
+    renderFeed()
+    expect(screen.getByRole('button', { name: 'Add image' })).toBeInTheDocument()
+    expect(screen.queryByText(/📎/)).not.toBeInTheDocument()
+  })
+
+  it('shows the character counter only past 400 characters', () => {
+    renderFeed()
+    const box = screen.getByPlaceholderText(/Share intelligence/i)
+    fireEvent.change(box, { target: { value: 'short post' } })
+    expect(screen.queryByText(/\/500/)).not.toBeInTheDocument()
+    fireEvent.change(box, { target: { value: 'x'.repeat(420) } })
+    expect(screen.getByText('420/500')).toBeInTheDocument()
+  })
 })

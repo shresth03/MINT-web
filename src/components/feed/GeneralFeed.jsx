@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../../hooks/social/useNotifications'
 import { useLocation } from 'react-router-dom'
 import { useIsMobile } from '../../hooks/core/useIsMobile'
-import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck, Share2, Check } from 'lucide-react'
+import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck, Share2, Check, ImagePlus, MessageSquareText, Newspaper } from 'lucide-react'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -558,6 +558,33 @@ function ReplyThread({ postId, authorId, createReply, fetchReplies, createNotifi
   )
 }
 
+function ComposerTools({ mediaFile, fileInputRef, postType, setPostType }) {
+  return (
+    <>
+      <button
+        type="button"
+        className={`compose-tool ${mediaFile ? 'on' : ''}`}
+        onClick={() => fileInputRef.current?.click()}
+        aria-label={mediaFile ? 'Change image' : 'Add image'}
+        title={mediaFile ? 'Change image' : 'Add image'}
+      >
+        <ImagePlus size={18} />
+      </button>
+      <div className={`switch-track post-type ${postType === 'news' ? 'second' : ''}`} role="radiogroup" aria-label="Post type">
+        <span className="switch-thumb" aria-hidden="true" />
+        <button type="button" role="radio" aria-checked={postType === 'general'}
+          className={`switch-btn ${postType === 'general' ? 'active' : ''}`} onClick={() => setPostType('general')}>
+          <MessageSquareText size={12} /> GENERAL
+        </button>
+        <button type="button" role="radio" aria-checked={postType === 'news'}
+          className={`switch-btn ${postType === 'news' ? 'active' : ''}`} onClick={() => setPostType('news')}>
+          <Newspaper size={12} /> NEWS
+        </button>
+      </div>
+    </>
+  )
+}
+
 function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaPreview, fileInputRef, handlePost, handleFileSelect, removeMedia, posting, uploading, postType, setPostType }) {
   return (
     <div style={{ display: 'flex', gap: 10 }}>
@@ -606,50 +633,15 @@ function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaP
           </div>
         )}
         <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileSelect} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: body.length > 450 ? 'var(--accent2)' : 'var(--muted)' }}>
-              {body.length}/500
-            </span>
-            {error && <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent2)' }}>⚠ {error}</span>}
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {/* Post type toggle */}
-            <div style={{ display: 'flex', borderRadius: 4, border: '1px solid var(--border)', overflow: 'hidden' }}>
-              {['general', 'news'].map(t => (
-                <button
-                  key={t}
-                  onClick={() => setPostType(t)}
-                  style={{
-                    padding: '5px 10px', border: 'none', cursor: 'pointer',
-                    fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
-                    background: postType === t
-                      ? t === 'news' ? 'rgba(48,216,128,0.15)' : 'rgba(0,212,255,0.1)'
-                      : 'transparent',
-                    color: postType === t
-                      ? t === 'news' ? 'var(--verified)' : 'var(--accent)'
-                      : 'var(--muted)',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {t === 'news'
-                    ? <><BadgeCheck size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} /> NEWS</>
-                    : 'GENERAL'
-                  }
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                padding: '5px 10px', background: mediaFile ? 'rgba(0,255,180,0.1)' : 'transparent',
-                border: `1px solid ${mediaFile ? 'var(--accent)' : 'var(--border)'}`,
-                borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 10,
-                color: mediaFile ? 'var(--accent)' : 'var(--muted)', cursor: 'pointer',
-              }}
-            >
-              {mediaFile ? '📎 ATTACHED' : '📎 IMAGE'}
-            </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+          <ComposerTools mediaFile={mediaFile} fileInputRef={fileInputRef} postType={postType} setPostType={setPostType} />
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Counter only once it matters */}
+            {body.length > 400 && (
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: body.length > 450 ? 'var(--accent2)' : 'var(--muted)' }}>
+                {body.length}/500
+              </span>
+            )}
             <button
               onClick={handlePost}
               disabled={!body.trim() || posting}
@@ -665,6 +657,11 @@ function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaP
             </button>
           </div>
         </div>
+        {error ? (
+          <div className="compose-hint" style={{ color: 'var(--accent2)', fontFamily: 'var(--mono)', fontSize: 10 }}>⚠ {error}</div>
+        ) : postType === 'news' && (
+          <div className="compose-hint"><b>News:</b> marked as a news report in the feed</div>
+        )}
       </div>
     </div>
   )
@@ -692,6 +689,20 @@ const ACTION_CSS = `
   .post-act.pop svg { animation: post-act-pop 0.3s cubic-bezier(.3,1.6,.5,1); }
   @keyframes post-act-pop { 40% { transform: scale(1.3); } }
   @media (prefers-reduced-motion: reduce) { .post-act { transition: none; } .post-act.pop svg { animation: none; } }
+
+  /* Post box tools: round image button + General/News switch (the shared
+     .switch-* styles from the feed page; News slides to green like its label) */
+  .compose-tool {
+    width: 32px; height: 32px; border-radius: 50%; border: none; background: transparent;
+    color: var(--accent); cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+  }
+  .compose-tool:hover, .compose-tool.on { background: var(--topbar-hover); }
+  .compose-tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .post-type .switch-btn { padding: 5px 9px; gap: 5px; }
+  .post-type.second .switch-thumb { background: var(--verified); }
+  .compose-hint { margin-top: 6px; font-size: 11px; color: var(--muted); font-family: var(--sans); }
+  .compose-hint b { color: var(--verified); font-weight: 600; }
 `
 
 export default function GeneralFeed() {
@@ -1053,21 +1064,12 @@ export default function GeneralFeed() {
             background: 'var(--surface)', display: 'flex',
             alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
           }}>
-            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
                 ref={fileInputRef} type="file" accept="image/*"
                 style={{ display: 'none' }} onChange={handleFileSelect}
               />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: mediaFile ? 'var(--accent)' : 'var(--muted)',
-                  fontSize: 20, display: 'flex', alignItems: 'center',
-                }}
-              >
-                📎
-              </button>
+              <ComposerTools mediaFile={mediaFile} fileInputRef={fileInputRef} postType={postType} setPostType={setPostType} />
               {uploading && (
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
                   UPLOADING...
