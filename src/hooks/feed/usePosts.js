@@ -354,11 +354,13 @@ export function usePosts() {
     return { delta }
   }
 
-  async function fetchSavedPosts() {
+  // Stable per user, so Profile can reload saved posts once login finishes
+  const fetchSavedPosts = useCallback(async () => {
+    if (!userId) return { data: [], error: null }
     const { data, error } = await contentDb
       .from('saved_posts')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
     if (!data) return { data: [], error }
 
@@ -374,7 +376,7 @@ export function usePosts() {
       return { ...s, posts: post ? { ...post, users: profilesById.get(post.author_id) || null } : null }
     })
     return { data: merged, error }
-  }
+  }, [userId])
 
   async function fetchUserReposts(userId) {
     const { data } = await contentDb

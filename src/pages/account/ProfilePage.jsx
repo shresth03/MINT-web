@@ -9,6 +9,7 @@ import PageShell from '../../components/PageShell'
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth()
+  const userId = user?.id
   const { profile, loading, updateProfile } = useUser()
   const { fetchSavedPosts } = usePosts()
   const [savedPosts, setSavedPosts] = useState([])
@@ -25,19 +26,21 @@ export default function ProfilePage() {
       contentDb
         .from('posts')
         .select('id', { count: 'exact' })
-        .eq('author_id', user.id)
+        .eq('author_id', userId)
         .then(({ count }) => setPostCount(count || 0))
     }
-  }, [profile])
+  }, [profile, userId])
 
+  // Waits for login: before, a late login left Saved posts empty until reload
   useEffect(() => {
+    if (!userId) return
     async function loadSaved() {
       const { data } = await fetchSavedPosts()
       setSavedPosts(data)
       setSavesLoading(false)
     }
     loadSaved()
-  }, [])
+  }, [userId, fetchSavedPosts])
 
   const handleSave = async () => {
     setSaving(true)
