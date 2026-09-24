@@ -1296,7 +1296,7 @@ export default function GeneralFeed() {
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
                         {timeAgo(post.created_at)}
                       </span>
-                      {post.post_type === 'news' && (
+                      {post.post_type === 'news' && new Date(post.created_at) > cutoff48h && (
                         <span style={{
                           fontFamily: 'var(--mono)', fontSize: 8, letterSpacing: 1,
                           padding: '2px 6px', borderRadius: 3,
