@@ -20,6 +20,7 @@ import ThemeRipple from '../../components/ThemeRipple'
 import EditNoteSection from '../../components/EditNoteSection'
 import SourceNoteButton from '../../components/SourceNoteButton'
 import WorldMap from '../../components/map/WorldMap'
+import RegionMap from '../../components/map/RegionMap'
 import BackButton from '../../components/BackButton'
 import {
   Rss, Search, TrendingUp, Globe2, BadgeCheck, Plus, Clock,
@@ -70,12 +71,12 @@ const styles = `
   .app { display: flex; height: 100vh; overflow: hidden; }
   .sidebar { width: 220px; min-width: 220px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: width 0.22s ease, min-width 0.22s ease, transform 0.25s ease, background 0.4s ease; }
   .sidebar.mobile-hidden { transform: translateX(-100%); }
-  .sidebar.collapsed { width: 68px; min-width: 68px; }
+  .sidebar.collapsed { width: 76px; min-width: 76px; }
   .sidebar.collapsed .logo { padding: 10px 6px; }
   .sidebar.collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
   .sidebar.collapsed .nav-label { opacity: 0; max-width: 0; }
   .sidebar.collapsed .nav-section { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
-  .sidebar.collapsed .nav-badge { position: absolute; top: 8px; right: 22px; min-width: 8px; width: 8px; height: 8px; padding: 0; font-size: 0; border-radius: 50%; }
+  .sidebar.collapsed .nav-badge { position: absolute; top: 8px; right: 24px; min-width: 8px; width: 8px; height: 8px; padding: 0; font-size: 0; border-radius: 50%; }
   .sidebar.collapsed .user-card { justify-content: center; gap: 0; }
   .sidebar.collapsed .user-info { opacity: 0; max-width: 0; }
   .sidebar.collapsed .sidebar-bottom { padding-left: 10px; padding-right: 10px; }
@@ -101,7 +102,7 @@ const styles = `
   .nav-item { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 18px; cursor: pointer; font-size: 13px; font-family: var(--sans); color: var(--muted); transition: all 0.15s; border-left: 2px solid transparent; background: none; border-top: none; border-right: none; border-bottom: none; width: 100%; text-align: left; }
   .nav-item:hover { background: var(--surface2); color: var(--text); }
   .nav-item.active { background: var(--active-bg); color: var(--accent); border-left-color: var(--accent); }
-  .nav-icon { flex-shrink: 0; width: 16px; height: 16px; }
+  .nav-icon { flex-shrink: 0; width: 16px; height: 16px; transition: width 0.22s ease, height 0.22s ease; }
   .sidebar.collapsed .nav-icon { width: 18px; height: 18px; }
   .nav-label { white-space: nowrap; overflow: hidden; opacity: 1; max-width: 160px; transition: opacity 0.15s ease, max-width 0.22s ease; }
   .nav-badge { margin-left: auto; background: var(--accent2); color: #fff; font-size: 9px; padding: 1px 6px; border-radius: 10px; font-family: var(--mono); transition: all 0.15s ease; }
@@ -720,6 +721,8 @@ export default function App() {
                     <Globe2 size={24} style={{animation:"pulse 1.5s ease-in-out infinite"}} />
                     <div style={{letterSpacing:2}}>LOADING MAP DATA...</div>
                   </div>
+                ) : selRegion ? (
+                  <RegionMap region={selRegion} />
                 ) : (
                   <WorldMap filter={mf} regions={dbRegions} onRegionClick={r => setSelRegion(r)} />
                 )}

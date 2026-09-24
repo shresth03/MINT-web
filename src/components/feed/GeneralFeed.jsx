@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../../hooks/social/useNotifications'
 import { useLocation } from 'react-router-dom'
 import { useIsMobile } from '../../hooks/core/useIsMobile'
-import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck, Share2, Check, ImagePlus, MessageSquareText, Newspaper } from 'lucide-react'
+import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck, Share2, Check, ImagePlus, MessageSquareText, Newspaper, AlertTriangle } from 'lucide-react'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
@@ -726,6 +726,7 @@ export default function GeneralFeed() {
   const isMobile = useIsMobile()
   const [composerOpen, setComposerOpen] = useState(false)
   const [postType, setPostType] = useState('general')
+  const [newsConfirmOpen, setNewsConfirmOpen] = useState(false)
   const [feedTab, setFeedTab] = useState('all')
   const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000)
   const [followedIds, setFollowedIds] = useState([])
@@ -801,6 +802,16 @@ export default function GeneralFeed() {
       setPostType('general')
     }
     setPosting(false)
+  }
+
+  async function doPost() {
+    await handlePost()
+    if (isMobile) setComposerOpen(false)
+  }
+
+  function requestPost() {
+    if (postType === 'news') { setNewsConfirmOpen(true); return }
+    doPost()
   }
 
   function toggleThread(postId) {
@@ -921,6 +932,59 @@ export default function GeneralFeed() {
         </div>
       )}
 
+      {/* News post confirmation */}
+      {newsConfirmOpen && (
+        <div style={{
+          position:'fixed', inset:0, background:'rgba(0,0,0,0.7)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          zIndex:1000
+        }} onClick={() => setNewsConfirmOpen(false)}>
+          <div style={{
+            background:'var(--surface)', border:'1px solid var(--border)',
+            borderRadius:10, padding:24, width:420, maxWidth:'90vw'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{
+              fontFamily:'var(--mono)', fontSize:11, letterSpacing:2,
+              color:'#b22222', marginBottom:16
+            }}>
+              <AlertTriangle size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+              POST AS NEWS?
+            </div>
+            <div style={{
+              background:'rgba(178,34,34,0.12)', border:'1px solid #b22222',
+              borderRadius:6, padding:12, marginBottom:20,
+              fontSize:12, color:'var(--text)', lineHeight:1.6,
+            }}>
+              Are you sure you want to post this as News? If it turns out to be inappropriate
+              or false, the penalty could be a temporary or permanent ban from further use
+              of your account.
+            </div>
+            <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+              <button
+                onClick={() => setNewsConfirmOpen(false)}
+                style={{
+                  padding:'8px 16px', background:'transparent',
+                  border:'1px solid var(--border)', color:'var(--muted)',
+                  borderRadius:4, fontFamily:'var(--mono)', fontSize:10, cursor:'pointer'
+                }}
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={() => { setNewsConfirmOpen(false); doPost() }}
+                style={{
+                  padding:'8px 16px', background:'#b22222', color:'#fff',
+                  border:'none', borderRadius:4, fontFamily:'var(--mono)',
+                  fontSize:10, fontWeight:700, cursor:'pointer'
+                }}
+              >
+                POST AS NEWS
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Composer — desktop only inline */}
       {!isMobile && (
         <div style={{
@@ -932,7 +996,7 @@ export default function GeneralFeed() {
             error={error} setError={setError}
             mediaFile={mediaFile} mediaPreview={mediaPreview}
             fileInputRef={fileInputRef}
-            handlePost={handlePost} handleFileSelect={handleFileSelect}
+            handlePost={requestPost} handleFileSelect={handleFileSelect}
             removeMedia={removeMedia} posting={posting} uploading={uploading}
             postType={postType} setPostType={setPostType}
           />
@@ -994,10 +1058,7 @@ export default function GeneralFeed() {
               NEW POST
             </span>
             <button
-              onClick={async () => {
-                await handlePost()
-                setComposerOpen(false)
-              }}
+              onClick={requestPost}
               disabled={!body.trim() || posting}
               style={{
                 padding: '7px 18px', background: 'var(--accent)', color: 'var(--bg)',
