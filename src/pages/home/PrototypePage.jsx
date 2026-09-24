@@ -418,7 +418,7 @@ export default function App() {
     const handler = (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); navigate('/search') } }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [navigate])
 
   const [tab, setTab] = useState(() => linkedPostId ? "general" : "intel")
   // Set on the first switch only, so the feed doesn't animate on page load
