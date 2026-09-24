@@ -135,6 +135,18 @@
           "src/pages/ArticlesPage.jsx"
         ],
         "createdAt": "2026-07-26T03:14:32.058Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#b22222",
+        "createdAt": "2026-09-24T09:21:47.048Z",
+        "reason": "User confirmed #b22222 (firebrick) is intentional for the News-post danger confirmation dialog"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(178,34,34,0.12)",
+        "createdAt": "2026-09-24T09:21:47.102Z",
+        "reason": "User confirmed rgba(178,34,34,0.12) is intentional for the News-post danger confirmation dialog"
       }
     ]
   }
