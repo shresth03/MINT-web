@@ -409,7 +409,10 @@ export default function App() {
       .then(({ data }) => { if (data && data.length > 0) setHasApplied(true) })
   }, [user])
 
-  const [nav, setNav] = useState(() => localStorage.getItem('sigint_nav') || "feed")
+  // A link to a post (/feed?highlight=<id>, from Share, Search or Profile)
+  // must open the feed on the General tab, where posts live
+  const linkedPostId = new URLSearchParams(window.location.search).get('highlight')
+  const [nav, setNav] = useState(() => linkedPostId ? "feed" : localStorage.getItem('sigint_nav') || "feed")
   const setNavAndSave = (id) => { setNav(id); localStorage.setItem('sigint_nav', id); if (isMobile) setSidebarOpen(false) }
 
   useEffect(() => {
@@ -418,7 +421,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  const [tab, setTab] = useState("intel")
+  const [tab, setTab] = useState(() => linkedPostId ? "general" : "intel")
   // Set on the first switch only, so the feed doesn't animate on page load
   const [paneFrom, setPaneFrom] = useState(null)
   function switchTab(next) {
