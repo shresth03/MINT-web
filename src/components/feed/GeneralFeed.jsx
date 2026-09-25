@@ -8,14 +8,8 @@ import { useLocation } from 'react-router-dom'
 import { useIsMobile } from '../../hooks/core/useIsMobile'
 import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck, Share2, Check, ImagePlus, MessageSquareText, Newspaper, AlertTriangle } from 'lucide-react'
 import { moderateNewsPost } from '../../lib/moderation/newsModeration'
+import TimeStamp from '../TimeStamp'
 
-function timeAgo(dateStr) {
-  const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
-  if (diff < 60) return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff/60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`
-  return `${Math.floor(diff/86400)}d ago`
-}
 
 function RichBody({ text, navigate }) {
   return text.split(/(#\w+|@\w+)/g).map((part, i) => {
@@ -254,7 +248,7 @@ function ReplyNode({ node, depth = 0, postId, createReply, createNotification, p
             {node.users?.role === 'osint' && <BadgeCheck size={11} style={{ color: 'var(--verified)', marginLeft: 4, display: 'inline', verticalAlign: 'middle' }} />}
           </span>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
-            · {timeAgo(node.created_at)}
+            · <TimeStamp value={node.created_at} />
           </span>
           {collapsed && (
             <button
@@ -1261,7 +1255,7 @@ export default function GeneralFeed() {
                     {idx + 1}
                   </span>
                   <span style={{ color: 'var(--muted)' }}>
-                    ↑ {hotScore(post)} pts · {timeAgo(post.created_at)}
+                    ↑ {hotScore(post)} pts · <TimeStamp value={post.created_at} />
                   </span>
                 </div>
               )}
@@ -1282,7 +1276,7 @@ export default function GeneralFeed() {
                   >
                     {post._reposter?.username}
                   </span>
-                  <span>reposted · {timeAgo(post._repost_created_at)}</span>
+                  <span>reposted · <TimeStamp value={post._repost_created_at} /></span>
                 </div>
               )}
           
@@ -1320,7 +1314,7 @@ export default function GeneralFeed() {
                         )}
                       </span>
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
-                        {timeAgo(post.created_at)}
+                        <TimeStamp value={post.created_at} />
                       </span>
                       {post.post_type === 'news' && new Date(post.created_at) > cutoff48h && (
                         <span style={{

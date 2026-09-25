@@ -7,14 +7,8 @@ import { Inbox, BadgeCheck, ShieldAlert, CircleDot, Check, Heart, MessageCircle,
 import { useMessages } from '../../hooks/social/useMessages'
 import { useCredibility } from '../../hooks/social/useCredibility'
 import PageShell from '../../components/PageShell'
+import TimeStamp from '../../components/TimeStamp'
 
-function timeAgo(dateStr) {
-  const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
-  if (diff < 60) return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return `${Math.floor(diff / 86400)}d ago`
-}
 
 export default function ChannelPage() {
   const { username } = useParams()
@@ -314,7 +308,7 @@ export default function ChannelPage() {
                 {post.body}
               </div>
               <div style={{ display: 'flex', gap: 12, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
-                <span>{timeAgo(post.created_at)}</span>
+                <span><TimeStamp value={post.created_at} /></span>
                 <span style={{display:'flex',alignItems:'center',gap:3}}><Heart size={11} /> {post.likes || 0}</span>
                 <span style={{display:'flex',alignItems:'center',gap:3}}><MessageCircle size={11} /> {post.reply_count || 0}</span>
                 <span style={{display:'flex',alignItems:'center',gap:3}}><Repeat2 size={11} /> {post.repost_count || 0}</span>
@@ -366,7 +360,7 @@ export default function ChannelPage() {
                 {story.headline}
               </div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginTop: 8 }}>
-                {timeAgo(story.created_at)}
+                <TimeStamp value={story.created_at} />
               </div>
             </div>
           ))
