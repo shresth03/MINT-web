@@ -156,35 +156,27 @@ export function useMessages() {
   }, [userId])
 
   const sendMessage = useCallback(async (conversationId, body) => {
-    const { error } = await socialDb.from('messages').insert({
-      conversation_id: conversationId,
-      sender_id: userId,
-      body
+    const { data: messageId, error } = await socialDb.rpc('messaging_send', {
+      p_conversation_id: conversationId,
+      p_body: body
     })
 
-    if (!error) {
-      await socialDb
-        .from('conversations')
-        .update({
-          last_message: preview(body),
-          last_message_at: new Date().toISOString()
-        })
-        .eq('id', conversationId)
+    if (error) return { error }
 
-      // Notify recipient
-      const otherId = await getOtherParticipant(conversationId)
-      if (otherId) {
-        await socialDb.from('notifications').insert({
-          to_user_id: otherId,
-          from_user_id: userId,
-          type: 'message',
-          post_id: null
-        })
-      }
-
-      fetchConversations()
+    // Notify recipient
+    const otherId = await getOtherParticipant(conversationId)
+    if (otherId) {
+      await socialDb.from('notifications').insert({
+        to_user_id: otherId,
+        from_user_id: userId,
+        type: 'message',
+        post_id: null
+      })
     }
-    return { error }
+
+    fetchConversations()
+
+    return { data: messageId, error: null }
   }, [userId, getOtherParticipant, fetchConversations])
 
   return {

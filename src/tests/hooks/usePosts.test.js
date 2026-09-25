@@ -138,39 +138,49 @@ describe('usePosts', () => {
 
   // ── createPost ────��───────────────────────────────────────────────────────
 
-  it('createPost inserts with correct fields', async () => {
-    mockSupabase.insert.mockReturnThis()
-    mockSupabase.then.mockImplementationOnce((resolve) =>
-      Promise.resolve({ data: { id: 'p-new' }, error: null }).then(resolve)
-    )
+  it('createPost calls social_create_post with correct fields', async () => {
+    mockSupabase.rpc.mockResolvedValueOnce({
+      data: 123,
+      error: null,
+    })
 
     const { result } = renderHook(() => usePosts())
+
     await act(async () => {
       await result.current.createPost('Hello world')
     })
 
-    expect(mockSupabase.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        author_id: 'u1',
-        body: 'Hello world',
-        is_osint: false,
-      })
+    expect(mockSupabase.rpc).toHaveBeenCalledWith(
+      'social_create_post',
+      {
+        p_body: 'Hello world',
+        p_tag: null,
+        p_region: null,
+        p_media_url: null,
+      }
     )
   })
 
-  it('createPost extracts first hashtag as tag when no explicit tag given', async () => {
-    mockSupabase.insert.mockReturnThis()
-    mockSupabase.then.mockImplementationOnce((resolve) =>
-      Promise.resolve({ data: {}, error: null }).then(resolve)
-    )
+  it('createPost extracts first hashtag as tag when no explicit tag is given', async () => {
+    mockSupabase.rpc.mockResolvedValueOnce({
+      data: 123,
+      error: null,
+    })
 
     const { result } = renderHook(() => usePosts())
+
     await act(async () => {
       await result.current.createPost('Spotted in #MILITARY sector')
     })
 
-    expect(mockSupabase.insert).toHaveBeenCalledWith(
-      expect.objectContaining({ tag: 'MILITARY' })
+    expect(mockSupabase.rpc).toHaveBeenCalledWith(
+      'social_create_post',
+      {
+        p_body: 'Spotted in #MILITARY sector',
+        p_tag: 'MILITARY',
+        p_region: null,
+        p_media_url: null,
+      }
     )
   })
 })
