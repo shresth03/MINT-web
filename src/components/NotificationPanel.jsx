@@ -1,14 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Heart, CornerUpLeft, Repeat2, UserPlus, Mail, AtSign, BadgeCheck, Gauge, Bell, Inbox } from 'lucide-react'
+import TimeStamp from './TimeStamp'
 
-function timeAgo(dateStr) {
-  const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
-  if (diff < 60) return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff/60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`
-  return `${Math.floor(diff/86400)}d ago`
-}
 
 function notifIcon(type) {
     switch(type) {
@@ -193,7 +187,7 @@ export default function NotificationPanel({ notifications, unreadCount, onMarkAl
                     fontFamily: 'var(--mono)', fontSize: 9,
                     color: 'var(--muted)'
                   }}>
-                    {timeAgo(n.created_at)}
+                    <TimeStamp value={n.created_at} compact />
                   </div>
                 </div>
 

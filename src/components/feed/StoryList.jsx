@@ -1,14 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BadgeCheck, Gauge, ChevronUp, ChevronDown, AlertTriangle } from 'lucide-react'
+import TimeStamp from '../TimeStamp'
 
-function timeAgo(dateStr) {
-  const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
-  if (diff < 60) return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff/60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`
-  return `${Math.floor(diff/86400)}d ago`
-}
 
 export default function StoryList({ stories, activeStory, onSelect, loading }) {
   const navigate = useNavigate()
@@ -60,7 +54,7 @@ export default function StoryList({ stories, activeStory, onSelect, loading }) {
               <div className="story-meta">
                 {isBreaking && <span className="breaking-tag">BREAKING</span>}
                 <span className="story-tag">{s.tag}</span>
-                <span className="story-time">{s.time || timeAgo(s.created_at) || 'recent'}</span>
+                <span className="story-time"><TimeStamp value={s.created_at} /></span>
               </div>
 
               <div className="story-headline">{s.headline}</div>
@@ -156,7 +150,7 @@ export default function StoryList({ stories, activeStory, onSelect, loading }) {
                             </span>
                           )}
                           <span style={{ fontFamily:'var(--mono)', fontSize:9, color:'var(--muted)', marginLeft:'auto' }}>
-                            {timeAgo(post.created_at)}
+                            <TimeStamp value={post.created_at} />
                           </span>
                         </div>
                         <div style={{ fontSize:12, color:'var(--text)', lineHeight:1.5 }}>

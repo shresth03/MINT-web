@@ -4,14 +4,8 @@ import { useSearch } from '../../hooks/social/useSearch'
 import PageShell from '../../components/PageShell'
 import { X, Heart, MessageCircle, BadgeCheck, ShieldAlert, Inbox } from 'lucide-react'
 import { STORY_TAGS as TOPIC_TAGS, DATE_OPTIONS } from '../../constants'
+import TimeStamp from '../../components/TimeStamp'
 
-function timeAgo(dateStr) {
-  const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
-  if (diff < 60) return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return `${Math.floor(diff / 86400)}d ago`
-}
 
 
 export default function SearchPage() {
@@ -285,7 +279,7 @@ export default function SearchPage() {
                       {s.tag}
                     </span>
                     <span style={tagStyle()}>{s.region}</span>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>{timeAgo(s.created_at)}</span>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}><TimeStamp value={s.created_at} /></span>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)', marginLeft: 'auto' }}>
                       {s.confidence}% confidence
                     </span>
@@ -324,7 +318,7 @@ export default function SearchPage() {
                       {p.users?.role === 'osint' && <BadgeCheck size={11} style={{ color: 'var(--verified)', marginLeft: 4, display:'inline', verticalAlign:'middle' }} />}
                     </span>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
-                      {timeAgo(p.created_at)}
+                      <TimeStamp value={p.created_at} />
                     </span>
                     {p.tag && (
                       <span

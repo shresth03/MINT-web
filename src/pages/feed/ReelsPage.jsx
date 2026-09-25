@@ -3,14 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import PageShell from '../../components/PageShell'
 import { useVideos } from '../../hooks/feed/useVideos'
 import { Heart, BadgeCheck, PenLine } from 'lucide-react'
+import TimeStamp from '../../components/TimeStamp'
 
-function timeAgo(dateStr) {
-  const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
-  if (diff < 60) return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return `${Math.floor(diff / 86400)}d ago`
-}
 
 function VideoReel({ video, isActive, onLike, onView }) {
   const navigate = useNavigate()
@@ -139,7 +133,7 @@ function VideoReel({ video, isActive, onLike, onView }) {
           </div>
         )}
         <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.5)' }}>
-          {timeAgo(video.created_at)}
+          <TimeStamp value={video.created_at} />
         </div>
       </div>
     </div>
