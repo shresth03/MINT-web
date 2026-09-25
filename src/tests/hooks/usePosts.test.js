@@ -86,7 +86,7 @@ describe('usePosts', () => {
       .mockResolvedValueOnce({ data: null, error: null }) // saved
       .mockResolvedValueOnce({ data: null, error: null }) // reposted
 
-    const { result } = renderHook(() => usePosts())
+    renderHook(() => usePosts())
 
     // Trigger the realtime callback as if a new post arrived
     if (realtimeCallback) {

@@ -23,10 +23,17 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Capitalised names are React components, which the rule can't see being
+      // used in JSX (e.g. `({ Icon }) => <Icon />`)
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^[A-Z]' }],
       // react-hooks v7 experimental rules — too strict for async patterns we use
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/purity': 'off',
     },
+  },
+  {
+    // The backend and Vercel functions run in Node, not the browser
+    files: ['server/**/*.js', 'api/**/*.js'],
+    languageOptions: { globals: globals.node },
   },
 ])

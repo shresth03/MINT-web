@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import PageShell from '../../components/PageShell'
 import BackButton from '../../components/BackButton'
 import { useLiveStreams, useStreamViewers } from '../../hooks/feed/useLiveStreams'
@@ -276,7 +275,6 @@ export default function LivePage() {
   const [activeStream, setActiveStream] = useState(null)
   const [userRole, setUserRole] = useState(null)
 
-  const navigate = useNavigate()
 
   useEffect(() => {
     if (!user?.id) return

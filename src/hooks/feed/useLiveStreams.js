@@ -32,7 +32,7 @@ export function useLiveStreams() {
       .on('postgres_changes', { event: '*', schema: 'media', table: 'live_streams' }, fetchStreams)
       .subscribe()
     return () => supabase.removeChannel(sub)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   async function createStream(title, description = '') {
     const { data, error } = await mediaDb
@@ -90,7 +90,7 @@ export function useStreamViewers(streamId) {
       })
 
     return () => supabase.removeChannel(channel)
-  }, [streamId, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [streamId, user?.id])
 
   return viewerCount
 }

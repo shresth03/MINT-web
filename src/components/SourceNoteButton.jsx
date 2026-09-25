@@ -10,7 +10,7 @@ const CLAIM_STYLE = {
   reversed:   { color: '#ffd32a', label: '⟳ REVERSED',   bg: 'rgba(255,211,42,0.08)'  },
 }
 
-export default function SourceNoteButton({ post, user }) {
+export default function SourceNoteButton({ post }) {
   const [open, setOpen] = useState(false)
   const { claim, notes, userNote, claimVisible, challengeWeight, supportWeight, submitNote, updateNote, deleteNote } = useClaims(post?.id)
   const [stance, setStance] = useState('challenges')

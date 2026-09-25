@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase, identityDb, mediaDb } from '../../api/supabase'
 import { useAuth } from '../core/useAuth'
 
@@ -16,7 +16,7 @@ export function useVideos(type = null) {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
 
-  async function fetchVideos() {
+  const fetchVideos = useCallback(async () => {
     let q = mediaDb
       .from('videos')
       .select('*')
@@ -27,7 +27,19 @@ export function useVideos(type = null) {
     const { data } = await q
     setVideos(await attachAuthors(data || []))
     setLoading(false)
-  }
+  }, [type])
+
+  const fetchSingleVideo = useCallback(async (id) => {
+    const { data } = await mediaDb
+      .from('videos')
+      .select('*')
+      .eq('id', id)
+      .single()
+    if (data) {
+      const [enriched] = await attachAuthors([data])
+      setVideos(prev => [enriched, ...prev])
+    }
+  }, [])
 
   useEffect(() => {
     fetchVideos()
@@ -38,19 +50,7 @@ export function useVideos(type = null) {
       })
       .subscribe()
     return () => supabase.removeChannel(sub)
-  }, [type]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function fetchSingleVideo(id) {
-    const { data } = await mediaDb
-      .from('videos')
-      .select('*')
-      .eq('id', id)
-      .single()
-    if (data) {
-      const [enriched] = await attachAuthors([data])
-      setVideos(prev => [enriched, ...prev])
-    }
-  }
+  }, [fetchVideos, fetchSingleVideo])
 
   async function uploadVideo(file, meta = {}) {
     setUploading(true)

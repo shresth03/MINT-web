@@ -143,7 +143,7 @@ describe('useStoryComposer', () => {
       })
 
       const { result } = renderHook(() => useStoryComposer())
-      const { post, error } = await result.current.publishStory({
+      const { error } = await result.current.publishStory({
         body: 'Test post',
         tag: 'MILITARY',
         region: 'Global',
@@ -208,7 +208,7 @@ describe('useStoryComposer', () => {
 describe('regenerate-story-headline edge function', () => {
     it('is called when story_sources count hits a multiple of 10', async () => {
       // Mock the net.http_post by checking the Edge Function endpoint is called
-      const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
         ok: true,
         json: async () => ({ headline: 'New AI Generated Headline After 10 Sources' })
       })

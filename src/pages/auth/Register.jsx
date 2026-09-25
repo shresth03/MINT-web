@@ -16,7 +16,6 @@ export default function Register() {
   const [username, setUsername] = useState('')
   const [accountType, setAccountType] = useState('public')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
@@ -95,11 +94,6 @@ export default function Register() {
         {error && (
           <div style={{ background: 'rgba(232,72,72,0.1)', border: '1px solid var(--accent2)', borderRadius: 4, padding: '10px 14px', color: 'var(--accent2)', fontSize: 12, marginBottom: 14, fontFamily: 'var(--sans)' }}>
             {error}
-          </div>
-        )}
-        {success && (
-          <div style={{ background: 'rgba(48,216,128,0.1)', border: '1px solid var(--verified)', borderRadius: 4, padding: '10px 14px', color: 'var(--verified)', fontSize: 12, marginBottom: 14, fontFamily: 'var(--sans)' }}>
-            {success}
           </div>
         )}
 

@@ -260,7 +260,7 @@ Output only the summary text. No preamble, no labels.`
     return likeData || []
   }
 
-  async function getRecentThreads() {
+  const getRecentThreads = useCallback(async () => {
     const { data } = await contentDb
       .from('stories')
       .select('id, headline, tag, region, confidence, created_at')
@@ -268,7 +268,7 @@ Output only the summary text. No preamble, no labels.`
       .limit(20)
 
     return data || []
-  }
+  }, [])
 
   return { publishStory, searchThreads, getRecentThreads, generateHeadline, generateSummary }
 }

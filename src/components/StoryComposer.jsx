@@ -64,7 +64,7 @@ export default function StoryComposer({ onClose, onPublished }) {
 
   useEffect(() => {
     getRecentThreads().then(setAvailableThreads)
-  }, [])
+  }, [getRecentThreads])
 
   // Nominatim place search — debounced 350ms
   useEffect(() => {

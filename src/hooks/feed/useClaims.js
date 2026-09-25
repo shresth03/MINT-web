@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { contentDb, identityDb, moderationDb, socialDb } from '../../api/supabase'
 import { useAuth } from '../core/useAuth'
 
@@ -11,16 +11,12 @@ async function fetchProfilesByIds(ids) {
 
 export function useClaims(postId = null) {
   const { user } = useAuth()
+  const userId = user?.id
   const [claim, setClaim]           = useState(null)   // claim on this post (if any)
   const [notes, setNotes]           = useState([])      // community notes on this post
   const [userNote, setUserNote]     = useState(null)    // current user's note
   const [openClaims, setOpenClaims] = useState([])      // all open claims (admin view)
   const [loading, setLoading]       = useState(true)
-
-  useEffect(() => {
-    if (!postId) return
-    fetchPostClaims()
-  }, [postId, user])
 
   // Admin: fetch all open claims across platform
   async function fetchAllOpenClaims() {
@@ -49,7 +45,7 @@ export function useClaims(postId = null) {
     return enriched
   }
 
-  async function fetchPostClaims() {
+  const fetchPostClaims = useCallback(async () => {
     setLoading(true)
 
     // Get claim on this post
@@ -74,13 +70,18 @@ export function useClaims(postId = null) {
     setNotes(notesData)
 
     // Check if current user already wrote a note
-    if (user?.id) {
-      const existing = notesData.find(n => n.author_id === user.id)
+    if (userId) {
+      const existing = notesData.find(n => n.author_id === userId)
       setUserNote(existing || null)
     }
 
     setLoading(false)
-  }
+  }, [postId, userId])
+
+  useEffect(() => {
+    if (!postId) return
+    fetchPostClaims()
+  }, [postId, fetchPostClaims])
 
   // Submit a community note
   async function submitNote(body, stance) {

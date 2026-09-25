@@ -61,7 +61,6 @@ export default function Sidebar({ setShowApply }) {
   const badge = ROLE_BADGE[userRole] || ROLE_BADGE.public
   const currentPath = location.pathname
 
-  const holdTimer = useRef(null)
 
   const startHold = useCallback(() => {
     if (ripple) return
