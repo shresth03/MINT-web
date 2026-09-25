@@ -7,7 +7,7 @@ export default function TimeStamp({ value, compact = false, dateOnly = false, st
   const d = new Date(value)
   if (!value || Number.isNaN(d.getTime())) return null
   return (
-    <time dateTime={d.toISOString()} title={fullTimestamp(value)} style={{ cursor: 'help', ...style }}>
+    <time dateTime={d.toISOString()} title={fullTimestamp(value)} style={style}>
       {dateOnly
         ? d.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })
         : compact ? compactTime(value) : postTime(value)}
