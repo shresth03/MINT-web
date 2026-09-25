@@ -23,7 +23,7 @@ export default function VerifyEmail() {
   // Already confirmed — send to feed
   useEffect(() => {
     if (user?.email_confirmed_at) navigate('/feed', { replace: true })
-  }, [user])
+  }, [user, navigate])
 
   useEffect(() => {
     if (cooldown <= 0) return
