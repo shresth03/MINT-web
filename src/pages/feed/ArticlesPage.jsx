@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/core/useAuth'
 import { MapPin, X, Cpu, BadgeCheck, PenSquare, Newspaper } from 'lucide-react'
 import { contentDb, identityDb } from '../../api/supabase'
 import { STORY_TAGS as TAGS } from '../../constants'
+import TimeStamp from '../../components/TimeStamp'
 
 const TAG_COLORS = {
   CONFLICT: '#e84848', CYBER: '#00d4ff', GEOPOLITICS: 'var(--warn)',
@@ -14,12 +15,6 @@ const TAG_COLORS = {
   SECURITY: '#6366f1', OTHER: 'var(--muted)',
 }
 
-function timeAgo(dateStr) {
-  const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return `${Math.floor(diff / 86400)}d ago`
-}
 
 function ArticleCard({ story, onClick }) {
   const authors = [...new Set(
@@ -92,7 +87,7 @@ function ArticleCard({ story, onClick }) {
           )}
         </div>
         <span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)' }}>
-          {timeAgo(story.created_at)} · {(story.story_sources || []).length} source{(story.story_sources || []).length !== 1 ? 's' : ''}
+          <TimeStamp value={story.created_at} /> · {(story.story_sources || []).length} source{(story.story_sources || []).length !== 1 ? 's' : ''}
         </span>
       </div>
     </div>
@@ -149,7 +144,7 @@ function ArticleDetail({ story, onClose }) {
             </span>
           )}
           <span style={{ marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)' }}>
-            {new Date(story.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            <TimeStamp value={story.created_at} dateOnly />
           </span>
         </div>
 
@@ -215,7 +210,7 @@ function ArticleDetail({ story, onClose }) {
                       {src.posts.users?.role === 'osint' && <BadgeCheck size={10} style={{ color: 'var(--verified)', marginLeft: 4 }} />}
                     </span>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)' }}>
-                      {timeAgo(src.posts.created_at)}
+                      <TimeStamp value={src.posts.created_at} />
                     </span>
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, fontFamily: 'var(--sans)' }}>

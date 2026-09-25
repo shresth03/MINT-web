@@ -27,6 +27,7 @@ import {
   MessageSquareHeart, Bell, User, Settings, ShieldAlert,
   Cpu, Flag, Award, Inbox, Film, X, Radio, Flame, ClipboardPen,
 } from 'lucide-react'
+import TimeStamp from '../../components/TimeStamp'
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -771,7 +772,7 @@ export default function App() {
                         <button key={s.id} className="mil-story" type="button" onClick={() => { setStory(s); setNav("feed") }}>
                           {(s.breaking||s.is_breaking) && <span className="breaking-tag" style={{fontSize:7,marginRight:5,marginBottom:4,display:"inline-block"}}>BREAKING</span>}
                           <div className="mil-story-hl">{s.headline}</div>
-                          <div className="mil-story-meta">{(s.story_sources||[]).length} source{(s.story_sources||[]).length!==1?"s":""} · {s.time || 'recent'}</div>
+                          <div className="mil-story-meta">{(s.story_sources||[]).length} source{(s.story_sources||[]).length!==1?"s":""} · <TimeStamp value={s.created_at} /></div>
                         </button>
                       ))
                     ) : (
@@ -814,7 +815,7 @@ export default function App() {
                           {(s.breaking||s.is_breaking) && <span className="breaking-tag" style={{fontSize:7,marginRight:5}}>BREAKING</span>}
                           {s.headline}
                           <div style={{fontFamily:"var(--mono)",fontSize:8,color:"var(--muted)",marginTop:4}}>
-                            {(s.story_sources||[]).length} source{(s.story_sources||[]).length!==1?"s":""} · {s.time || 'recent'}
+                            {(s.story_sources||[]).length} source{(s.story_sources||[]).length!==1?"s":""} · <TimeStamp value={s.created_at} />
                           </div>
                         </button>
                       ))}
@@ -866,7 +867,7 @@ export default function App() {
                       <div className="story-meta">
                         {(s.breaking||s.is_breaking) && <span className="breaking-tag">BREAKING</span>}
                         <span className="story-tag">{s.tag}</span>
-                        <span className="story-time">{s.time || 'recent'}</span>
+                        <span className="story-time"><TimeStamp value={s.created_at} /></span>
                       </div>
                       <div className="story-headline">{s.headline}</div>
                       <div style={{display:"flex", alignItems:"center", gap:8, marginTop:6}}>
@@ -880,7 +881,7 @@ export default function App() {
                         )}
                         {s.updated_at && s.updated_at !== s.created_at && (
                           <span style={{fontFamily:"var(--mono)", fontSize:9, color:"var(--muted)", marginLeft:"auto"}}>
-                            ↑ {Math.round((Date.now() - new Date(s.updated_at).getTime()) / 60000)}m ago
+                            ↑ Updated <TimeStamp value={s.updated_at} compact />
                           </span>
                         )}
                       </div>
@@ -1068,7 +1069,7 @@ export default function App() {
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,flexWrap:"wrap"}}>
                       {(story.breaking || story.is_breaking) && <span className="breaking-tag">BREAKING</span>}
                       <span className="story-tag">{story.tag}</span>
-                      <span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--muted)"}}>First reported {story.time}</span>
+                      <span style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--muted)"}}>First reported <TimeStamp value={story.created_at} /></span>
                     </div>
                     <div className="detail-headline">{story.headline}</div>
                     <div className="conf-bar">

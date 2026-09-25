@@ -5,14 +5,8 @@ import { useLiveStreams, useStreamViewers } from '../../hooks/feed/useLiveStream
 import { useAuth } from '../../hooks/core/useAuth'
 import { BadgeCheck, PenLine, Play, Radio, Inbox } from 'lucide-react'
 import { identityDb } from '../../api/supabase'
+import TimeStamp from '../../components/TimeStamp'
 
-function timeAgo(dateStr) {
-  if (!dateStr) return ''
-  const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
-  if (diff < 60) return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  return `${Math.floor(diff / 3600)}h ago`
-}
 
 function LiveBadge() {
   return (
@@ -103,7 +97,7 @@ function StreamRoom({ stream, onEnd, isHost }) {
           {stream.users?.role === 'reporter' && <span style={{ color: 'var(--accent)', fontSize: 10, display:'flex', alignItems:'center', gap:3 }}><PenLine size={10} /> REPORTER</span>}
           {stream.started_at && (
             <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', marginLeft: 'auto' }}>
-              Started {timeAgo(stream.started_at)}
+              Started <TimeStamp value={stream.started_at} />
             </span>
           )}
         </div>

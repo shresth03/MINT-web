@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Search, X } from 'lucide-react'
 import Avatar from './Avatar'
 import UserName from './UserName'
-import { timeAgo } from './messageTime'
+import TimeStamp from '../TimeStamp'
 
 function UnreadBadge({ count }) {
   return (
@@ -66,7 +66,7 @@ function ConversationRow({ conv, isActive, currentUserId, listOpenedAt, onOpen }
             fontFamily: 'var(--mono)', fontSize: 9, whiteSpace: 'nowrap',
             color: unread ? 'var(--accent)' : 'var(--muted)', fontWeight: unread ? 700 : 400,
           }}>
-            {timeAgo(conv.last_message_at)}
+            <TimeStamp value={conv.last_message_at} compact />
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>

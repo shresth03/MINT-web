@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import PageShell from '../../components/PageShell'
 import { Check, X, Cpu, ChevronUp, ChevronDown, BadgeCheck, Flag, Clock, RefreshCw, CircleDot } from 'lucide-react'
 import { computeScore } from '../../hooks/social/useCredibility'
+import TimeStamp from '../../components/TimeStamp'
 
 const FEATURES_META = {
   intel_feed: 'Intel Feed', general_feed: 'General Feed', following_feed: 'Following Feed',
@@ -21,13 +22,6 @@ const FEATURES_META = {
   performance: 'Performance', design: 'Design & UI', dark_theme: 'Theme', overall: 'Overall'
 }
 
-function timeAgo(dateStr) {
-  const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
-  if (diff < 60) return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return `${Math.floor(diff / 86400)}d ago`
-}
 
 const CLAIM_LABELS = {
   open:       { label: 'OPEN',       color: '#ff9f43' },
@@ -349,7 +343,7 @@ export default function AdminDashboard() {
                       <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{app.handle}</div>
                     </div>
                     <StatusBadge status="pending" />
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>{timeAgo(app.created_at)}</div>
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}><TimeStamp value={app.created_at} /></div>
                     <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                       <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', letterSpacing: 1, marginBottom: 2 }}>STARTING SCORE</div>
                       <StartingScoreChip userId={app.user_id} />
@@ -380,7 +374,7 @@ export default function AdminDashboard() {
                         <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{app.handle}</div>
                       </div>
                       <StatusBadge status={app.status} />
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}>{timeAgo(app.created_at)}</div>
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}><TimeStamp value={app.created_at} /></div>
                     </div>
                   </div>
                 ))}
@@ -425,7 +419,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <StatusBadge status="open" />
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>{timeAgo(claim.created_at)}</div>
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}><TimeStamp value={claim.created_at} /></div>
                   </div>
 
                   <div style={{ marginBottom: 12 }}>
@@ -553,7 +547,7 @@ export default function AdminDashboard() {
                         <span style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 600, letterSpacing: 1, color: cs.color, padding: '3px 10px', borderRadius: 10, border: `1px solid ${cs.color}44`, background: `${cs.color}18` }}>
                           {cs.label || claim.status.toUpperCase()}
                         </span>
-                        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>{timeAgo(claim.created_at)}</div>
+                        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}><TimeStamp value={claim.created_at} /></div>
                       </div>
                     </div>
                   )
@@ -700,7 +694,7 @@ export default function AdminDashboard() {
                         {f.username || 'Anonymous'}
                       </div>
                       <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)' }}>
-                        {timeAgo(f.created_at)}
+                        <TimeStamp value={f.created_at} />
                       </div>
                     </div>
                     {/* Rating summary */}
