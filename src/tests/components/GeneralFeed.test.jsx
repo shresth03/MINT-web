@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import '../mocks/supabase.js'
 import GeneralFeed from '../../components/feed/GeneralFeed'
@@ -159,5 +159,59 @@ describe('GeneralFeed', () => {
     expect(screen.queryByText(/\/500/)).not.toBeInTheDocument()
     fireEvent.change(box, { target: { value: 'x'.repeat(420) } })
     expect(screen.getByText('420/500')).toBeInTheDocument()
+  })
+
+  // ── Opening a post on the right ──────────────────────────────────────────
+
+  function renderWithPanel() {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const onOpenPost = vi.fn()
+    const utils = render(<MemoryRouter><GeneralFeed detailHost={host} onOpenPost={onOpenPost} /></MemoryRouter>)
+    return { ...utils, host, onOpenPost }
+  }
+
+  it('shows a "select a post" message on the right until a post is chosen', () => {
+    const { host } = renderWithPanel()
+    expect(within(host).getByText('SELECT A POST')).toBeInTheDocument()
+  })
+
+  it('opens a clicked post big on the right with its replies', async () => {
+    const { host, onOpenPost } = renderWithPanel()
+    fireEvent.click(screen.getAllByText('Test post body')[0])
+    expect(onOpenPost).toHaveBeenCalled()
+    expect(within(host).getByText('Test post body')).toBeInTheDocument()
+    expect(within(host).getByText('2 replies')).toBeInTheDocument()
+    expect(within(host).getByRole('button', { name: 'Like, 5' })).toBeInTheDocument()
+  })
+
+  it('opens the post from the replies button instead of expanding it in the list', () => {
+    const { host } = renderWithPanel()
+    fireEvent.click(screen.getByRole('button', { name: 'Open post and replies, 2' }))
+    expect(within(host).getByText('Test post body')).toBeInTheDocument()
+  })
+
+  it('does not open the post when an action button is clicked', () => {
+    const { host, onOpenPost } = renderWithPanel()
+    fireEvent.click(screen.getByRole('button', { name: 'Repost, 1' }))
+    expect(onOpenPost).not.toHaveBeenCalled()
+    expect(within(host).getByText('SELECT A POST')).toBeInTheDocument()
+  })
+
+  it('shows the opened post’s picture in a 16:9 frame and full size on click', () => {
+    mockPosts[0].media_url = 'https://example.com/pass.jpg'
+    try {
+      const { host } = renderWithPanel()
+      fireEvent.click(screen.getAllByText('Test post body')[0])
+      const frame = within(host).getByRole('button', { name: 'Open picture full size' })
+      expect(frame).toHaveClass('post-photo')
+      fireEvent.click(frame)
+      const viewer = screen.getByRole('dialog', { name: 'Picture, full size' })
+      expect(within(viewer).getByRole('img')).toHaveAttribute('src', 'https://example.com/pass.jpg')
+      fireEvent.keyDown(window, { key: 'Escape' })
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    } finally {
+      delete mockPosts[0].media_url
+    }
   })
 })
