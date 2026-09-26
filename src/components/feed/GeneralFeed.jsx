@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { usePosts } from '../../hooks/feed/usePosts'
 import { useAuth } from '../../hooks/core/useAuth'
 import { supabase, identityDb, socialDb } from '../../api/supabase'
@@ -6,9 +7,10 @@ import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../../hooks/social/useNotifications'
 import { useLocation } from 'react-router-dom'
 import { useIsMobile } from '../../hooks/core/useIsMobile'
-import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck, Share2, Check, ImagePlus, MessageSquareText, Newspaper, AlertTriangle } from 'lucide-react'
+import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck, Share2, Check, ImagePlus, MessageSquareText, Newspaper, AlertTriangle, MousePointerClick } from 'lucide-react'
 import { moderateNewsPost } from '../../lib/moderation/newsModeration'
 import TimeStamp from '../TimeStamp'
+import { fullTimestamp } from '../../lib/postTime'
 
 
 function RichBody({ text, navigate }) {
@@ -684,6 +686,34 @@ const ACTION_CSS = `
   .post-act.pop svg { animation: post-act-pop 0.3s cubic-bezier(.3,1.6,.5,1); }
   @keyframes post-act-pop { 40% { transform: scale(1.3); } }
   @media (prefers-reduced-motion: reduce) { .post-act { transition: none; } .post-act.pop svg { animation: none; } }
+  .post-acts.big { margin: 0 -8px 18px; padding: 8px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .post-acts.big .post-act { font-size: 12px; }
+  .post-card { cursor: pointer; }
+
+  /* Picture on the opened post: a uniform 16:9 frame; click for full size */
+  .post-photo {
+    position: relative; display: block; width: 100%; aspect-ratio: 16 / 9;
+    padding: 0; margin-bottom: 14px; border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; background: var(--surface2); cursor: zoom-in;
+  }
+  .post-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .post-photo-hint {
+    position: absolute; right: 8px; bottom: 8px; font-family: var(--mono); font-size: 9px;
+    font-weight: 700; letter-spacing: 1px; color: #fff; background: rgba(0,0,0,0.6);
+    border-radius: 3px; padding: 2px 6px;
+  }
+  .post-photo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .photo-viewer {
+    position: fixed; inset: 0; z-index: 1000; background: var(--modal-overlay);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; padding: 24px;
+  }
+  .photo-viewer img { max-width: 100%; max-height: calc(100% - 60px); border-radius: 6px; }
+  .photo-viewer button {
+    font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    padding: 6px 14px; border-radius: 4px; cursor: pointer;
+    background: var(--surface); color: var(--accent); border: 1px solid var(--accent);
+  }
 
   /* Post box tools: round image button + General/News switch (the shared
      .switch-* styles from the feed page; News slides to green like its label) */
@@ -700,7 +730,10 @@ const ACTION_CSS = `
   .compose-hint b { color: var(--verified); font-weight: 600; }
 `
 
-export default function GeneralFeed() {
+// detailHost: element in the feed page's right panel where the selected post
+// opens big (via a portal, so it shares this feed's like/repost/reply state).
+// onOpenPost: lets the page show that panel (full screen on mobile).
+export default function GeneralFeed({ detailHost = null, onOpenPost } = {}) {
   const { user } = useAuth()
   const { posts, loading, createPost, likePost, savePost, repost, createReply, fetchReplies, voteReply } = usePosts()
   const [repostModal, setRepostModal] = useState(null)
@@ -728,6 +761,22 @@ export default function GeneralFeed() {
   const [followedIds, setFollowedIds] = useState([])
   const [poppedId, setPoppedId] = useState(null)   // heart that just got liked
   const [copiedId, setCopiedId] = useState(null)   // post whose link was just copied
+  const [selectedPostId, setSelectedPostId] = useState(null)  // post open on the right
+  const [viewerSrc, setViewerSrc] = useState(null)            // picture shown full size
+
+  // Escape closes the full-size picture
+  useEffect(() => {
+    if (!viewerSrc) return
+    const onKey = e => { if (e.key === 'Escape') setViewerSrc(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [viewerSrc])
+  const opensOnRight = !!(detailHost || onOpenPost)
+
+  function selectPost(post) {
+    setSelectedPostId(post.id)
+    onOpenPost?.()
+  }
 
   function handleLike(post) {
     if (!post.liked) setPoppedId(post.id)
@@ -862,9 +911,202 @@ export default function GeneralFeed() {
     setMediaPreview(null)
   }
 
+  // Like / replies / repost / share / save, used on list cards and, larger,
+  // on the post opened on the right
+  function renderActions(post, { big = false } = {}) {
+    const icon = big ? 18 : 16
+    const repliesOn = opensOnRight ? selectedPostId === post.id : openThreads.has(post.id)
+    return (
+      <div className={`post-acts ${big ? 'big' : ''}`}>
+        <button
+          className={`post-act like ${post.liked ? 'on' : ''} ${poppedId === post.id ? 'pop' : ''}`}
+          onClick={() => handleLike(post)}
+          onAnimationEnd={() => setPoppedId(null)}
+          aria-pressed={!!post.liked}
+          aria-label={`Like${post.likes ? `, ${post.likes}` : ''}`}
+        >
+          <Heart size={icon} fill={post.liked ? 'currentColor' : 'none'} />
+          {post.likes > 0 && <span>{post.likes}</span>}
+        </button>
+        <button
+          className={`post-act reply ${repliesOn ? 'on' : ''}`}
+          onClick={() => (opensOnRight ? selectPost(post) : toggleThread(post.id))}
+          aria-expanded={opensOnRight ? undefined : openThreads.has(post.id)}
+          aria-label={`${opensOnRight && !big ? 'Open post and replies' : 'Replies'}${post.reply_count ? `, ${post.reply_count}` : ''}`}
+        >
+          <MessageCircle size={icon} />
+          {post.reply_count > 0 && <span>{post.reply_count}</span>}
+          {!opensOnRight && (openThreads.has(post.id) ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+        </button>
+        <button
+          className={`post-act repost ${post.reposted ? 'on' : ''}`}
+          onClick={() => { setRepostModal(post); setQuoteBody('') }}
+          aria-pressed={!!post.reposted}
+          aria-label={`Repost${post.repost_count ? `, ${post.repost_count}` : ''}`}
+        >
+          <Repeat2 size={icon} />
+          {post.repost_count > 0 && <span>{post.repost_count}</span>}
+        </button>
+        <span className="post-acts-right">
+          <button
+            className={`post-act share ${copiedId === post.id ? 'on' : ''}`}
+            onClick={() => copyPostLink(post.id)}
+            aria-label={copiedId === post.id ? 'Link copied' : 'Copy link to post'}
+          >
+            {copiedId === post.id ? <><Check size={icon} /><span>Copied</span></> : <Share2 size={icon} />}
+          </button>
+          <button
+            className={`post-act save ${post.saved ? 'on' : ''}`}
+            onClick={() => savePost(post.id)}
+            aria-pressed={!!post.saved}
+            aria-label={post.saved ? 'Saved' : 'Save'}
+          >
+            <Bookmark size={icon} fill={post.saved ? 'currentColor' : 'none'} />
+          </button>
+        </span>
+      </div>
+    )
+  }
+
+  // The original post (not a repost card) that's open on the right
+  const selectedPost = selectedPostId
+    ? posts.find(p => p.id === selectedPostId && p._type !== 'repost') || posts.find(p => p.id === selectedPostId)
+    : null
+
+  function renderDetail() {
+    if (!selectedPost) {
+      return (
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 10, color: 'var(--muted)', textAlign: 'center', padding: 24,
+        }}>
+          <MousePointerClick size={30} style={{ opacity: 0.35 }} />
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: 1, fontWeight: 600, color: 'var(--text)' }}>
+            SELECT A POST
+          </div>
+          <div style={{ fontFamily: 'var(--sans)', fontSize: 12, maxWidth: '34ch' }}>
+            Click any post on the left to read it here with its full conversation.
+          </div>
+        </div>
+      )
+    }
+    const p = selectedPost
+    const role = p.users?.role
+    const nameColor = role === 'osint' ? 'var(--verified)' : role === 'admin' ? 'var(--accent)' : 'var(--text)'
+    const openChannel = () => navigate(`/channel/${p.users?.username}`)
+    return (
+      <div key={p.id} className="detail-panel">
+        <div style={{ maxWidth: 720 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <button
+              onClick={openChannel}
+              aria-label={`${p.users?.username || 'Unknown'}'s channel`}
+              style={{
+                width: 44, height: 44, borderRadius: '50%', background: 'var(--accent)', border: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                fontSize: 16, fontWeight: 700, color: 'var(--bg)', flexShrink: 0, fontFamily: 'var(--mono)',
+              }}
+            >
+              {p.users?.username?.[0]?.toUpperCase() || 'U'}
+            </button>
+            <div style={{ minWidth: 0 }}>
+              <button
+                onClick={openChannel}
+                style={{
+                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                  fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 600, color: nameColor,
+                }}
+              >
+                {p.users?.username || 'Unknown'}
+                {(role === 'osint' || role === 'reporter') && (
+                  <BadgeCheck size={13} style={{ color: role === 'osint' ? 'var(--verified)' : 'var(--accent)', marginLeft: 4, verticalAlign: 'middle' }} />
+                )}
+              </button>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' }}>@{p.users?.username || 'unknown'}</div>
+            </div>
+            {p.post_type === 'news' && new Date(p.created_at) > cutoff48h && (
+              <span style={{
+                marginLeft: 'auto', fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
+                padding: '2px 7px', borderRadius: 3, border: '1px solid var(--verified)', color: 'var(--verified)',
+              }}>
+                NEWS
+              </span>
+            )}
+          </div>
+
+          <div style={{ fontSize: 16, lineHeight: 1.65, color: 'var(--text)', fontFamily: 'var(--sans)', marginBottom: 14, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            <RichBody text={p.body} navigate={navigate} />
+          </div>
+
+          {p.tag && (
+            <button
+              onClick={() => navigate(`/search?q=%23${p.tag.toLowerCase()}`)}
+              style={{
+                display: 'inline-block', marginBottom: 14, background: 'none', cursor: 'pointer',
+                fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: 1,
+                padding: '2px 8px', borderRadius: 10, border: '1px solid var(--verified)', color: 'var(--verified)',
+              }}
+            >
+              #{p.tag.toLowerCase()}
+            </button>
+          )}
+
+          {p.media_url && (
+            <button
+              type="button"
+              className="post-photo"
+              onClick={() => setViewerSrc(p.media_url)}
+              aria-label="Open picture full size"
+            >
+              <img src={p.media_url} alt={`Image shared by ${p.users?.username || 'user'}`} />
+              <span className="post-photo-hint" aria-hidden="true">⤢ FULL SIZE</span>
+            </button>
+          )}
+
+          <time
+            dateTime={new Date(p.created_at).toISOString()}
+            style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}
+          >
+            {fullTimestamp(p.created_at)}
+          </time>
+
+          {renderActions(p, { big: true })}
+
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 4 }}>
+            {p.reply_count ? `${p.reply_count} repl${p.reply_count === 1 ? 'y' : 'ies'}` : 'Replies'}
+          </div>
+          <ReplyThread
+            key={p.id}
+            postId={p.id}
+            authorId={p.users?.id}
+            createReply={createReply}
+            fetchReplies={fetchReplies}
+            createNotification={createNotification}
+            voteReply={voteReply}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
       <style>{ACTION_CSS}</style>
+      {detailHost && createPortal(renderDetail(), detailHost)}
+      {/* On <body> so no transformed parent can trap the fixed overlay */}
+      {viewerSrc && createPortal(
+        <div
+          className="photo-viewer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Picture, full size"
+          onClick={e => { if (e.target === e.currentTarget) setViewerSrc(null) }}
+        >
+          <img src={viewerSrc} alt="Full size" />
+          <button type="button" autoFocus onClick={() => setViewerSrc(null)}>CLOSE</button>
+        </div>,
+        document.body
+      )}
 
       {/* Repost Modal */}
       {repostModal && (
@@ -1235,10 +1477,16 @@ export default function GeneralFeed() {
             <div
               key={post._type === 'repost' ? `repost-${post._repost_id}` : post.id}
               ref={el => { postRefs.current[post.id] = el }}
+              className={opensOnRight ? 'post-card' : undefined}
+              // Clicking the card (not its buttons, links or names) opens it on the right
+              onClick={opensOnRight ? e => {
+                if (e.target.closest('button, a, img, input, textarea, [data-nav]')) return
+                selectPost(post)
+              } : undefined}
               style={{
                 borderBottom: '1px solid var(--border)',
-                background: highlightId === String(post.id) ? 'var(--active-bg)' : 'var(--surface)',
-                borderLeft: highlightId === String(post.id) ? '3px solid var(--accent)' : '3px solid transparent',
+                background: highlightId === String(post.id) || selectedPostId === post.id ? 'var(--active-bg)' : 'var(--surface)',
+                borderLeft: highlightId === String(post.id) || selectedPostId === post.id ? '3px solid var(--accent)' : '3px solid transparent',
                 transition: 'background 0.4s ease, border-color 0.4s ease',
               }}
             >
@@ -1269,6 +1517,7 @@ export default function GeneralFeed() {
                 }}>
                   <Repeat2 size={13} style={{ color: 'var(--verified)' }} />
                   <span
+                    data-nav
                     onClick={() => navigate(`/channel/${post._reposter?.username}`)}
                     style={{ cursor: 'pointer', color: 'var(--verified)', fontWeight: 600 }}
                     onMouseOver={e => e.currentTarget.style.textDecoration = 'underline'}
@@ -1299,6 +1548,7 @@ export default function GeneralFeed() {
                                post.users?.role === 'admin' ? 'var(--accent)' : 'var(--text)'
                       }}>
                         <span
+                          data-nav
                           onClick={() => navigate(`/channel/${post.users?.username}`)}
                           style={{ cursor: 'pointer' }}
                           onMouseOver={e => e.currentTarget.style.textDecoration = 'underline'}
@@ -1336,6 +1586,7 @@ export default function GeneralFeed() {
                     {/* Tag badge */}
                     {post.tag && (
                       <span
+                        data-nav
                         onClick={() => navigate(`/search?q=%23${post.tag.toLowerCase()}`)}
                         style={{
                           display: 'inline-block', marginBottom: 8,
@@ -1380,59 +1631,12 @@ export default function GeneralFeed() {
                     )}
           
                     {/* Actions */}
-                    <div className="post-acts">
-                      <button
-                        className={`post-act like ${post.liked ? 'on' : ''} ${poppedId === post.id ? 'pop' : ''}`}
-                        onClick={() => handleLike(post)}
-                        onAnimationEnd={() => setPoppedId(null)}
-                        aria-pressed={!!post.liked}
-                        aria-label={`Like${post.likes ? `, ${post.likes}` : ''}`}
-                      >
-                        <Heart size={16} fill={post.liked ? 'currentColor' : 'none'} />
-                        {post.likes > 0 && <span>{post.likes}</span>}
-                      </button>
-                      <button
-                        className={`post-act reply ${openThreads.has(post.id) ? 'on' : ''}`}
-                        onClick={() => toggleThread(post.id)}
-                        aria-expanded={openThreads.has(post.id)}
-                        aria-label={`Replies${post.reply_count ? `, ${post.reply_count}` : ''}`}
-                      >
-                        <MessageCircle size={16} />
-                        {post.reply_count > 0 && <span>{post.reply_count}</span>}
-                        {openThreads.has(post.id) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                      </button>
-                      <button
-                        className={`post-act repost ${post.reposted ? 'on' : ''}`}
-                        onClick={() => { setRepostModal(post); setQuoteBody('') }}
-                        aria-pressed={!!post.reposted}
-                        aria-label={`Repost${post.repost_count ? `, ${post.repost_count}` : ''}`}
-                      >
-                        <Repeat2 size={16} />
-                        {post.repost_count > 0 && <span>{post.repost_count}</span>}
-                      </button>
-                      <span className="post-acts-right">
-                        <button
-                          className={`post-act share ${copiedId === post.id ? 'on' : ''}`}
-                          onClick={() => copyPostLink(post.id)}
-                          aria-label={copiedId === post.id ? 'Link copied' : 'Copy link to post'}
-                        >
-                          {copiedId === post.id ? <><Check size={16} /><span>Copied</span></> : <Share2 size={16} />}
-                        </button>
-                        <button
-                          className={`post-act save ${post.saved ? 'on' : ''}`}
-                          onClick={() => savePost(post.id)}
-                          aria-pressed={!!post.saved}
-                          aria-label={post.saved ? 'Saved' : 'Save'}
-                        >
-                          <Bookmark size={16} fill={post.saved ? 'currentColor' : 'none'} />
-                        </button>
-                      </span>
-                    </div>
+                    {renderActions(post)}
                   </div>
                 </div>
               </div>
             {/* Reply Thread */}
-            {openThreads.has(post.id) && (
+            {!opensOnRight && openThreads.has(post.id) && (
                 <ReplyThread
                   postId={post.id}
                   authorId={post.users?.id}

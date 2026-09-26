@@ -426,6 +426,8 @@ export default function App() {
     setTab(next)
   }
   const [story, setStory] = useState(null)
+  // Right-panel element the General feed opens posts into (null when not shown)
+  const [postHost, setPostHost] = useState(null)
   // Select the first story once stories load (only if none is selected yet)
   useEffect(() => {
     if (dbStories.length > 0 && !story) setStory(dbStories[0])
@@ -1045,7 +1047,9 @@ export default function App() {
                     loading={storiesLoading}
                   />
                 </>}
-                {tab === "general" && <GeneralFeed />}
+                {tab === "general" && (
+                  <GeneralFeed detailHost={postHost} onOpenPost={() => { if (isMobile) setMobileDetail(true) }} />
+                )}
                 </div>
               </div>
               {tab === "intel" && (profile?.role === 'osint' || profile?.role === 'admin') && (
@@ -1056,8 +1060,20 @@ export default function App() {
               )}
               </div>
 
-              {/* Right detail — full screen on mobile */}
-              {(!isMobile || mobileDetail) && story && (
+              {/* General: the selected post opens here (full screen on mobile) */}
+              {tab === "general" && (!isMobile || mobileDetail) && (
+                <div style={{flex:1, overflow:'hidden', display:'flex', flexDirection:'column'}}>
+                  {isMobile && (
+                    <div style={{padding:'10px 14px', borderBottom:'1px solid var(--border)', background:'var(--surface)', flexShrink:0}}>
+                      <BackButton onClick={() => setMobileDetail(false)} ariaLabel="Back to feed" />
+                    </div>
+                  )}
+                  <div ref={setPostHost} style={{flex:1, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden'}} />
+                </div>
+              )}
+
+              {/* Intel: right detail — full screen on mobile */}
+              {tab === "intel" && (!isMobile || mobileDetail) && story && (
                 <div style={{flex:1, overflow:'hidden', display:'flex', flexDirection:'column'}}>
                   {/* Mobile back button */}
                   {isMobile && (
