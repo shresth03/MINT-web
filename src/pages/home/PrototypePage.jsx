@@ -223,6 +223,14 @@ const styles = `
   .switch-btn.active, .switch-btn.active:hover { color:var(--bg); }
   .switch-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
   .nav-toggle { min-width:170px; }
+  /* Second-level filters under the main switch (All Intel / Following,
+     For You / Following / Trending): small chips, quieter than the switch */
+  .chip-tabs { display:flex; gap:6px; flex-wrap:wrap; padding:8px 16px; border-bottom:1px solid var(--border); background:var(--bg); flex-shrink:0; }
+  .chip-tab { display:inline-flex; align-items:center; gap:4px; padding:4px 12px; border-radius:14px; border:1px solid var(--border); background:transparent; color:var(--muted); font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; cursor:pointer; transition:color 0.15s, background 0.15s, border-color 0.15s; }
+  .chip-tab:hover { color:var(--text); border-color:var(--muted); }
+  .chip-tab.active, .chip-tab.active:hover { color:var(--accent); background:var(--active-bg); border-color:var(--accent); }
+  .chip-tab:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  @media (prefers-reduced-motion:reduce) { .chip-tab { transition:none; } }
   /* The feed slides in from the side of the tab you picked */
   .feed-pane.from-left { animation:feed-pane-in-left 0.22s cubic-bezier(.2,.7,.3,1); }
   .feed-pane.from-right { animation:feed-pane-in-right 0.22s cubic-bezier(.2,.7,.3,1); }
@@ -1026,9 +1034,9 @@ export default function App() {
                     <span className="section-label"><Cpu size={12} style={{display:'inline',verticalAlign:'middle',marginRight:5}} />Multi-Source Stories</span>
                     <span className="count-badge">{dbStories.length} threads</span>
                   </div>
-                  <div role="tablist" style={{display:'flex', borderBottom:'1px solid var(--border)', background:'var(--surface)'}}>
+                  <div className="chip-tabs" role="tablist" aria-label="Filter stories">
                     {['all','following'].map(t => (
-                      <button key={t} role="tab" aria-selected={feedTab===t} onClick={() => setFeedTab(t)} style={{flex:1,padding:'10px 0',background:'none',border:'none',borderBottom: feedTab===t ? '2px solid var(--accent)' : '2px solid transparent',fontFamily:'var(--mono)',fontSize:10,letterSpacing:1,color: feedTab===t ? 'var(--accent)' : 'var(--muted)',cursor:'pointer',transition:'all 0.15s',textTransform:'uppercase'}}>
+                      <button key={t} role="tab" aria-selected={feedTab===t} onClick={() => setFeedTab(t)} className={`chip-tab ${feedTab===t ? 'active' : ''}`}>
                         {t === 'all' ? 'All Intel' : 'Following'}
                       </button>
                     ))}

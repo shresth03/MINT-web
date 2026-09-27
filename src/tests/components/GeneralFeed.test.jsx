@@ -160,4 +160,15 @@ describe('GeneralFeed', () => {
     fireEvent.change(box, { target: { value: 'x'.repeat(420) } })
     expect(screen.getByText('420/500')).toBeInTheDocument()
   })
+
+  it('filters with chip tabs that report which one is selected', () => {
+    renderFeed()
+    const forYou = screen.getByRole('tab', { name: 'For You' })
+    const trending = screen.getByRole('tab', { name: '↑ Trending' })
+    expect(forYou).toHaveAttribute('aria-selected', 'true')
+    expect(forYou).toHaveClass('chip-tab', 'active')
+    fireEvent.click(trending)
+    expect(trending).toHaveAttribute('aria-selected', 'true')
+    expect(forYou).toHaveAttribute('aria-selected', 'false')
+  })
 })

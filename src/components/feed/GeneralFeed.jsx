@@ -1167,18 +1167,15 @@ export default function GeneralFeed() {
         </div>
       )}
       {/* Feed tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--surface)', flexShrink: 0 }}>
+      {/* Chip styles live with the feed page's switch styles */}
+      <div className="chip-tabs" role="tablist" aria-label="Filter posts">
         {[{ id: 'all', label: 'For You' }, { id: 'following', label: 'Following' }, { id: 'trending', label: '↑ Trending' }].map(t => (
           <button
             key={t.id}
+            role="tab"
+            aria-selected={feedTab === t.id}
             onClick={() => setFeedTab(t.id)}
-            style={{
-              flex: 1, padding: '10px 0', background: 'none', border: 'none',
-              borderBottom: feedTab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
-              fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: 1,
-              color: feedTab === t.id ? 'var(--accent)' : 'var(--muted)',
-              cursor: 'pointer', transition: 'all 0.15s', textTransform: 'uppercase',
-            }}
+            className={`chip-tab ${feedTab === t.id ? 'active' : ''}`}
           >
             {t.label}
           </button>
