@@ -4,119 +4,151 @@ import { useAuth } from '../core/useAuth'
 
 export function useMessages() {
   const { user } = useAuth()
+
   const [conversations, setConversations] = useState([])
+  const [messages, setMessages] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!user?.id) return
+    if (!user?.id) {
+      setLoading(false)
+      return
+    }
+
     fetchConversations()
 
     const sub = supabase
       .channel(`msgs:${user.id}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'social',
-        table: 'messages'
-      }, () => {
-        fetchConversations()
-      })
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'messaging',
+          table: 'messages'
+        },
+        () => {
+          fetchConversations()
+        }
+      )
       .subscribe()
 
     return () => supabase.removeChannel(sub)
   }, [user])
 
   async function fetchConversations() {
-    const { data } = await socialDb
-      .from('conversations')
-      .select('id, participant_1, participant_2, last_message, last_message_at')
-      .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`)
-      .order('last_message_at', { ascending: false })
+    if (!user?.id) return
 
-    if (!data) { setLoading(false); return }
+    setLoading(true)
 
-    // Enrich each conversation with the other user's profile
-    const enriched = await Promise.all(data.map(async conv => {
-      const otherId = conv.participant_1 === user.id ? conv.participant_2 : conv.participant_1
-      const { data: otherUser } = await identityDb
-        .from('profiles')
-        .select('id, username, role')
-        .eq('id', otherId)
-        .single()
-      return { ...conv, otherUser }
+    const { data, error } = await socialDb.rpc('msg_get_inbox', {
+      p_limit: 30,
+      p_before: null,
+    })
+
+    if (error) {
+      console.error('Error fetching conversations:', error)
+      setLoading(false)
+      return
+    }
+
+    const rows = data || []
+
+    const otherUserIds = rows
+      .map(c => c.other_user_id)
+      .filter(Boolean)
+
+    let profilesById = new Map()
+
+    if (otherUserIds.length) {
+      const { data: profiles, error: profileError } =
+        await identityDb.rpc('profile_get_by_ids', {
+          p_ids: [...new Set(otherUserIds)]
+        })
+
+      if (profileError) {
+        console.error('Error fetching conversation profiles:', profileError)
+      }
+
+      profilesById = new Map(
+        (profiles || []).map(profile => [profile.id, profile])
+      )
+    }
+
+    const enrichedConversations = rows.map(c => ({
+      ...c,
+      other_user: profilesById.get(c.other_user_id) || null,
     }))
 
-    setConversations(enriched)
+    setConversations(enrichedConversations)
 
-    const { count } = await socialDb
-      .from('messages')
-      .select('id', { count: 'exact' })
-      .eq('read', false)
-      .neq('sender_id', user.id)
+    const totalUnread = rows.reduce(
+      (total, conversation) => total + (conversation.unread_count || 0),
+      0
+    )
 
-    setUnreadCount(count || 0)
+    setUnreadCount(totalUnread)
     setLoading(false)
   }
 
   async function getOrCreateConversation(otherUserId) {
-    // Check both participant orderings
-    const { data: existing1 } = await socialDb
-      .from('conversations')
-      .select('id, participant_1, participant_2, last_message, last_message_at')
-      .eq('participant_1', user.id)
-      .eq('participant_2', otherUserId)
-      .maybeSingle()
+    if (!user?.id || !otherUserId) return null
 
-    if (existing1) return existing1
+    const { data, error } = await socialDb.rpc(
+      'msg_get_or_create_direct',
+      {
+        p_other_user_id: otherUserId,
+      }
+    )
 
-    const { data: existing2 } = await socialDb
-      .from('conversations')
-      .select('id, participant_1, participant_2, last_message, last_message_at')
-      .eq('participant_1', otherUserId)
-      .eq('participant_2', user.id)
-      .maybeSingle()
+    if (error) {
+      console.error('Error creating conversation:', error)
+      return null
+    }
 
-    if (existing2) return existing2
-
-    // Create new conversation
-    const { data, error } = await socialDb
-      .from('conversations')
-      .insert({ participant_1: user.id, participant_2: otherUserId })
-      .select()
-      .single()
-
-    if (!error) return data
-    return null
+    return data
   }
 
-  async function fetchMessages(conversationId) {
-    const { data } = await socialDb
-      .from('messages')
-      .select('id, conversation_id, sender_id, body, read, created_at')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
-      .limit(100)
+  async function fetchMessages(conversationId, beforeId = null) {
+    if (!conversationId) return
 
-    // Mark received messages as read
-    await socialDb
-      .from('messages')
-      .update({ read: true })
-      .eq('conversation_id', conversationId)
-      .neq('sender_id', user.id)
-      .eq('read', false)
+    const { data, error } = await socialDb.rpc('msg_get_messages', {
+      p_conversation_id: conversationId,
+      p_before_id: beforeId,
+      p_limit: 50,
+    })
 
-    return data || []
+    if (error) {
+      console.error('Error fetching messages:', error)
+      return
+    }
+
+    const fetchedMessages = [...(data || [])].reverse()
+
+    setMessages(fetchedMessages)
+
+    if (fetchedMessages.length > 0) {
+      await socialDb.rpc('msg_mark_read', {
+        p_conversation_id: conversationId,
+        p_message_id: fetchedMessages[fetchedMessages.length - 1].id,
+      })
+
+      fetchConversations()
+    }
   }
 
   async function sendMessage(conversationId, body) {
-    const { data: messageId, error } = await socialDb.rpc('messaging_send', {
+    const { data: message, error } = await socialDb.rpc('msg_send', {
       p_conversation_id: conversationId,
-      p_body: body
+      p_body: body,
+      p_attachments: [],
+      p_reply_to_id: null,
     })
 
-    if (error) return { error }
+    if (error) {
+      return { error }
+    }
 
-    // Notify recipient
     const otherId = await getOtherParticipant(conversationId)
 
     if (otherId) {
@@ -130,20 +162,44 @@ export function useMessages() {
 
     fetchConversations()
 
-    return { data: messageId, error: null }
+    return {
+      data: message,
+      error: null
+    }
   }
 
   async function getOtherParticipant(conversationId) {
-    const { data } = await socialDb
-      .from('conversations')
-      .select('participant_1, participant_2')
-      .eq('id', conversationId)
-      .single()
-    if (!data) return null
-    return data.participant_1 === user.id ? data.participant_2 : data.participant_1
+    const { data, error } = await socialDb.rpc(
+      'msg_get_conversation',
+      {
+        p_conversation_id: conversationId
+      }
+    )
+
+    if (error || !data) {
+      if (error) {
+        console.error('Error fetching conversation:', error)
+      }
+
+      return null
+    }
+
+    const participants = data.participants || []
+
+    const otherParticipant = participants.find(
+      participant => participant.user_id !== user.id
+    )
+
+    return otherParticipant?.user_id || null
   }
+
   return {
-    conversations, unreadCount, loading,
-    getOrCreateConversation, fetchMessages, sendMessage
+    conversations,
+    messages,
+    unreadCount,
+    loading,
+    getOrCreateConversation,
+    fetchMessages,
+    sendMessage
   }
 }

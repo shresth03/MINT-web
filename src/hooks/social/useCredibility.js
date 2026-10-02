@@ -197,11 +197,14 @@ export function useCredibility(targetUserId) {
   async function fetchCredibility() {
     setLoading(true)
 
-    const { data: userData } = await identityDb
-      .from('profiles')
-      .select('score, role')
-      .eq('id', targetUserId)
-      .single()
+    const { data: profileData } = await identityDb.rpc(
+      'profile_get_by_id',
+      {
+        p_user_id: targetUserId,
+      }
+    )
+
+    const userData = profileData?.[0] || null
 
     if (!userData || userData.role !== 'osint') {
       setScore(null)

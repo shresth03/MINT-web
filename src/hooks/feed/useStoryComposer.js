@@ -8,6 +8,7 @@ const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/anthropic-p
 async function callClaude(model, messages, max_tokens) {
   const { data: { session } } = await supabase.auth.getSession()
   const jwt = session?.access_token
+
   if (!jwt) return null
 
   const res = await fetch(PROXY_URL, {
@@ -18,6 +19,7 @@ async function callClaude(model, messages, max_tokens) {
     },
     body: JSON.stringify({ model, messages, max_tokens }),
   })
+
   return res.json()
 }
 
@@ -30,15 +32,20 @@ export function useStoryComposer() {
     })
 
     let headline = body.trim()
+
     if (keywords && keywords.length > 0) {
       const topKeywords = keywords.slice(0, 8)
+
       const candidate = topKeywords
         .map(k => k.charAt(0).toUpperCase() + k.slice(1))
         .join(' ')
+
       headline = candidate.length > 10 ? candidate : headline
     }
 
-    if (headline.length > 100) headline = headline.substring(0, 97) + '...'
+    if (headline.length > 100) {
+      headline = headline.substring(0, 97) + '...'
+    }
 
     return {
       headline,
@@ -56,9 +63,11 @@ export function useStoryComposer() {
       .join('\n')
 
     try {
-      const data = await callClaude('claude-sonnet-4-6', [{
-        role: 'user',
-        content: `You are an OSINT intelligence analyst writing breaking news headlines.
+      const data = await callClaude(
+        'claude-sonnet-4-6',
+        [{
+          role: 'user',
+          content: `You are an OSINT intelligence analyst writing breaking news headlines.
 
 Sources:
 ${sourceContext}
@@ -72,7 +81,10 @@ Extract the primary ACTION and LOCATION from these sources, then write a single 
 - Does NOT start with "Breaking:" or similar prefixes
 
 Output only the headline text. No punctuation at the end. No preamble.`
-      }], 60)
+        }],
+        60
+      )
+
       return data?.content?.[0]?.text?.trim() ?? null
     } catch {
       return null
@@ -87,9 +99,11 @@ Output only the headline text. No punctuation at the end. No preamble.`
       .join('\n')
 
     try {
-      const data = await callClaude('claude-sonnet-4-6', [{
-        role: 'user',
-        content: `You are an OSINT intelligence analyst writing a developing situation report.
+      const data = await callClaude(
+        'claude-sonnet-4-6',
+        [{
+          role: 'user',
+          content: `You are an OSINT intelligence analyst writing a developing situation report.
 
 Headline: "${headline}"
 
@@ -105,7 +119,10 @@ Write a concise, neutral, intelligence-style summary that:
 - Does NOT include a headline — just the summary body
 
 Output only the summary text. No preamble, no labels.`
-      }], 300)
+        }],
+        300
+      )
+
       return data?.content?.[0]?.text?.trim() ?? null
     } catch {
       return null
@@ -120,37 +137,69 @@ Output only the summary text. No preamble, no labels.`
 
     if (!sources || sources.length === 0) return
 
-    // posts.author_id points into `identity`, a separate schema — fetch
-    // profiles separately and merge them back in.
-    const authorIds = [...new Set(sources.map(s => s.posts?.author_id).filter(Boolean))]
+    // posts.author_id points into identity, a separate schema —
+    // fetch profiles separately and merge them back in.
+    const authorIds = [
+      ...new Set(
+        sources
+          .map(s => s.posts?.author_id)
+          .filter(Boolean)
+      )
+    ]
+
     const { data: authors } = authorIds.length
-      ? await identityDb.from('profiles').select('id, username').in('id', authorIds)
+      ? await identityDb.rpc('profile_get_by_ids', {
+          p_ids: authorIds
+        })
       : { data: [] }
-    const authorsById = new Map((authors || []).map(a => [a.id, a]))
+
+    const authorsById = new Map(
+      (authors || []).map(a => [a.id, a])
+    )
 
     const sourcePosts = sources.map(s => ({
       body: s.posts.body,
       users: authorsById.get(s.posts?.author_id) || null,
     }))
 
-    const newSummary = await generateSummary(currentHeadline, sourcePosts)
+    const newSummary = await generateSummary(
+      currentHeadline,
+      sourcePosts
+    )
 
     if (newSummary) {
-      await contentDb
-        .from('stories')
-        .update({ summary: newSummary })
-        .eq('id', storyId)
+      await supabase.rpc('story_update', {
+        p_story_id: storyId,
+        p_payload: {
+          summary: newSummary
+        }
+      })
     }
   }
 
-  async function publishStory({ body, tag, region, regionLat, regionLng, threadId, headline, summary }) {
-    const { data: { session } } = await supabase.auth.getSession()
+  async function publishStory({
+    body,
+    tag,
+    region,
+    regionLat,
+    regionLng,
+    threadId,
+    headline,
+    summary
+  }) {
+    const {
+      data: { session }
+    } = await supabase.auth.getSession()
+
     const jwt = session?.access_token
 
-    // Normalise to English for the AI pipeline; original body is stored in the DB.
+    // Normalise to English for the AI pipeline;
+    // original body is stored in the DB.
     const { text: normalizedBody } = await ingest(body, jwt)
 
-    // Insert the post, carrying manual_story_id so the trigger skips auto-clustering
+    // Insert the OSINT post directly.
+    // There is no existing RPC that reproduces this operation:
+    // social_create_post creates a non-OSINT standard post.
     const { data: post, error } = await contentDb
       .from('posts')
       .insert({
@@ -174,101 +223,168 @@ Output only the summary text. No preamble, no labels.`
 
     // ── Manual thread attach path ──
     if (threadId) {
-      // Trigger already inserted story_sources via manual_story_id
-      // Just refresh the story summary with all sources including new post
-      const { data: story } = await contentDb
-        .from('stories')
-        .select('headline')
-        .eq('id', threadId)
-        .single()
+      // Trigger already inserted story_sources via manual_story_id.
+      // Refresh the story summary with all sources including new post.
+      const { data: storyRows } = await supabase.rpc(
+        'story_get_by_id',
+        {
+          p_story_id: threadId
+        }
+      )
 
-      await refreshStorySummary(threadId, story?.headline || headline || '')
+      const story = Array.isArray(storyRows)
+        ? storyRows[0]
+        : storyRows
+
+      await refreshStorySummary(
+        threadId,
+        story?.headline || headline || ''
+      )
+
       return { post, error: null }
     }
 
     // ── Auto-cluster path ──
-    // Poll until the Postgres trigger links the post to a story (max 5 × 400ms = 2s)
+    // Poll until the Postgres trigger links the post to a story
+    // (max 5 × 400ms = 2s).
     let newSources = null
+
     for (let i = 0; i < 5; i++) {
       await new Promise(r => setTimeout(r, 400))
-      const { data } = await contentDb
-        .from('story_sources')
-        .select('story_id')
-        .eq('post_id', post.id)
-      if (data && data.length > 0) { newSources = data; break }
+
+      const { data } = await supabase.rpc(
+        'story_get_ids_for_post',
+        {
+          p_post_id: post.id
+        }
+      )
+
+      if (data && data.length > 0) {
+        newSources = data.map(storyId => ({
+          story_id: storyId
+        }))
+        break
+      }
     }
 
-    if (!newSources || newSources.length === 0) return { post, error: null }
+    if (!newSources || newSources.length === 0) {
+      return { post, error: null }
+    }
 
-    // Clean up duplicates if trigger somehow linked to multiple stories
+    // Clean up duplicates if trigger somehow linked to multiple stories.
     if (newSources.length > 1) {
-      const removeIds = newSources.slice(0, -1).map(s => s.story_id)
-      await contentDb
-        .from('story_sources')
-        .delete()
-        .eq('post_id', post.id)
-        .in('story_id', removeIds)
+      const removeIds = newSources
+        .slice(0, -1)
+        .map(s => s.story_id)
+
+      await supabase.rpc('story_unlink_sources', {
+        p_post_id: post.id,
+        p_story_ids: removeIds
+      })
     }
 
     const storyId = newSources[newSources.length - 1].story_id
 
-    // Use AI headline/summary if available, fall back to DocArrange
+    // Use AI headline/summary if available,
+    // fall back to keyword-based metadata.
     let finalHeadline = headline
     let finalSummary = summary
 
     if (!finalHeadline || !finalSummary) {
-      // Try Claude first, fall back to DocArrange only if Claude fails
-      const aiHeadline = !finalHeadline ? await generateHeadline([{ users: { username: user?.email?.split('@')[0] || 'analyst' }, body: normalizedBody }]) : null
-      const aiSummary = !finalSummary ? await generateSummary(finalHeadline || aiHeadline || normalizedBody, [{ users: { username: user?.email?.split('@')[0] || 'analyst' }, body: normalizedBody }]) : null
+      // Try Claude first.
+      const aiHeadline = !finalHeadline
+        ? await generateHeadline([
+            {
+              users: {
+                username:
+                  user?.email?.split('@')[0] || 'analyst'
+              },
+              body: normalizedBody
+            }
+          ])
+        : null
 
-      if (aiHeadline) finalHeadline = aiHeadline
-      if (aiSummary) finalSummary = aiSummary
+      const aiSummary = !finalSummary
+        ? await generateSummary(
+            finalHeadline || aiHeadline || normalizedBody,
+            [
+              {
+                users: {
+                  username:
+                    user?.email?.split('@')[0] || 'analyst'
+                },
+                body: normalizedBody
+              }
+            ]
+          )
+        : null
 
-      // Last resort fallback
+      if (aiHeadline) {
+        finalHeadline = aiHeadline
+      }
+
+      if (aiSummary) {
+        finalSummary = aiSummary
+      }
+
+      // Last resort fallback.
       if (!finalHeadline || !finalSummary) {
-        const meta = await generateThreadMeta(normalizedBody, tag, region)
+        const meta = await generateThreadMeta(
+          normalizedBody,
+          tag,
+          region
+        )
+
         finalHeadline = finalHeadline || meta.headline
         finalSummary = finalSummary || meta.summary
       }
     }
 
+    // story_update cannot update tag, region, or coordinates,
+    // so this final multi-field update remains a direct DB operation.
     await contentDb
       .from('stories')
-      .update({ headline: finalHeadline, summary: finalSummary, tag, region, region_lat: regionLat ?? null, region_lng: regionLng ?? null })
+      .update({
+        headline: finalHeadline,
+        summary: finalSummary,
+        tag,
+        region,
+        region_lat: regionLat ?? null,
+        region_lng: regionLng ?? null
+      })
       .eq('id', storyId)
 
     return { post, error: null }
   }
 
   async function searchThreads(query) {
-    const { data: ftsData } = await contentDb
-      .from('stories')
-      .select('id, headline, tag, region, confidence, created_at')
-      .textSearch('fts', query)
-      .order('created_at', { ascending: false })
-      .limit(15)
-
-    if (ftsData && ftsData.length > 0) return ftsData
-
-    const { data: likeData } = await contentDb
-      .from('stories')
-      .select('id, headline, tag, region, confidence, created_at')
-      .ilike('headline', `%${query}%`)
-      .order('created_at', { ascending: false })
-      .limit(15)
-
-    return likeData || []
-  }
-
-  async function getRecentThreads() {
-    const { data } = await contentDb
-      .from('stories')
-      .select('id, headline, tag, region, confidence, created_at')
-      .order('created_at', { ascending: false })
-      .limit(20)
+    const { data } = await supabase.rpc(
+      'story_search_fallback',
+      {
+        p_query: query,
+        p_limit: 15
+      }
+    )
 
     return data || []
   }
 
-  return { publishStory, searchThreads, getRecentThreads, generateHeadline, generateSummary }
+  async function getRecentThreads() {
+    const { data } = await supabase.rpc(
+      'story_get_all',
+      {
+        p_limit: 20
+      }
+    )
+
+    return data || []
+  }
+
+  return {
+    publishStory,
+    searchThreads,
+    getRecentThreads,
+    generateHeadline,
+    generateSummary
+  }
 }

@@ -8,248 +8,454 @@ import { useStoryComposer } from '../../hooks/feed/useStoryComposer'
 
 // Mock useAuth
 vi.mock('../../hooks/core/useAuth', () => ({
-  useAuth: () => ({ user: { id: 'test-user-id', email: 'test@test.com' } })
+  useAuth: () => ({
+    user: {
+      id: 'test-user-id',
+      email: 'test@test.com',
+    },
+  }),
 }))
 
+const PROXY_URL =
+  'http://127.0.0.1:54321/functions/v1/anthropic-proxy'
+
 describe('useStoryComposer', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
 
-    beforeEach(() => {
-        vi.resetAllMocks()
-        // Restore defaults after reset
-        mockSupabase.from.mockReturnThis()
-        mockSupabase.select.mockReturnThis()
-        mockSupabase.insert.mockReturnThis()
-        mockSupabase.update.mockReturnThis()
-        mockSupabase.delete.mockReturnThis()
-        mockSupabase.eq.mockReturnThis()
-        mockSupabase.in.mockReturnThis()
-        mockSupabase.order.mockReturnThis()
-        mockSupabase.textSearch.mockReturnThis()
-        mockSupabase.ilike.mockReturnThis()
-        mockSupabase.single.mockResolvedValue({ data: null, error: null })
-        mockSupabase.limit.mockResolvedValue({ data: [], error: null })
-        mockSupabase.rpc.mockResolvedValue({ data: [], error: null })
-        mockSupabase.auth.getSession.mockResolvedValue({
-          data: { session: { access_token: 'test-jwt-token' } }, error: null
-        })
-        mockSupabase.auth.getUser.mockResolvedValue({
-          data: { user: { id: 'test-user-id' } }, error: null
+    // Restore defaults after reset
+    mockSupabase.from.mockReturnThis()
+    mockSupabase.select.mockReturnThis()
+    mockSupabase.insert.mockReturnThis()
+    mockSupabase.update.mockReturnThis()
+    mockSupabase.delete.mockReturnThis()
+    mockSupabase.eq.mockReturnThis()
+    mockSupabase.in.mockReturnThis()
+    mockSupabase.order.mockReturnThis()
+    mockSupabase.textSearch.mockReturnThis()
+    mockSupabase.ilike.mockReturnThis()
+
+    mockSupabase.single.mockResolvedValue({
+      data: null,
+      error: null,
+    })
+
+    mockSupabase.limit.mockResolvedValue({
+      data: [],
+      error: null,
+    })
+
+    mockSupabase.rpc.mockResolvedValue({
+      data: [],
+      error: null,
+    })
+
+    mockSupabase.auth.getSession.mockResolvedValue({
+      data: {
+        session: {
+          access_token: 'test-jwt-token',
+        },
+      },
+      error: null,
+    })
+
+    mockSupabase.auth.getUser.mockResolvedValue({
+      data: {
+        user: {
+          id: 'test-user-id',
+        },
+      },
+      error: null,
+    })
+  })
+
+  // ── refreshStorySummary ────────────────────────────────────────────────
+
+  describe('refreshStorySummary', () => {
+    it('publishStory with threadId inserts post and fetches story headline', async () => {
+      mockSupabase.single.mockResolvedValueOnce({
+        data: {
+          id: 'new-post',
+          body: 'Test',
+        },
+        error: null,
+      })
+
+      mockSupabase.single.mockResolvedValueOnce({
+        data: {
+          headline: 'Existing Headline',
+        },
+        error: null,
+      })
+
+      const { result } = renderHook(() => useStoryComposer())
+
+      await act(async () => {
+        await result.current.publishStory({
+          body: 'Test',
+          tag: 'MILITARY',
+          region: 'Global',
+          threadId: 35,
+          headline: 'Test Headline',
+          summary: 'Test Summary',
         })
       })
 
-      // ── refreshStorySummary ──
-      describe('refreshStorySummary', () => {
-        it('publishStory with threadId inserts post and fetches story headline', async () => {
-          // post insert
-          mockSupabase.single.mockResolvedValueOnce({
-            data: { id: 'new-post', body: 'Test' }, error: null
-          })
-          // story headline fetch
-          mockSupabase.single.mockResolvedValueOnce({
-            data: { headline: 'Existing Headline' }, error: null
-          })
-      
-          const { result } = renderHook(() => useStoryComposer())
-          await act(async () => {
-            await result.current.publishStory({
-              body: 'Test', tag: 'MILITARY', region: 'Global',
-              threadId: 35, headline: 'Test Headline', summary: 'Test Summary'
-            })
-          })
-      
-          // Verify post was inserted with manual_story_id
-          expect(mockSupabase.insert).toHaveBeenCalledWith(
-            expect.objectContaining({ manual_story_id: 35 })
-          )
+      expect(mockSupabase.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          manual_story_id: 35,
         })
-      
-        it('generateSummary produces text used for story update', async () => {
-          const { result } = renderHook(() => useStoryComposer())
-          const sum = await result.current.generateSummary('Test headline', [
-            { body: 'Indian vessels spotted', users: { username: 'shresth' } }
-          ])
-          // Verify Claude returned a summary (mock returns this text)
-          expect(sum).toContain('Indian vessels')
-        })
-      
-        it('generateSummary returns null if proxy returns error', async () => {
-          server.use(
-            http.post('https://ipemqgxcjjyvrfzkcjoh.supabase.co/functions/v1/anthropic-proxy',
-              () => new HttpResponse(null, { status: 500 }), { once: true }
-            )
-          )
-          const { result } = renderHook(() => useStoryComposer())
-          const sum = await result.current.generateSummary('headline', [
-            { body: 'test', users: { username: 'user' } }
-          ])
-          expect(sum).toBeNull()
-        })
-      })
-  // ── generateHeadline ──
+      )
+    })
+
+    it('generateSummary produces text used for story update', async () => {
+      server.use(
+        http.post(PROXY_URL, async () =>
+          HttpResponse.json({
+            content: [
+              {
+                text: 'Indian vessels were spotted near Thailand.',
+              },
+            ],
+          })
+        )
+      )
+
+      const { result } = renderHook(() => useStoryComposer())
+
+      const sum = await result.current.generateSummary(
+        'Test headline',
+        [
+          {
+            body: 'Indian vessels spotted',
+            users: {
+              username: 'shresth',
+            },
+          },
+        ]
+      )
+
+      expect(sum).toContain('Indian vessels')
+    })
+
+    it('generateSummary returns null if proxy returns error', async () => {
+      server.use(
+        http.post(
+          PROXY_URL,
+          () => new HttpResponse(null, { status: 500 }),
+          { once: true }
+        )
+      )
+
+      const { result } = renderHook(() => useStoryComposer())
+
+      const sum = await result.current.generateSummary(
+        'headline',
+        [
+          {
+            body: 'test',
+            users: {
+              username: 'user',
+            },
+          },
+        ]
+      )
+
+      expect(sum).toBeNull()
+    })
+  })
+
+  // ── generateHeadline ──────────────────────────────────────────────────
+
   describe('generateHeadline', () => {
     it('returns null if no source posts', async () => {
       const { result } = renderHook(() => useStoryComposer())
+
       const hl = await result.current.generateHeadline([])
+
       expect(hl).toBeNull()
     })
 
     it('returns null if proxy returns error', async () => {
       server.use(
-        http.post('https://ipemqgxcjjyvrfzkcjoh.supabase.co/functions/v1/anthropic-proxy',
-          () => new HttpResponse(null, { status: 500 }), { once: true }
+        http.post(
+          PROXY_URL,
+          () => new HttpResponse(null, { status: 500 }),
+          { once: true }
         )
       )
+
       const { result } = renderHook(() => useStoryComposer())
-      const hl = await result.current.generateHeadline([{ body: 'test', users: { username: 'user' } }])
+
+      const hl = await result.current.generateHeadline([
+        {
+          body: 'test',
+          users: {
+            username: 'user',
+          },
+        },
+      ])
+
       expect(hl).toBeNull()
     })
 
     it('returns AI-generated headline from mock', async () => {
+      server.use(
+        http.post(PROXY_URL, async () =>
+          HttpResponse.json({
+            content: [
+              {
+                text: 'Indian Vessels Advance Toward South China Sea',
+              },
+            ],
+          })
+        )
+      )
+
       const { result } = renderHook(() => useStoryComposer())
+
       const hl = await result.current.generateHeadline([
-        { body: 'Indian vessels spotted near Thailand', users: { username: 'shresth' } }
+        {
+          body: 'Indian vessels spotted near Thailand',
+          users: {
+            username: 'shresth',
+          },
+        },
       ])
-      expect(hl).toBe('Indian Vessels Advance Toward South China Sea')
+
+      expect(hl).toBe(
+        'Indian Vessels Advance Toward South China Sea'
+      )
     })
   })
 
-  // ── generateSummary ──
+  // ── generateSummary ───────────────────────────────────────────────────
+
   describe('generateSummary', () => {
     it('returns null if no source posts', async () => {
       const { result } = renderHook(() => useStoryComposer())
-      const sum = await result.current.generateSummary('Test headline', [])
+
+      const sum = await result.current.generateSummary(
+        'Test headline',
+        []
+      )
+
       expect(sum).toBeNull()
     })
 
     it('returns AI-generated summary from mock', async () => {
+      server.use(
+        http.post(PROXY_URL, async () =>
+          HttpResponse.json({
+            content: [
+              {
+                text: 'Indian vessels were spotted near Thailand.',
+              },
+            ],
+          })
+        )
+      )
+
       const { result } = renderHook(() => useStoryComposer())
-      const sum = await result.current.generateSummary('Indian Vessels Advance', [
-        { body: 'Indian vessels spotted near Thailand', users: { username: 'shresth' } }
-      ])
+
+      const sum = await result.current.generateSummary(
+        'Indian Vessels Advance',
+        [
+          {
+            body: 'Indian vessels spotted near Thailand',
+            users: {
+              username: 'shresth',
+            },
+          },
+        ]
+      )
+
       expect(sum).toContain('Indian vessels')
     })
   })
 
-  // ── publishStory ──
+  // ── publishStory ───────────────────────────────────────────────────────
+
   describe('publishStory', () => {
     it('inserts post with manual_story_id when threadId provided', async () => {
       mockSupabase.single.mockResolvedValueOnce({
-        data: { id: 'test-post-id', body: 'Test', tag: 'MILITARY', region: 'Global', is_osint: true },
-        error: null
+        data: {
+          id: 'test-post-id',
+          body: 'Test',
+          tag: 'MILITARY',
+          region: 'Global',
+          is_osint: true,
+        },
+        error: null,
       })
+
       mockSupabase.single.mockResolvedValueOnce({
-        data: { headline: 'Existing headline' },
-        error: null
+        data: {
+          headline: 'Existing headline',
+        },
+        error: null,
       })
 
       const { result } = renderHook(() => useStoryComposer())
-      const { post, error } = await result.current.publishStory({
+
+      const { error } = await result.current.publishStory({
         body: 'Test post',
         tag: 'MILITARY',
         region: 'Global',
         threadId: 35,
         headline: 'AI Headline',
-        summary: 'AI Summary'
+        summary: 'AI Summary',
       })
 
       expect(error).toBeNull()
+
       expect(mockSupabase.insert).toHaveBeenCalledWith(
-        expect.objectContaining({ manual_story_id: 35 })
+        expect.objectContaining({
+          manual_story_id: 35,
+        })
       )
     })
 
     it('sets manual_story_id to null when no threadId', async () => {
-        mockSupabase.single.mockResolvedValueOnce({
-          data: { id: 'new-post', body: 'Test' }, error: null
-        })
-        mockSupabase.limit.mockResolvedValueOnce({
-          data: [{ story_id: 40 }], error: null
-        })
-      
-        const { result } = renderHook(() => useStoryComposer())
-        await result.current.publishStory({
-          body: 'Auto cluster post', tag: 'CYBER',
-          region: 'Europe', threadId: null,
-          headline: 'AI Headline', summary: 'AI Summary'
-        })
-      
-        expect(mockSupabase.insert).toHaveBeenCalledWith(
-          expect.objectContaining({ manual_story_id: null })
-        )
+      mockSupabase.single.mockResolvedValueOnce({
+        data: {
+          id: 'new-post',
+          body: 'Test',
+        },
+        error: null,
       })
+
+      mockSupabase.rpc.mockResolvedValueOnce({
+        data: [{ story_id: 40 }],
+        error: null,
+      })
+
+      const { result } = renderHook(() => useStoryComposer())
+
+      await result.current.publishStory({
+        body: 'Auto cluster post',
+        tag: 'CYBER',
+        region: 'Europe',
+        threadId: null,
+        headline: 'AI Headline',
+        summary: 'AI Summary',
+      })
+
+      expect(mockSupabase.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          manual_story_id: null,
+        })
+      )
+    })
   })
 
-  // ── searchThreads ──
+  // ── searchThreads ─────────────────────────────────────────────────────
+
   describe('searchThreads', () => {
-    it('returns FTS results if found', async () => {
-      mockSupabase.limit.mockResolvedValueOnce({
-        data: [{ id: 1, headline: 'Test story' }], error: null
-      })
-      const { result } = renderHook(() => useStoryComposer())
-      const results = await result.current.searchThreads('test')
-      expect(results).toHaveLength(1)
-    })
-
-    it('falls back to ilike if FTS returns empty', async () => {
-      mockSupabase.limit
-        .mockResolvedValueOnce({ data: [], error: null })
-        .mockResolvedValueOnce({ data: [{ id: 2, headline: 'Fallback story' }], error: null })
-
-      const { result } = renderHook(() => useStoryComposer())
-      const results = await result.current.searchThreads('fallback')
-      expect(results).toHaveLength(1)
-      expect(results[0].headline).toBe('Fallback story')
-    })
-  })
-
-})
-
-// ── Edge Function trigger (mocked) ──
-describe('regenerate-story-headline edge function', () => {
-    it('is called when story_sources count hits a multiple of 10', async () => {
-      // Mock the net.http_post by checking the Edge Function endpoint is called
-      const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ headline: 'New AI Generated Headline After 10 Sources' })
-      })
-  
-      // Simulate what the trigger does — call the edge function directly
-      const response = await fetch(
-        'https://ipemqgxcjjyvrfzkcjoh.supabase.co/functions/v1/regenerate-story-headline',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer test-service-role-key'
+    it('returns search results from story_search_fallback RPC', async () => {
+      mockSupabase.rpc.mockResolvedValueOnce({
+        data: [
+          {
+            id: 1,
+            headline: 'Test story',
           },
-          body: JSON.stringify({ story_id: 35 })
+        ],
+        error: null,
+      })
+
+      const { result } = renderHook(() => useStoryComposer())
+
+      const results = await result.current.searchThreads('test')
+
+      expect(mockSupabase.rpc).toHaveBeenCalledWith(
+        'story_search_fallback',
+        {
+          p_query: 'test',
+          p_limit: 15,
         }
       )
-  
-      const data = await response.json()
-      expect(fetchSpy).toHaveBeenCalledWith(
-        'https://ipemqgxcjjyvrfzkcjoh.supabase.co/functions/v1/regenerate-story-headline',
-        expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({ story_id: 35 })
-        })
+
+      expect(results).toHaveLength(1)
+      expect(results[0].headline).toBe('Test story')
+    })
+
+    it('returns empty array when story_search_fallback returns no results', async () => {
+      mockSupabase.rpc.mockResolvedValueOnce({
+        data: [],
+        error: null,
+      })
+
+      const { result } = renderHook(() => useStoryComposer())
+
+      const results = await result.current.searchThreads(
+        'fallback'
       )
-      expect(data.headline).toBe('New AI Generated Headline After 10 Sources')
-      fetchSpy.mockRestore()
-    })
-  
-    it('does not call edge function when count is not a multiple of 10', () => {
-      // This is enforced by the SQL trigger — we verify the logic here
-      const counts = [1, 2, 5, 9, 11, 15, 19, 21]
-      counts.forEach(count => {
-        expect(count % 10).not.toBe(0)
-      })
-    })
-  
-    it('calls edge function for counts that are multiples of 10', () => {
-      const counts = [10, 20, 30, 40, 50]
-      counts.forEach(count => {
-        expect(count % 10).toBe(0)
-      })
+
+      expect(results).toEqual([])
     })
   })
+})
+
+// ── Edge Function trigger (mocked) ───────────────────────────────────────
+
+describe('regenerate-story-headline edge function', () => {
+  it('is called when story_sources count hits a multiple of 10', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          headline:
+            'New AI Generated Headline After 10 Sources',
+        }),
+      })
+
+    const response = await fetch(
+      'https://ipemqgxcjjyvrfzkcjoh.supabase.co/functions/v1/regenerate-story-headline',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer test-service-role-key',
+        },
+        body: JSON.stringify({
+          story_id: 35,
+        }),
+      }
+    )
+
+    const data = await response.json()
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://ipemqgxcjjyvrfzkcjoh.supabase.co/functions/v1/regenerate-story-headline',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          story_id: 35,
+        }),
+      })
+    )
+
+    expect(data.headline).toBe(
+      'New AI Generated Headline After 10 Sources'
+    )
+
+    fetchSpy.mockRestore()
+  })
+
+  it('does not call edge function when count is not a multiple of 10', () => {
+    const counts = [1, 2, 5, 9, 11, 15, 19, 21]
+
+    counts.forEach((count) => {
+      expect(count % 10).not.toBe(0)
+    })
+  })
+
+  it('calls edge function for counts that are multiples of 10', () => {
+    const counts = [10, 20, 30, 40, 50]
+
+    counts.forEach((count) => {
+      expect(count % 10).toBe(0)
+    })
+  })
+})

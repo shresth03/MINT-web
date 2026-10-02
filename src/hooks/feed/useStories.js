@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { contentDb, identityDb } from '../../api/supabase'
 
 export function useStories() {
@@ -6,14 +6,7 @@ export function useStories() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    fetchStories()
-  }, [])
-
-  async function fetchStories() {
-    // story_sources/posts are both in `content`, so that embed works — but
-    // posts.author_id points into `identity`, a separate schema PostgREST
-    // can't traverse in one query, so profiles are fetched and merged after.
+  const fetchStories = useCallback(async () => {
     const { data, error } = await contentDb
       .from('stories')
       .select(`
@@ -37,22 +30,51 @@ export function useStories() {
     }
 
     const authorIds = [...new Set(
-      (data || []).flatMap(s => (s.story_sources || []).map(src => src.posts?.author_id)).filter(Boolean)
+      (data || [])
+        .flatMap(s =>
+          (s.story_sources || [])
+            .map(src => src.posts?.author_id)
+        )
+        .filter(Boolean)
     )]
+
     const { data: authors } = authorIds.length
-      ? await identityDb.from('profiles').select('id, username, score, role').in('id', authorIds)
+      ? await identityDb
+          .from('profiles')
+          .select('id, username, score, role')
+          .in('id', authorIds)
       : { data: [] }
-    const authorsById = new Map((authors || []).map(a => [a.id, a]))
 
-    setStories((data || []).map(s => ({
-      ...s,
-      story_sources: (s.story_sources || []).map(src => ({
-        ...src,
-        posts: src.posts ? { ...src.posts, users: authorsById.get(src.posts.author_id) || null } : null,
-      })),
-    })))
+    const authorsById = new Map(
+      (authors || []).map(a => [a.id, a])
+    )
+
+    setStories(
+      (data || []).map(s => ({
+        ...s,
+        story_sources: (s.story_sources || []).map(src => ({
+          ...src,
+          posts: src.posts
+            ? {
+                ...src.posts,
+                users: authorsById.get(src.posts.author_id) || null,
+              }
+            : null,
+        })),
+      }))
+    )
+
     setLoading(false)
-  }
+  }, [])
 
-  return { stories, loading, error, refetch: fetchStories }
+  useEffect(() => {
+    fetchStories()
+  }, [fetchStories])
+
+  return {
+    stories,
+    loading,
+    error,
+    refetch: fetchStories,
+  }
 }

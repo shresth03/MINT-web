@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { identityDb } from '../../api/supabase'
 import { useAuth } from '../core/useAuth'
 
@@ -7,34 +7,66 @@ export function useUser() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const fetchProfile = useCallback(async () => {
     if (!user?.id) {
       setLoading(false)
-      return
+      return { data: null, error: null }
     }
-    fetchProfile()
-  }, [user?.id])
 
-  async function fetchProfile() {
     setLoading(true)
-    const { data, error } = await identityDb
-      .from('profiles')
-      .select('id, username, role, score')
-      .eq('id', user.id)
-      .single()
-    if (!error && data) setProfile(data)
+
+    const { data, error } = await identityDb.rpc('profile_get_by_id', {
+      p_user_id: user.id,
+    })
+
+    if (!error && data?.length > 0) {
+      setProfile(data[0])
+    }
+
     setLoading(false)
-  }
+
+    return {
+      data: data?.[0] || null,
+      error,
+    }
+  }, [user])
+
+  useEffect(() => {
+    fetchProfile()
+  }, [fetchProfile])
 
   async function updateProfile(updates) {
-    const { error } = await identityDb
-      .from('profiles')
-      .update(updates)
-      .eq('id', user.id)
+    if (!user?.id) {
+      return {
+        error: new Error('User is not authenticated'),
+      }
+    }
 
-    if (!error) setProfile(prev => ({ ...prev, ...updates }))
-    return { error }
+    if (!Object.prototype.hasOwnProperty.call(updates, 'username')) {
+      return {
+        error: new Error('profile_update only supports username'),
+      }
+    }
+
+    const { data, error } = await identityDb.rpc('profile_update', {
+      p_user_id: user.id,
+      p_username: updates.username,
+    })
+
+    if (!error && data?.length > 0) {
+      setProfile(data[0])
+    }
+
+    return {
+      data: data?.[0] || null,
+      error,
+    }
   }
 
-  return { profile, loading, updateProfile, refetch: fetchProfile }
+  return {
+    profile,
+    loading,
+    updateProfile,
+    refetch: fetchProfile,
+  }
 }

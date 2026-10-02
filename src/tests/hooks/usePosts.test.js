@@ -17,6 +17,7 @@ const POSTS_RESPONSE = [
 describe('usePosts', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    mockSupabase.rpc.mockResolvedValue({ data: [], error: null })
     mockSupabase.from.mockReturnThis()
     mockSupabase.select.mockReturnThis()
     mockSupabase.insert.mockReturnThis()
@@ -66,60 +67,96 @@ describe('usePosts', () => {
   // ── #30 — fetchSinglePost hydrates interaction flags ──────────────────────
 
   it('fetchSinglePost — new post has liked/saved/reposted flags', async () => {
-    // Simulate realtime INSERT: capture the channel callback
     let realtimeCallback = null
+
     mockSupabase.channel.mockReturnValue({
-      on: vi.fn((event, filter, cb) => { realtimeCallback = cb; return { subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }) } }),
+      on: vi.fn((event, filter, cb) => {
+        realtimeCallback = cb
+        return {
+          subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() })
+        }
+      }),
       subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
     })
 
-    // fetchPosts uses .limit(), not .single() — so the first single() call
-    // is from fetchSinglePost itself. Must return data to avoid early return.
-    mockSupabase.single.mockResolvedValue({
-      data: { id: 'p-new', body: 'New realtime post', users: { id: 'u2', username: 'bob' } },
-      error: null,
-    })
-
-    // maybeSingle for liked/saved/reposted — all null (not liked/saved/reposted)
-    mockSupabase.maybeSingle
-      .mockResolvedValueOnce({ data: null, error: null }) // liked
-      .mockResolvedValueOnce({ data: null, error: null }) // saved
-      .mockResolvedValueOnce({ data: null, error: null }) // reposted
+    mockSupabase.rpc
+      .mockResolvedValueOnce({
+        data: [{
+          id: 'p-new',
+          body: 'New realtime post',
+          author_id: 'u2',
+        }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [],
+        error: null,
+      })
 
     const { result } = renderHook(() => usePosts())
 
-    // Trigger the realtime callback as if a new post arrived
     if (realtimeCallback) {
       await act(async () => {
         await realtimeCallback({ new: { id: 'p-new' } })
       })
     }
 
-    // If realtime path ran, new post should appear with interaction flags
-    // (The test is valid regardless of whether the callback fired — the key
-    //  is that maybeSingle is called and flags are derived from it)
-    expect(mockSupabase.maybeSingle).toHaveBeenCalled()
+    const newPost = result.current.posts.find(p => p.id === 'p-new')
+
+    if (newPost) {
+      expect(newPost.liked).toBe(false)
+      expect(newPost.saved).toBe(false)
+      expect(newPost.reposted).toBe(false)
+    }
+
+    expect(mockSupabase.rpc).toHaveBeenCalledWith(
+      'feed_get_post',
+      { p_post_id: 'p-new' }
+    )
   })
 
   it('fetchSinglePost — sets liked=true if user has a like row', async () => {
     let realtimeCallback = null
+
     mockSupabase.channel.mockReturnValue({
       on: vi.fn((event, filter, cb) => {
         realtimeCallback = cb
-        return { subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }) }
+        return {
+          subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() })
+        }
       }),
       subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
     })
 
-    mockSupabase.single.mockResolvedValue({
-      data: { id: 'p-liked', body: 'Post I already liked', users: { id: 'u2', username: 'bob' } },
-      error: null,
-    })
-    // liked → has a row; saved → null; reposted → null
-    mockSupabase.maybeSingle
-      .mockResolvedValueOnce({ data: { post_id: 'p-liked' }, error: null })
-      .mockResolvedValueOnce({ data: null, error: null })
-      .mockResolvedValueOnce({ data: null, error: null })
+    mockSupabase.rpc
+      .mockResolvedValueOnce({
+        data: [{
+          id: 'p-liked',
+          body: 'Post I already liked',
+          author_id: 'u2',
+        }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: ['p-liked'],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [],
+        error: null,
+      })
 
     const { result } = renderHook(() => usePosts())
 
@@ -127,7 +164,9 @@ describe('usePosts', () => {
       await act(async () => {
         await realtimeCallback({ new: { id: 'p-liked' } })
       })
+
       const newPost = result.current.posts.find(p => p.id === 'p-liked')
+
       if (newPost) {
         expect(newPost.liked).toBe(true)
         expect(newPost.saved).toBe(false)
@@ -139,9 +178,12 @@ describe('usePosts', () => {
   // ── createPost ────��───────────────────────────────────────────────────────
 
   it('createPost calls social_create_post with correct fields', async () => {
-    mockSupabase.rpc.mockResolvedValueOnce({
-      data: 123,
-      error: null,
+    mockSupabase.rpc.mockImplementation((functionName) => {
+      if (functionName === 'social_create_post') {
+        return Promise.resolve({ data: 123, error: null })
+      }
+
+      return Promise.resolve({ data: [], error: null })
     })
 
     const { result } = renderHook(() => usePosts())
@@ -162,9 +204,12 @@ describe('usePosts', () => {
   })
 
   it('createPost extracts first hashtag as tag when no explicit tag is given', async () => {
-    mockSupabase.rpc.mockResolvedValueOnce({
-      data: 123,
-      error: null,
+    mockSupabase.rpc.mockImplementation((functionName) => {
+      if (functionName === 'social_create_post') {
+        return Promise.resolve({ data: 123, error: null })
+      }
+
+      return Promise.resolve({ data: [], error: null })
     })
 
     const { result } = renderHook(() => usePosts())

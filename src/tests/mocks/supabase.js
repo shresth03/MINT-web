@@ -10,7 +10,13 @@ function makeChain(resolved = DEFAULT) {
     then: vi.fn((resolve) => Promise.resolve(resolved).then(resolve)),
     catch: vi.fn((reject) => Promise.resolve(resolved).catch(reject)),
     // Terminal methods that return promises directly
-    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    single: vi.fn().mockResolvedValue({
+      data: {
+        id: 'mock-video-id',
+        author_id: 'test-user',
+      },
+      error: null,
+    }),
     maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     // Channel for realtime subscriptions
     channel: vi.fn().mockReturnValue({

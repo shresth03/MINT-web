@@ -11,26 +11,27 @@ export function useFollow(targetUserId) {
 
   useEffect(() => {
     if (!targetUserId) return
-    fetchFollowData()
-  }, [targetUserId, user])
 
-  async function fetchFollowData() {
-    setLoading(true)
+    async function fetchFollowData() {
+      setLoading(true)
 
-    const { data, error } = await identityDb.rpc('profile_get_stats', {
-      p_profile_id: targetUserId
-    })
+      const { data, error } = await identityDb.rpc('profile_get_stats', {
+        p_profile_id: targetUserId
+      })
 
-    if (error) {
+      if (error) {
+        setLoading(false)
+        return
+      }
+
+      setFollowerCount(data?.followers || 0)
+      setFollowingCount(data?.following || 0)
+      setFollowing(data?.is_following || false)
       setLoading(false)
-      return
     }
 
-    setFollowerCount(data?.followers || 0)
-    setFollowingCount(data?.following || 0)
-    setFollowing(data?.is_following || false)
-    setLoading(false)
-  }
+    fetchFollowData()
+  }, [targetUserId, user])
 
   async function toggleFollow() {
     if (!user || !targetUserId) return
@@ -51,11 +52,17 @@ export function useFollow(targetUserId) {
 
   async function getFollowedUserIds() {
     if (!user) return []
-    const { data } = await identityDb
-      .from('follows')
-      .select('following_id')
-      .eq('follower_id', user.id)
-    return (data || []).map(f => f.following_id)
+
+    const { data, error } = await identityDb.rpc('follow_get_list', {
+      p_profile_id: user.id,
+      p_kind: 'following',
+      p_limit: 200,
+      p_offset: 0,
+    })
+
+    if (error) return []
+
+    return (data || []).map(follow => follow.user_id)
   }
 
   return { following, followerCount, followingCount, loading, toggleFollow, getFollowedUserIds }

@@ -4,24 +4,46 @@ import React from 'react'
 
 // vi.mock is hoisted — use vi.hoisted so the fns are available inside the factory
 const {
-  mockAuthSignUp, mockAuthSignIn, mockAuthSignOut,
-  mockAuthGetSession, mockAuthOnChange, mockAuthResetPw, mockAuthResend,
+  mockAuthSignUp,
+  mockAuthSignIn,
+  mockAuthSignOut,
+  mockAuthGetSession,
+  mockAuthOnChange,
+  mockAuthResetPw,
+  mockAuthResend,
+  mockRpc,
 } = vi.hoisted(() => ({
   mockAuthSignUp: vi.fn(),
   mockAuthSignIn: vi.fn(),
   mockAuthSignOut: vi.fn(),
   mockAuthGetSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+
   // Call the callback immediately so onAuthStateChange sets loading=false
   mockAuthOnChange: vi.fn((cb) => {
     cb('INITIAL_SESSION', null)
-    return { data: { subscription: { unsubscribe: vi.fn() } } }
+    return {
+      data: {
+        subscription: {
+          unsubscribe: vi.fn(),
+        },
+      },
+    }
   }),
+
   mockAuthResetPw: vi.fn().mockResolvedValue({ error: null }),
   mockAuthResend: vi.fn().mockResolvedValue({ error: null }),
+
+  // Username availability RPC
+  mockRpc: vi.fn().mockResolvedValue({
+    data: [],
+    error: null,
+  }),
 }))
 
 vi.mock('../../api/supabase', () => ({
   supabase: {
+    rpc: mockRpc,
+
     auth: {
       getSession: mockAuthGetSession,
       onAuthStateChange: mockAuthOnChange,
@@ -36,27 +58,47 @@ vi.mock('../../api/supabase', () => ({
 
 import { AuthProvider, useAuth } from '../../hooks/core/useAuth'
 
-const wrapper = ({ children }) => React.createElement(AuthProvider, null, children)
+const wrapper = ({ children }) =>
+  React.createElement(AuthProvider, null, children)
 
 // AuthProvider renders {!loading && children} — flush the getSession promise
 // so loading becomes false and the hook component actually renders.
 async function setup() {
   const hook = renderHook(() => useAuth(), { wrapper })
+
   await act(async () => {}) // flush getSession microtask → setLoading(false)
+
   return hook
 }
 
 describe('useAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockAuthGetSession.mockResolvedValue({ data: { session: null } })
+
+    mockAuthGetSession.mockResolvedValue({
+      data: { session: null },
+    })
+
     mockAuthOnChange.mockImplementation((cb) => {
       cb('INITIAL_SESSION', null)
-      return { data: { subscription: { unsubscribe: vi.fn() } } }
+
+      return {
+        data: {
+          subscription: {
+            unsubscribe: vi.fn(),
+          },
+        },
+      }
+    })
+
+    // Default: username is available
+    mockRpc.mockResolvedValue({
+      data: [],
+      error: null,
     })
   })
 
-  // ── signUp (#28) ─────────────────────────────────────────────────────────
+  // ── signUp ───────────────────────────────────────────────────────────────
 
   it('returns auth error if supabase.auth.signUp fails', async () => {
     mockAuthSignUp.mockResolvedValue({
@@ -65,9 +107,15 @@ describe('useAuth', () => {
     })
 
     const { result } = await setup()
+
     let response
+
     await act(async () => {
-      response = await result.current.signUp('a@b.com', 'pass123', 'alice')
+      response = await result.current.signUp(
+        'a@b.com',
+        'pass123',
+        'alice'
+      )
     })
 
     expect(response.error).toBeTruthy()
@@ -75,62 +123,154 @@ describe('useAuth', () => {
   })
 
   it('returns { data } on fully successful signUp', async () => {
-    mockAuthSignUp.mockResolvedValue({ data: { user: { id: 'u-new' } }, error: null })
+    mockAuthSignUp.mockResolvedValue({
+      data: { user: { id: 'u-new' } },
+      error: null,
+    })
 
     const { result } = await setup()
+
     let response
+
     await act(async () => {
-      response = await result.current.signUp('a@b.com', 'pass123', 'alice')
+      response = await result.current.signUp(
+        'a@b.com',
+        'pass123',
+        'alice'
+      )
     })
+
+    expect(mockRpc).toHaveBeenCalledWith(
+      'profile_get_by_username',
+      {
+        p_username: 'alice',
+      }
+    )
 
     expect(response.error).toBeFalsy()
     expect(response.data).toBeTruthy()
   })
 
-  it('sanitises role — unknown role defaults to public', async () => {
-    mockAuthSignUp.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+  it('prevents registration when username is already taken', async () => {
+    mockRpc.mockResolvedValue({
+      data: [{ id: 'existing-user', username: 'alice' }],
+      error: null,
+    })
 
     const { result } = await setup()
+
+    let response
+
     await act(async () => {
-      await result.current.signUp('a@b.com', 'pass', 'alice', 'hacker')
+      response = await result.current.signUp(
+        'a@b.com',
+        'pass123',
+        'alice'
+      )
+    })
+
+    expect(response.error).toBeTruthy()
+    expect(response.error.message).toBe('Username is already taken.')
+
+    expect(mockAuthSignUp).not.toHaveBeenCalled()
+  })
+
+  it('returns an error if username availability check fails', async () => {
+    mockRpc.mockResolvedValue({
+      data: null,
+      error: { message: 'RPC failed' },
+    })
+
+    const { result } = await setup()
+
+    let response
+
+    await act(async () => {
+      response = await result.current.signUp(
+        'a@b.com',
+        'pass123',
+        'alice'
+      )
+    })
+
+    expect(response.error).toBeTruthy()
+    expect(response.error.message).toBe(
+      'Unable to check username availability. Please try again.'
+    )
+
+    expect(mockAuthSignUp).not.toHaveBeenCalled()
+  })
+
+  it('sanitises role — unknown role defaults to public', async () => {
+    mockAuthSignUp.mockResolvedValue({
+      data: { user: { id: 'u1' } },
+      error: null,
+    })
+
+    const { result } = await setup()
+
+    await act(async () => {
+      await result.current.signUp(
+        'a@b.com',
+        'pass',
+        'alice',
+        'hacker'
+      )
     })
 
     expect(mockAuthSignUp).toHaveBeenCalledWith(
       expect.objectContaining({
         options: expect.objectContaining({
-          data: expect.objectContaining({ role: 'public' }),
+          data: expect.objectContaining({
+            role: 'public',
+          }),
         }),
       })
     )
   })
 
   it('allows reporter role through', async () => {
-    mockAuthSignUp.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+    mockAuthSignUp.mockResolvedValue({
+      data: { user: { id: 'u1' } },
+      error: null,
+    })
 
     const { result } = await setup()
+
     await act(async () => {
-      await result.current.signUp('a@b.com', 'pass', 'bob', 'reporter')
+      await result.current.signUp(
+        'a@b.com',
+        'pass',
+        'bob',
+        'reporter'
+      )
     })
 
     expect(mockAuthSignUp).toHaveBeenCalledWith(
       expect.objectContaining({
         options: expect.objectContaining({
-          data: expect.objectContaining({ role: 'reporter' }),
+          data: expect.objectContaining({
+            role: 'reporter',
+          }),
         }),
       })
     )
   })
 
-  // ── resetPassword ────────────────────────────────────────────────────────
+  // ── resetPassword ───────────────────────────────────────────────────────
 
   it('calls resetPasswordForEmail with correct email and redirectTo', async () => {
     const { result } = await setup()
+
     await act(async () => {
       await result.current.resetPassword('a@b.com')
     })
+
     expect(mockAuthResetPw).toHaveBeenCalledWith(
       'a@b.com',
-      expect.objectContaining({ redirectTo: expect.stringContaining('/reset-password') })
+      expect.objectContaining({
+        redirectTo: expect.stringContaining('/reset-password'),
+      })
     )
   })
 })

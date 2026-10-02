@@ -5,7 +5,12 @@ import { mockSupabase } from '../mocks/supabase.js'
 import { useLiveStreams } from '../../hooks/feed/useLiveStreams'
 
 vi.mock('../../hooks/core/useAuth', () => ({
-  useAuth: () => ({ user: { id: 'test-user', email: 'test@test.com' } }),
+  useAuth: () => ({
+    user: {
+      id: 'test-user',
+      email: 'test@test.com',
+    },
+  }),
 }))
 
 describe('useLiveStreams', () => {
@@ -13,36 +18,77 @@ describe('useLiveStreams', () => {
 
   it('initialises with empty streams and loading true', () => {
     const { result } = renderHook(() => useLiveStreams())
+
     expect(result.current.streams).toEqual([])
     expect(result.current.loading).toBe(true)
   })
 
   it('exposes createStream, goLive, endStream functions', () => {
     const { result } = renderHook(() => useLiveStreams())
+
     expect(typeof result.current.createStream).toBe('function')
     expect(typeof result.current.goLive).toBe('function')
     expect(typeof result.current.endStream).toBe('function')
   })
 
-  it('createStream calls insert with title and host_id', async () => {
-    mockSupabase.single.mockResolvedValueOnce({ data: { id: 's1', title: 'Test Stream', status: 'scheduled' }, error: null })
+  it('createStream calls stream_create RPC with title and description', async () => {
+    mockSupabase.rpc.mockImplementation((functionName) => {
+      if (functionName === 'stream_create') {
+        return Promise.resolve({
+          data: 'stream-1',
+          error: null,
+        })
+      }
 
-    const { result } = renderHook(() => useLiveStreams())
-    let res
-    await act(async () => {
-      res = await result.current.createStream('Test Stream', 'A description')
+      if (functionName === 'stream_get_active') {
+        return Promise.resolve({
+          data: [],
+          error: null,
+        })
+      }
+
+      return Promise.resolve({
+        data: [],
+        error: null,
+      })
     })
 
-    expect(mockSupabase.insert).toHaveBeenCalled()
+    const { result } = renderHook(() => useLiveStreams())
+
+    let res
+
+    await act(async () => {
+      res = await result.current.createStream(
+        'Test Stream',
+        'A description'
+      )
+    })
+
+    expect(mockSupabase.rpc).toHaveBeenCalledWith(
+      'stream_create',
+      {
+        p_title: 'Test Stream',
+        p_description: 'A description',
+      }
+    )
+
     expect(res?.error).toBeFalsy()
   })
 
   it('goLive updates stream status to live in state', async () => {
-    const stream = { id: 's1', title: 'Test', status: 'scheduled', host_id: 'test-user' }
+    const stream = {
+      id: 's1',
+      title: 'Test',
+      status: 'scheduled',
+      host_id: 'test-user',
+    }
+
     const { result } = renderHook(() => useLiveStreams())
 
     // Seed streams
-    act(() => { result.current.streams.push(stream) })
+    act(() => {
+      result.current.streams.push(stream)
+    })
 
     await act(async () => {
       await result.current.goLive('s1')
@@ -53,9 +99,11 @@ describe('useLiveStreams', () => {
 
   it('endStream removes stream from state', async () => {
     const { result } = renderHook(() => useLiveStreams())
+
     await act(async () => {
       await result.current.endStream('s1')
     })
+
     expect(mockSupabase.update).toHaveBeenCalled()
   })
 })

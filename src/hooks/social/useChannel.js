@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { contentDb, identityDb } from '../../api/supabase'
 
 export function useChannel(username) {
@@ -7,22 +7,23 @@ export function useChannel(username) {
   const [stories, setStories] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!username) return
-    fetchChannel()
-  }, [username])
-
-  async function fetchChannel() {
+  const fetchChannel = useCallback(async () => {
     setLoading(true)
 
     // Fetch user profile
-    const { data: userData } = await identityDb
-      .from('profiles')
-      .select('id, username, role, score, created_at')
-      .eq('username', username)
-      .single()
+    const { data, error } = await identityDb.rpc(
+      'profile_get_by_username',
+      {
+        p_username: username,
+      }
+    )
 
-    if (!userData) { setLoading(false); return }
+    if (error || !data?.length) {
+      setLoading(false)
+      return
+    }
+
+    const userData = data[0]
     setChannel(userData)
 
     // Fetch their posts
@@ -35,15 +36,24 @@ export function useChannel(username) {
 
     setPosts(postsData || [])
 
-    // Fetch stories they contributed to via story_sources
-    const { data: sourcesData } = await contentDb
-      .from('story_sources')
-      .select('stories(id, headline, tag, region, confidence, is_breaking, created_at)')
-      .eq('post_id', userData.id)
+    // Fetch stories they contributed to via their posts
+    const postIds = (postsData || []).map(post => post.id)
+
+    const { data: sourcesData } = postIds.length
+      ? await contentDb
+          .from('story_sources')
+          .select('stories(id, headline, tag, region, confidence, is_breaking, created_at)')
+          .in('post_id', postIds)
+      : { data: [] }
 
     setStories((sourcesData || []).map(s => s.stories).filter(Boolean))
     setLoading(false)
-  }
+  }, [username])
+
+  useEffect(() => {
+    if (!username) return
+    fetchChannel()
+  }, [username, fetchChannel])
 
   return { channel, posts, stories, loading }
 }

@@ -7,9 +7,7 @@ export function useRegions() {
 
   useEffect(() => {
     async function fetchRegionCounts() {
-      const { data, error } = await contentDb
-        .from('stories')
-        .select('region, region_lat, region_lng, is_breaking')
+      const { data, error } = await contentDb.rpc('story_get_regions')
 
       if (error || !data) {
         setLoaded(true)
@@ -18,13 +16,31 @@ export function useRegions() {
 
       // Group stories by region name, accumulate counts and coordinates
       const map = {}
+
       data.forEach(s => {
-        if (!s.region || s.region === 'global' || s.region_lat == null || s.region_lng == null) return
-        if (!map[s.region]) {
-          map[s.region] = { count: 0, breaking: false, lat: s.region_lat, lng: s.region_lng }
+        if (
+          !s.region ||
+          s.region === 'global' ||
+          s.region_lat == null ||
+          s.region_lng == null
+        ) {
+          return
         }
+
+        if (!map[s.region]) {
+          map[s.region] = {
+            count: 0,
+            breaking: false,
+            lat: s.region_lat,
+            lng: s.region_lng,
+          }
+        }
+
         map[s.region].count++
-        if (s.is_breaking) map[s.region].breaking = true
+
+        if (s.is_breaking) {
+          map[s.region].breaking = true
+        }
       })
 
       const live = Object.entries(map)
@@ -36,7 +52,11 @@ export function useRegions() {
           lng: r.lng,
           count: r.count,
           breaking: r.breaking,
-          color: r.breaking ? '#ff6b35' : r.count >= 8 ? '#ffcc00' : '#00d4ff',
+          color: r.breaking
+            ? '#ff6b35'
+            : r.count >= 8
+              ? '#ffcc00'
+              : '#00d4ff',
           tags: [],
         }))
 
