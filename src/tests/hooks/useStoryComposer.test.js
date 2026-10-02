@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+
 import { renderHook, act } from '@testing-library/react'
+
 import { http, HttpResponse } from 'msw'
+
 import { server } from '../mocks/server'
+
 import '../mocks/supabase.js'
+
 import { mockSupabase } from '../mocks/supabase.js'
+
 import { useStoryComposer } from '../../hooks/feed/useStoryComposer'
 
 // Mock useAuth
@@ -16,7 +22,8 @@ vi.mock('../../hooks/core/useAuth', () => ({
   }),
 }))
 
-const PROXY_URL = 'http://127.0.0.1:54321/functions/v1/anthropic-proxy'
+// Match the proxy endpoint regardless of localhost / production / CI URL.
+const PROXY_HANDLER = /\/functions\/v1\/anthropic-proxy$/
 
 describe('useStoryComposer', () => {
   beforeEach(() => {
@@ -109,7 +116,7 @@ describe('useStoryComposer', () => {
 
     it('generateSummary produces text used for story update', async () => {
       server.use(
-        http.post(PROXY_URL, async () =>
+        http.post(PROXY_HANDLER, async () =>
           HttpResponse.json({
             content: [
               {
@@ -122,17 +129,14 @@ describe('useStoryComposer', () => {
 
       const { result } = renderHook(() => useStoryComposer())
 
-      const sum = await result.current.generateSummary(
-        'Test headline',
-        [
-          {
-            body: 'Indian vessels spotted',
-            users: {
-              username: 'shresth',
-            },
+      const sum = await result.current.generateSummary('Test headline', [
+        {
+          body: 'Indian vessels spotted',
+          users: {
+            username: 'shresth',
           },
-        ]
-      )
+        },
+      ])
 
       expect(sum).toContain('Indian vessels')
     })
@@ -140,7 +144,7 @@ describe('useStoryComposer', () => {
     it('generateSummary returns null if proxy returns error', async () => {
       server.use(
         http.post(
-          PROXY_URL,
+          PROXY_HANDLER,
           () => new HttpResponse(null, { status: 500 }),
           { once: true }
         )
@@ -148,17 +152,14 @@ describe('useStoryComposer', () => {
 
       const { result } = renderHook(() => useStoryComposer())
 
-      const sum = await result.current.generateSummary(
-        'headline',
-        [
-          {
-            body: 'test',
-            users: {
-              username: 'user',
-            },
+      const sum = await result.current.generateSummary('headline', [
+        {
+          body: 'test',
+          users: {
+            username: 'user',
           },
-        ]
-      )
+        },
+      ])
 
       expect(sum).toBeNull()
     })
@@ -178,7 +179,7 @@ describe('useStoryComposer', () => {
     it('returns null if proxy returns error', async () => {
       server.use(
         http.post(
-          PROXY_URL,
+          PROXY_HANDLER,
           () => new HttpResponse(null, { status: 500 }),
           { once: true }
         )
@@ -200,7 +201,7 @@ describe('useStoryComposer', () => {
 
     it('returns AI-generated headline from mock', async () => {
       server.use(
-        http.post(PROXY_URL, async () =>
+        http.post(PROXY_HANDLER, async () =>
           HttpResponse.json({
             content: [
               {
@@ -244,7 +245,7 @@ describe('useStoryComposer', () => {
 
     it('returns AI-generated summary from mock', async () => {
       server.use(
-        http.post(PROXY_URL, async () =>
+        http.post(PROXY_HANDLER, async () =>
           HttpResponse.json({
             content: [
               {
