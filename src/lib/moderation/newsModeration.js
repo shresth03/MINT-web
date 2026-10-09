@@ -1,4 +1,4 @@
-import { supabase, contentDb } from '../../api/supabase'
+import { supabase } from '../../api/supabase'
 
 const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/anthropic-proxy`
 
@@ -16,12 +16,12 @@ Post text:
 """${text}"""`
 }
 
-// Layer 1 — known-bad text database. Free, no AI call. Skips silently if the
-// check_blocked_text RPC hasn't been provisioned yet, rather than blocking
-// every post until it exists.
+// Layer 1 — the admin-managed blocked list (Admin → Blocked List). Free, no
+// AI call. The server enforces the same list on every post, so this only
+// gives an early answer; a failed lookup just moves on to the AI check.
 async function checkBlockedTexts(text) {
   try {
-    const { data, error } = await contentDb.rpc('check_blocked_text', { p_text: text })
+    const { data, error } = await supabase.rpc('check_blocked_text', { p_text: text })
     if (error || !data || data.length === 0) return null
     return data[0]
   } catch {
@@ -69,7 +69,8 @@ async function checkWithAI(text) {
 
 // Layer 3 (manual review) is handled by the caller: a "review" decision
 // means the post is created with moderation_status='pending' and held out
-// of the public feed until an admin approves or rejects it.
+// of the public feed until an admin approves or rejects it (Admin → News
+// Review; rejected posts show under Removed Posts).
 export async function moderateNewsPost(text) {
   const blockedMatch = await checkBlockedTexts(text)
   if (blockedMatch) {

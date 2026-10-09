@@ -172,26 +172,22 @@ export function usePosts() {
     return () => supabase.removeChannel(sub)
   }, [fetchPosts, fetchSinglePost])
 
-  // moderationStatus is only sent when the caller wants something other than
-  // the table's default ('pending', for a News post that needs manual
-  // review). Left out otherwise so ordinary posting keeps working even
-  // before the moderation_status column exists.
+  // Goes through social_create_post, the same RPC as mobile: it checks the
+  // blocked list and, for moderationStatus 'pending' (a News post held for
+  // review), hides the post and notifies the author.
   async function createPost(body, mediaUrl = null, region = null, tag = null, postType = 'general', moderationStatus = null) {
     if (!user?.id) return { error: new Error('Not authenticated') }
     const extractedTag = tag || (body.match(/#(\w+)/)?.[1]?.toUpperCase() || null)
-    const { data, error } = await contentDb.from('posts').insert({
-      author_id: user.id,
-      body,
-      region,
-      tag: extractedTag,
-      is_osint: false,
-      post_type: postType,
-      likes: 0,
-      reply_count: 0,
-      repost_count: 0,
-      ...(mediaUrl ? { media_url: mediaUrl } : {}),
-      ...(moderationStatus ? { moderation_status: moderationStatus } : {}),
-    }).select('id').single()
+    const { data, error } = await supabase.rpc('social_create_post', {
+      p_payload: {
+        body,
+        region,
+        tag: extractedTag,
+        post_type: postType,
+        ...(mediaUrl ? { media_url: mediaUrl } : {}),
+        ...(moderationStatus ? { moderation_status: moderationStatus } : {}),
+      },
+    })
     return { data, error }
   }
 

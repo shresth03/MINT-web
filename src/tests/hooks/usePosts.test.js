@@ -138,35 +138,57 @@ describe('usePosts', () => {
 
   // ── createPost ────��───────────────────────────────────────────────────────
 
-  it('createPost inserts with correct fields', async () => {
-    mockSupabase.insert.mockReturnThis()
-    mockSupabase.single.mockResolvedValueOnce({ data: { id: 'p-new' }, error: null })
+  it('createPost goes through social_create_post with the right payload', async () => {
+    mockSupabase.rpc.mockResolvedValue({ data: { id: 'p-new' }, error: null })
 
     const { result } = renderHook(() => usePosts())
+    let res
     await act(async () => {
-      await result.current.createPost('Hello world')
+      res = await result.current.createPost('Hello world')
     })
 
-    expect(mockSupabase.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        author_id: 'u1',
-        body: 'Hello world',
-        is_osint: false,
-      })
-    )
+    expect(mockSupabase.rpc).toHaveBeenCalledWith('social_create_post', {
+      p_payload: expect.objectContaining({ body: 'Hello world', post_type: 'general' }),
+    })
+    expect(mockSupabase.insert).not.toHaveBeenCalled()
+    expect(res.data).toEqual({ id: 'p-new' })
   })
 
   it('createPost extracts first hashtag as tag when no explicit tag given', async () => {
-    mockSupabase.insert.mockReturnThis()
-    mockSupabase.single.mockResolvedValueOnce({ data: { id: 'p-new' }, error: null })
+    mockSupabase.rpc.mockResolvedValue({ data: { id: 'p-new' }, error: null })
 
     const { result } = renderHook(() => usePosts())
     await act(async () => {
       await result.current.createPost('Spotted in #MILITARY sector')
     })
 
-    expect(mockSupabase.insert).toHaveBeenCalledWith(
-      expect.objectContaining({ tag: 'MILITARY' })
-    )
+    expect(mockSupabase.rpc).toHaveBeenCalledWith('social_create_post', {
+      p_payload: expect.objectContaining({ tag: 'MILITARY' }),
+    })
+  })
+
+  it('createPost sends a pending status for posts held for review', async () => {
+    mockSupabase.rpc.mockResolvedValue({ data: { id: 'p-new' }, error: null })
+
+    const { result } = renderHook(() => usePosts())
+    await act(async () => {
+      await result.current.createPost('Breaking', null, null, null, 'news', 'pending')
+    })
+
+    expect(mockSupabase.rpc).toHaveBeenCalledWith('social_create_post', {
+      p_payload: expect.objectContaining({ post_type: 'news', moderation_status: 'pending' }),
+    })
+  })
+
+  it('createPost returns the blocked-content error from the server', async () => {
+    const blocked = { message: 'blocked_content', details: 'No slurs.' }
+    mockSupabase.rpc.mockResolvedValue({ data: null, error: blocked })
+
+    const { result } = renderHook(() => usePosts())
+    let res
+    await act(async () => {
+      res = await result.current.createPost('something blocked')
+    })
+    expect(res.error).toEqual(blocked)
   })
 })

@@ -798,12 +798,12 @@ export default function GeneralFeed() {
 
     const { data, error } = await createPost(body.trim(), mediaUrl, null, null, postType, moderationStatus)
     if (error) {
-      setError(moderationStatus === 'pending' ? "Couldn't submit this post for review — please try again." : error.message)
+      // blocked_content carries the blocked-list entry's reason in details.
+      if (error.message === 'blocked_content') setError(`This post can't be published: ${error.details || 'it contains blocked content.'}`)
+      else setError(moderationStatus === 'pending' ? "Couldn't submit this post for review — please try again." : error.message)
     } else {
+      // social_create_post notifies the author about the pending review.
       if (moderationStatus === 'pending' && data?.id) {
-        await socialDb.from('notifications').insert({
-          to_user_id: user.id, from_user_id: user.id, type: 'post_pending_review', post_id: data.id,
-        })
         setReviewNotice(true)
         setTimeout(() => setReviewNotice(false), 8000)
       }
