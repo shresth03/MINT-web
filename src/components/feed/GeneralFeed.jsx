@@ -9,6 +9,8 @@ import { useIsMobile } from '../../hooks/core/useIsMobile'
 import { Heart, MessageCircle, Repeat2, Bookmark, Inbox, ChevronDown, ChevronUp, BadgeCheck, Share2, Check, ImagePlus, MessageSquareText, Newspaper, AlertTriangle } from 'lucide-react'
 import { moderateNewsPost } from '../../lib/moderation/newsModeration'
 import TimeStamp from '../TimeStamp'
+import PostAttachments from './PostAttachments'
+import PostPoll from './PostPoll'
 
 
 function RichBody({ text, navigate }) {
@@ -702,7 +704,7 @@ const ACTION_CSS = `
 
 export default function GeneralFeed() {
   const { user } = useAuth()
-  const { posts, loading, createPost, likePost, savePost, repost, createReply, fetchReplies, voteReply } = usePosts()
+  const { posts, loading, createPost, likePost, savePost, repost, createReply, fetchReplies, voteReply, votePoll } = usePosts()
   const [repostModal, setRepostModal] = useState(null)
   const [quoteBody, setQuoteBody] = useState('')
   const [body, setBody] = useState('')
@@ -1363,8 +1365,11 @@ export default function GeneralFeed() {
                       </div>
                     )}
           
-                    {/* Media */}
-                    {post.media_url && (
+                    {/* Media — attachments when the post has them; media_url mirrors the
+                        first photo for older clients, so only fall back to it */}
+                    {post.attachments?.length > 0 ? (
+                      <PostAttachments attachments={post.attachments} />
+                    ) : post.media_url && (
                       <div style={{ marginBottom: 10 }}>
                         <img
                           src={post.media_url}
@@ -1377,6 +1382,10 @@ export default function GeneralFeed() {
                           onClick={() => window.open(post.media_url, '_blank')}
                         />
                       </div>
+                    )}
+
+                    {post.poll && (
+                      <PostPoll poll={post.poll} onVote={optionId => votePoll(post.id, optionId)} />
                     )}
           
                     {/* Actions */}
