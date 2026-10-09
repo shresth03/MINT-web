@@ -114,6 +114,40 @@ export default function AdminDashboard() {
   const [claimNotes, setClaimNotes] = useState({})
   const [scoreInputs, setScoreInputs] = useState({})
   const [feedback, setFeedback] = useState([])
+  const [reviewPosts, setReviewPosts] = useState([])
+
+  async function loadReviewPosts() {
+    const { data } = await contentDb
+      .from('posts')
+      .select('*')
+      .eq('moderation_status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    const authorIds = [...new Set((data || []).map(p => p.author_id).filter(Boolean))]
+    const { data: authors } = authorIds.length
+      ? await identityDb.from('profiles').select('id, username, role').in('id', authorIds)
+      : { data: [] }
+    const authorsById = new Map((authors || []).map(a => [a.id, a]))
+
+    setReviewPosts((data || []).map(p => ({ ...p, users: authorsById.get(p.author_id) || null })))
+  }
+
+  async function handleApprovePost(post) {
+    setProcessing(`post-${post.id}`)
+    await contentDb.from('posts').update({ moderation_status: 'approved' }).eq('id', post.id)
+    await socialDb.from('notifications').insert({ to_user_id: post.author_id, from_user_id: user.id, type: 'post_approved', post_id: post.id })
+    setReviewPosts(prev => prev.map(p => p.id === post.id ? { ...p, moderation_status: 'approved' } : p))
+    setProcessing(null)
+  }
+
+  async function handleRejectPost(post) {
+    setProcessing(`post-${post.id}`)
+    await contentDb.from('posts').update({ moderation_status: 'rejected' }).eq('id', post.id)
+    await socialDb.from('notifications').insert({ to_user_id: post.author_id, from_user_id: user.id, type: 'post_rejected', post_id: post.id })
+    setReviewPosts(prev => prev.map(p => p.id === post.id ? { ...p, moderation_status: 'rejected' } : p))
+    setProcessing(null)
+  }
 
   async function loadApplications() {
     const { data } = await identityDb.from('osint_applications').select('*').order('created_at', { ascending: false })
@@ -173,7 +207,7 @@ export default function AdminDashboard() {
     const { data } = await identityDb.from('profiles').select('role').eq('id', user.id).single()
     if (!data || data.role !== 'admin') { navigate('/feed'); return }
     setUserRole('admin')
-    await Promise.all([loadApplications(), loadClaims(), loadOsintUsers(), loadFeedback(), loadReportersAndPublic()])
+    await Promise.all([loadApplications(), loadClaims(), loadOsintUsers(), loadFeedback(), loadReportersAndPublic(), loadReviewPosts()])
     setLoading(false)
   }
 
@@ -290,6 +324,7 @@ export default function AdminDashboard() {
           { id: 'scores',       label: 'Score Override' },
           { id: 'reporters',    label: 'Reporters' },
           { id: 'feedback',     label: `Feedback (${feedback.length})` },
+          { id: 'newsReview',   label: `News Review (${reviewPosts.length})` },
         ].map(t => (
           <div
             key={t.id}
@@ -746,6 +781,64 @@ export default function AdminDashboard() {
                 </div>
               ))
             }
+          </>
+        )}
+
+        {/* ══ NEWS REVIEW ══ */}
+        {activeTab === 'newsReview' && (
+          <>
+            <div style={sectionTitle}>⚑ Pending Review ({reviewPosts.length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
+
+            {loading ? <div style={emptyState}>LOADING...</div>
+              : reviewPosts.filter(p => p.moderation_status === 'pending').length === 0 ? <div style={emptyState}>No posts awaiting review</div>
+              : reviewPosts.filter(p => p.moderation_status === 'pending').map(post => (
+                <div key={post.id} style={card}
+                  onMouseOver={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+                  onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                    <div style={avatarStyle}>{post.users?.username?.[0]?.toUpperCase() || 'U'}</div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--sans)' }}>{post.users?.username || 'Unknown'}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{post.users?.role || ''}</div>
+                    </div>
+                    <StatusBadge status="pending" />
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>{timeAgo(post.created_at)}</div>
+                  </div>
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={fieldLabel}>Post body</div>
+                    <div style={{ ...fieldValue, whiteSpace: 'pre-wrap' }}>{post.body}</div>
+                  </div>
+                  {post.media_url && (
+                    <img src={post.media_url} alt="attachment" style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 6, border: '1px solid var(--border)', marginBottom: 8, display: 'block' }} />
+                  )}
+                  <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                    <button style={actionBtn('approve')} disabled={processing === `post-${post.id}`} onClick={() => handleApprovePost(post)}>
+                      {processing === `post-${post.id}` ? 'PROCESSING...' : <><Check size={10} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />APPROVE</>}
+                    </button>
+                    <button style={actionBtn('reject')} disabled={processing === `post-${post.id}`} onClick={() => handleRejectPost(post)}><X size={10} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />REJECT</button>
+                  </div>
+                </div>
+              ))
+            }
+
+            {reviewPosts.filter(p => p.moderation_status !== 'pending').length > 0 && (
+              <>
+                <div style={{ ...sectionTitle, marginTop: 32 }}><Cpu size={12} style={{display:'inline',verticalAlign:'middle',marginRight:6}} />Reviewed This Session ({reviewPosts.filter(p => p.moderation_status !== 'pending').length})<span style={{ flex: 1, height: 1, background: 'var(--border)' }} /></div>
+                {reviewPosts.filter(p => p.moderation_status !== 'pending').map(post => (
+                  <div key={post.id} style={{ ...card, opacity: 0.7 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={avatarStyle}>{post.users?.username?.[0]?.toUpperCase() || 'U'}</div>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--sans)' }}>{post.users?.username || 'Unknown'}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{(post.body || '').slice(0, 60)}</div>
+                      </div>
+                      <StatusBadge status={post.moderation_status} />
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </>
         )}
       </div>

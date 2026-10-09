@@ -172,10 +172,14 @@ export function usePosts() {
     return () => supabase.removeChannel(sub)
   }, [fetchPosts, fetchSinglePost])
 
-  async function createPost(body, mediaUrl = null, region = null, tag = null, postType = 'general') {
+  // moderationStatus is only sent when the caller wants something other than
+  // the table's default ('pending', for a News post that needs manual
+  // review). Left out otherwise so ordinary posting keeps working even
+  // before the moderation_status column exists.
+  async function createPost(body, mediaUrl = null, region = null, tag = null, postType = 'general', moderationStatus = null) {
     if (!user?.id) return { error: new Error('Not authenticated') }
     const extractedTag = tag || (body.match(/#(\w+)/)?.[1]?.toUpperCase() || null)
-    const { error } = await contentDb.from('posts').insert({
+    const { data, error } = await contentDb.from('posts').insert({
       author_id: user.id,
       body,
       region,
@@ -185,9 +189,10 @@ export function usePosts() {
       likes: 0,
       reply_count: 0,
       repost_count: 0,
-      ...(mediaUrl ? { media_url: mediaUrl } : {})
-    })
-    return { error }
+      ...(mediaUrl ? { media_url: mediaUrl } : {}),
+      ...(moderationStatus ? { moderation_status: moderationStatus } : {}),
+    }).select('id').single()
+    return { data, error }
   }
 
   async function likePost(id, createNotification = null) {

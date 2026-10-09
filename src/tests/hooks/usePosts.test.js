@@ -140,9 +140,7 @@ describe('usePosts', () => {
 
   it('createPost inserts with correct fields', async () => {
     mockSupabase.insert.mockReturnThis()
-    mockSupabase.then.mockImplementationOnce((resolve) =>
-      Promise.resolve({ data: { id: 'p-new' }, error: null }).then(resolve)
-    )
+    mockSupabase.single.mockResolvedValueOnce({ data: { id: 'p-new' }, error: null })
 
     const { result } = renderHook(() => usePosts())
     await act(async () => {
@@ -160,9 +158,7 @@ describe('usePosts', () => {
 
   it('createPost extracts first hashtag as tag when no explicit tag given', async () => {
     mockSupabase.insert.mockReturnThis()
-    mockSupabase.then.mockImplementationOnce((resolve) =>
-      Promise.resolve({ data: {}, error: null }).then(resolve)
-    )
+    mockSupabase.single.mockResolvedValueOnce({ data: { id: 'p-new' }, error: null })
 
     const { result } = renderHook(() => usePosts())
     await act(async () => {

@@ -582,7 +582,7 @@ function ComposerTools({ mediaFile, fileInputRef, postType, setPostType }) {
   )
 }
 
-function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaPreview, fileInputRef, handlePost, handleFileSelect, removeMedia, posting, uploading, postType, setPostType }) {
+function ComposerInner({ user, body, setBody, error, setError, reviewNotice, mediaFile, mediaPreview, fileInputRef, handlePost, handleFileSelect, removeMedia, posting, uploading, postType, setPostType }) {
   return (
     <div style={{ display: 'flex', gap: 10 }}>
       <div style={{
@@ -656,6 +656,10 @@ function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaP
         </div>
         {error ? (
           <div className="compose-hint" style={{ color: 'var(--accent2)', fontFamily: 'var(--mono)', fontSize: 10 }}>⚠ {error}</div>
+        ) : reviewNotice ? (
+          <div className="compose-hint" style={{ color: 'var(--warn)', fontFamily: 'var(--mono)', fontSize: 10 }}>
+            ⏳ Sent for manual review — it may not be allowed on the platform. You'll be notified once it's been reviewed.
+          </div>
         ) : postType === 'news' && (
           <div className="compose-hint"><b>News:</b> marked as a news report in the feed</div>
         )}
@@ -725,6 +729,7 @@ export default function GeneralFeed() {
   const [postType, setPostType] = useState('general')
   const [newsConfirmOpen, setNewsConfirmOpen] = useState(false)
   const [moderating, setModerating] = useState(false)
+  const [reviewNotice, setReviewNotice] = useState(false)
   const [feedTab, setFeedTab] = useState('all')
   const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000)
   const [followedIds, setFollowedIds] = useState([])
@@ -764,7 +769,7 @@ export default function GeneralFeed() {
     }, 400)
   }, [location.search, loading])
 
-  async function handlePost() {
+  async function handlePost(moderationStatus = null) {
     if (!body.trim()) return
     if (body.length > 500) { setError('Max 500 characters'); return }
     setPosting(true)
@@ -791,9 +796,17 @@ export default function GeneralFeed() {
       setUploading(false)
     }
 
-    const { error } = await createPost(body.trim(), mediaUrl, null, null, postType)
-    if (error) setError(error.message)
-    else {
+    const { data, error } = await createPost(body.trim(), mediaUrl, null, null, postType, moderationStatus)
+    if (error) {
+      setError(moderationStatus === 'pending' ? "Couldn't submit this post for review — please try again." : error.message)
+    } else {
+      if (moderationStatus === 'pending' && data?.id) {
+        await socialDb.from('notifications').insert({
+          to_user_id: user.id, from_user_id: user.id, type: 'post_pending_review', post_id: data.id,
+        })
+        setReviewNotice(true)
+        setTimeout(() => setReviewNotice(false), 8000)
+      }
       setBody('')
       setMediaFile(null)
       setMediaPreview(null)
@@ -802,8 +815,8 @@ export default function GeneralFeed() {
     setPosting(false)
   }
 
-  async function doPost() {
-    await handlePost()
+  async function doPost(moderationStatus = null) {
+    await handlePost(moderationStatus)
     if (isMobile) setComposerOpen(false)
   }
 
@@ -815,11 +828,11 @@ export default function GeneralFeed() {
   async function confirmNewsPost() {
     setModerating(true)
     setError('')
-    const { blocked, reason, checked } = await moderateNewsPost(body)
+    const { decision, reason, checked } = await moderateNewsPost(body)
     setModerating(false)
+    setNewsConfirmOpen(false)
 
-    if (blocked) {
-      setNewsConfirmOpen(false)
+    if (decision === 'block') {
       setError(
         checked
           ? `This post can't be published as News${reason ? `: ${reason}` : ''}.`
@@ -828,8 +841,7 @@ export default function GeneralFeed() {
       return
     }
 
-    setNewsConfirmOpen(false)
-    doPost()
+    doPost(decision === 'review' ? 'pending' : null)
   }
 
   function toggleThread(postId) {
@@ -1015,7 +1027,7 @@ export default function GeneralFeed() {
         }}>
           <ComposerInner
             user={user} body={body} setBody={setBody}
-            error={error} setError={setError}
+            error={error} setError={setError} reviewNotice={reviewNotice}
             mediaFile={mediaFile} mediaPreview={mediaPreview}
             fileInputRef={fileInputRef}
             handlePost={requestPost} handleFileSelect={handleFileSelect}
@@ -1121,6 +1133,11 @@ export default function GeneralFeed() {
                 {error && (
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--accent2)', marginTop: 8 }}>
                     ⚠ {error}
+                  </div>
+                )}
+                {!error && reviewNotice && (
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--warn)', marginTop: 8 }}>
+                    ⏳ Sent for manual review — it may not be allowed on the platform. You'll be notified once it's been reviewed.
                   </div>
                 )}
                 {mediaPreview && (
