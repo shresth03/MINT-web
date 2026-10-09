@@ -5,24 +5,38 @@ const PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/anthropic-p
 function buildPrompt(text) {
   return `You are a content moderator for a news platform. Decide whether the post below is safe to publish as a News item.
 
-Flag it if it contains any of:
-- Sexually explicit or pornographic content
-- Abusive, hateful, or harassing language toward a person or group
-- Blocked slurs or profanity, including disguised variants (leetspeak, spacing, symbol substitution, deliberate misspellings meant to evade filters)
+Respond with ONLY a JSON object, no other text:
+{"decision": "allow" | "block" | "review", "reason": "<one short sentence, empty string if allow>"}
 
-Respond with ONLY a JSON object, no other text: {"blocked": true|false, "reason": "<one short sentence if blocked, else empty string>"}
+- "block": clearly contains sexually explicit/pornographic content, abusive/hateful/harassing language, or blocked slurs/profanity — including disguised variants (leetspeak, spacing, symbol substitution, deliberate misspellings meant to evade filters).
+- "review": you're not confident either way — ambiguous context, reclaimed language, satire, or a borderline case that deserves a human judgment call.
+- "allow": none of the above. Merely mentioning a protected trait (e.g. someone's sexual orientation, race, religion) is not itself abusive — only flag language that is hateful, harassing, or explicit.
 
 Post text:
 """${text}"""`
 }
 
+// Layer 1 — the admin-managed blocked list (Admin → Blocked List). Free, no
+// AI call. The server enforces the same list on every post, so this only
+// gives an early answer; a failed lookup just moves on to the AI check.
+async function checkBlockedTexts(text) {
+  try {
+    const { data, error } = await supabase.rpc('check_blocked_text', { p_text: text })
+    if (error || !data || data.length === 0) return null
+    return data[0]
+  } catch {
+    return null
+  }
+}
+
+// Layer 2 — AI classification via the existing Anthropic proxy.
 // Fails closed: any error, missing auth, or unparsable response blocks the
-// post. A moderation gate that lets content through when it can't verify is
-// not actually a gate.
-export async function moderateNewsPost(text) {
+// post — a moderation gate that lets content through when it can't verify
+// is not actually a gate.
+async function checkWithAI(text) {
   const { data: { session } } = await supabase.auth.getSession()
   const jwt = session?.access_token
-  if (!jwt) return { blocked: true, reason: '', checked: false }
+  if (!jwt) return { decision: 'block', reason: '', checked: false }
 
   try {
     const res = await fetch(PROXY_URL, {
@@ -34,23 +48,35 @@ export async function moderateNewsPost(text) {
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 200,
-        messages: [{
-          role: 'user',
-          content: buildPrompt(text),
-        }],
+        messages: [{ role: 'user', content: buildPrompt(text) }],
       }),
     })
 
-    if (!res.ok) return { blocked: true, reason: '', checked: false }
+    if (!res.ok) return { decision: 'block', reason: '', checked: false }
 
     const data = await res.json()
     const raw = data?.content?.[0]?.text?.trim() ?? ''
     const match = raw.match(/\{[\s\S]*\}/)
-    if (!match) return { blocked: true, reason: '', checked: false }
+    if (!match) return { decision: 'block', reason: '', checked: false }
 
     const parsed = JSON.parse(match[0])
-    return { blocked: !!parsed.blocked, reason: parsed.reason || '', checked: true }
+    const decision = ['allow', 'block', 'review'].includes(parsed.decision) ? parsed.decision : 'block'
+    return { decision, reason: parsed.reason || '', checked: true }
   } catch {
-    return { blocked: true, reason: '', checked: false }
+    return { decision: 'block', reason: '', checked: false }
   }
+}
+
+// Layer 3 (manual review) is handled by the caller: a "review" decision
+// means the post is created with moderation_status='pending' and held out
+// of the public feed until an admin approves or rejects it (Admin → News
+// Review; rejected posts show under Removed Posts).
+export async function moderateNewsPost(text) {
+  const blockedMatch = await checkBlockedTexts(text)
+  if (blockedMatch) {
+    return { decision: 'block', reason: blockedMatch.reason || 'Contains blocked content.', checked: true, layer: 'blocklist' }
+  }
+
+  const result = await checkWithAI(text)
+  return { ...result, layer: 'ai' }
 }

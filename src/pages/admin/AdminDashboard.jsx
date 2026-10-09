@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react'
-import { contentDb, identityDb, moderationDb, socialDb } from '../../api/supabase'
+import { supabase, contentDb, identityDb, moderationDb, socialDb } from '../../api/supabase'
 import { useAuth } from '../../hooks/core/useAuth'
 import { useNavigate } from 'react-router-dom'
 import PageShell from '../../components/PageShell'
 import { Check, X, Cpu, ChevronUp, ChevronDown, BadgeCheck, Flag, Clock, RefreshCw, CircleDot } from 'lucide-react'
 import { computeScore } from '../../hooks/social/useCredibility'
 import TimeStamp from '../../components/TimeStamp'
+import { card, fieldLabel, fieldValue, sectionTitle, emptyState, avatarStyle, actionBtn } from './adminStyles'
+import NewsReviewTab from './NewsReviewTab'
+import BlocklistTab from './BlocklistTab'
+import RemovedPostsTab from './RemovedPostsTab'
 
 const FEATURES_META = {
   intel_feed: 'Intel Feed', general_feed: 'General Feed', following_feed: 'Following Feed',
@@ -114,6 +118,62 @@ export default function AdminDashboard() {
   const [claimNotes, setClaimNotes] = useState({})
   const [scoreInputs, setScoreInputs] = useState({})
   const [feedback, setFeedback] = useState([])
+  const [reviewPosts, setReviewPosts] = useState([])
+  const [blockedTerms, setBlockedTerms] = useState([])
+  const [removedPosts, setRemovedPosts] = useState([])
+  const [removedSource, setRemovedSource] = useState(null)
+  const [removedLoading, setRemovedLoading] = useState(false)
+
+  // News review, blocked list and removed posts all go through the mod_*
+  // RPCs, which check staff rights server-side and write the audit log.
+  async function loadReviewPosts() {
+    const { data } = await supabase.rpc('mod_get_pending_posts')
+    setReviewPosts(data || [])
+  }
+
+  async function handleReviewPost(postId, approve, reason) {
+    const { error } = await supabase.rpc('mod_review_post', { p_post_id: postId, p_approve: approve, p_reason: reason })
+    if (!error) {
+      setReviewPosts(prev => prev.filter(p => p.post_id !== postId))
+      if (!approve) loadRemovedPosts(removedSource)
+    }
+    return { error }
+  }
+
+  async function loadBlockedTerms() {
+    const { data } = await supabase.rpc('mod_blocklist_get')
+    setBlockedTerms(data || [])
+  }
+
+  async function handleAddBlockedTerm(term, reason) {
+    const { error } = await supabase.rpc('mod_blocklist_add', { p_term: term, p_reason: reason })
+    if (!error) await loadBlockedTerms()
+    return { error }
+  }
+
+  async function handleRemoveBlockedTerm(id) {
+    const { error } = await supabase.rpc('mod_blocklist_remove', { p_id: id })
+    if (!error) setBlockedTerms(prev => prev.filter(t => t.id !== id))
+    return { error }
+  }
+
+  async function loadRemovedPosts(source = null) {
+    setRemovedLoading(true)
+    const { data } = await supabase.rpc('mod_get_removed_posts', { p_source: source })
+    setRemovedPosts(data || [])
+    setRemovedLoading(false)
+  }
+
+  function handleRemovedSource(source) {
+    setRemovedSource(source)
+    loadRemovedPosts(source)
+  }
+
+  async function handleRestorePost(postId, reason) {
+    const { error } = await supabase.rpc('mod_restore_post', { p_post_id: postId, p_reason: reason })
+    if (!error) setRemovedPosts(prev => prev.filter(p => p.post_id !== postId))
+    return { error }
+  }
 
   async function loadApplications() {
     const { data } = await identityDb.from('osint_applications').select('*').order('created_at', { ascending: false })
@@ -173,7 +233,7 @@ export default function AdminDashboard() {
     const { data } = await identityDb.from('profiles').select('role').eq('id', user.id).single()
     if (!data || data.role !== 'admin') { navigate('/feed'); return }
     setUserRole('admin')
-    await Promise.all([loadApplications(), loadClaims(), loadOsintUsers(), loadFeedback(), loadReportersAndPublic()])
+    await Promise.all([loadApplications(), loadClaims(), loadOsintUsers(), loadFeedback(), loadReportersAndPublic(), loadReviewPosts(), loadBlockedTerms(), loadRemovedPosts()])
     setLoading(false)
   }
 
@@ -247,32 +307,6 @@ export default function AdminDashboard() {
   const openClaims = claims.filter(c => c.status === 'open')
   const resolvedClaims = claims.filter(c => c.status !== 'open')
 
-  // shared styles
-  const card = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '18px 20px', marginBottom: 12, transition: 'border-color 0.15s' }
-  const fieldLabel = { fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 3 }
-  const fieldValue = { fontSize: 12, color: 'var(--muted)', lineHeight: 1.5, fontFamily: 'var(--sans)' }
-  const sectionTitle = { fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: 2, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }
-  const emptyState = { textAlign: 'center', padding: 40, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)', letterSpacing: 1 }
-  const avatarStyle = { width: 38, height: 38, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'var(--bg)', flexShrink: 0, fontFamily: 'var(--mono)' }
-
-  function actionBtn(variant) {
-    const map = {
-      approve:    { bg: 'var(--verified)',  color: '#000',            border: 'var(--verified)' },
-      reject:     { bg: 'transparent',      color: 'var(--accent2)',  border: 'var(--accent2)' },
-      verified:   { bg: 'var(--verified)',  color: '#000',            border: 'var(--verified)' },
-      false:      { bg: 'transparent',      color: '#ff4757',         border: '#ff4757' },
-      developing: { bg: 'transparent',      color: 'var(--accent)',   border: 'var(--accent)' },
-      reversed:   { bg: 'transparent',      color: 'var(--warn)',     border: 'var(--warn)' },
-    }
-    const s = map[variant] || map.reject
-    return {
-      padding: '7px 18px', borderRadius: 4, fontFamily: 'var(--mono)',
-      fontSize: 10, letterSpacing: 1, cursor: 'pointer',
-      border: `1px solid ${s.border}`, background: s.bg, color: s.color,
-      transition: 'all 0.15s', fontWeight: 600,
-    }
-  }
-
   if (!userRole) return null
 
   return (
@@ -290,6 +324,9 @@ export default function AdminDashboard() {
           { id: 'scores',       label: 'Score Override' },
           { id: 'reporters',    label: 'Reporters' },
           { id: 'feedback',     label: `Feedback (${feedback.length})` },
+          { id: 'newsReview',   label: `News Review (${reviewPosts.length})` },
+          { id: 'blocklist',    label: `Blocked List (${blockedTerms.length})` },
+          { id: 'removed',      label: `Removed Posts (${removedPosts.length})` },
         ].map(t => (
           <div
             key={t.id}
@@ -747,6 +784,27 @@ export default function AdminDashboard() {
               ))
             }
           </>
+        )}
+
+        {/* ══ NEWS REVIEW ══ */}
+        {activeTab === 'newsReview' && (
+          <NewsReviewTab posts={reviewPosts} loading={loading} onReview={handleReviewPost} />
+        )}
+
+        {/* ══ BLOCKED LIST ══ */}
+        {activeTab === 'blocklist' && (
+          <BlocklistTab terms={blockedTerms} loading={loading} onAdd={handleAddBlockedTerm} onRemove={handleRemoveBlockedTerm} />
+        )}
+
+        {/* ══ REMOVED POSTS ══ */}
+        {activeTab === 'removed' && (
+          <RemovedPostsTab
+            posts={removedPosts}
+            loading={loading || removedLoading}
+            source={removedSource}
+            onSource={handleRemovedSource}
+            onRestore={handleRestorePost}
+          />
         )}
       </div>
     </PageShell>
