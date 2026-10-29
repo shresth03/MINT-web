@@ -13,6 +13,30 @@ async function fetchProfilesByIds(ids) {
   return new Map((data || []).map(p => [p.id, p]))
 }
 
+// Attachments and polls live in their own tables (posted from the mobile
+// composer). Load both for a batch of posts and merge them in under
+// `attachments` / `poll`. A failed lookup just leaves the post without them.
+async function fetchPostExtras(ids) {
+  const uniqueIds = [...new Set(ids.filter(Boolean))]
+  if (uniqueIds.length === 0) return { attachmentsById: new Map(), pollsById: new Map() }
+  const [attRes, pollRes] = await Promise.all([
+    supabase.rpc('attachment_get_for_posts', { p_post_ids: uniqueIds }),
+    supabase.rpc('poll_get_for_posts', { p_post_ids: uniqueIds }),
+  ])
+  return {
+    attachmentsById: new Map((attRes?.data || []).map(a => [a.post_id, a.attachments])),
+    pollsById: new Map((pollRes?.data || []).map(p => [p.post_id, p])),
+  }
+}
+
+function withExtras(post, extras) {
+  return {
+    ...post,
+    attachments: extras.attachmentsById.get(post.id) || [],
+    poll: extras.pollsById.get(post.id) || null,
+  }
+}
+
 export function usePosts() {
   const { user } = useAuth()
   const [posts, setPosts] = useState([])
@@ -52,10 +76,13 @@ export function usePosts() {
         : { data: [] }
       const repostedPostsById = new Map((repostedPosts || []).map(p => [p.id, p]))
 
-      const profilesById = await fetchProfilesByIds([
-        ...data.map(p => p.author_id),
-        ...(repostedPosts || []).map(p => p.author_id),
-        ...(repostsRaw || []).map(r => r.user_id),
+      const [profilesById, extras] = await Promise.all([
+        fetchProfilesByIds([
+          ...data.map(p => p.author_id),
+          ...(repostedPosts || []).map(p => p.author_id),
+          ...(repostsRaw || []).map(r => r.user_id),
+        ]),
+        fetchPostExtras([...data.map(p => p.id), ...repostPostIds]),
       ])
 
       const likedIds = new Set((likedData || []).map(l => l.post_id))
@@ -63,7 +90,7 @@ export function usePosts() {
       const repostedIds = new Set((repostedData || []).map(r => r.post_id))
 
       const originalPosts = data.map(p => ({
-        ...p,
+        ...withExtras(p, extras),
         users: profilesById.get(p.author_id) || null,
         _type: 'post',
         liked: likedIds.has(p.id),
@@ -76,7 +103,7 @@ export function usePosts() {
         .map(r => ({ ...r, posts: repostedPostsById.get(r.post_id) || null }))
         .filter(r => r.posts && r.user_id !== r.posts.author_id)
         .map(r => ({
-          ...r.posts,
+          ...withExtras(r.posts, extras),
           users: profilesById.get(r.posts.author_id) || null,
           _type: 'repost',
           _reposter: profilesById.get(r.user_id) || null,
@@ -112,7 +139,10 @@ export function usePosts() {
       .single()
     if (!data) return
 
-    const profilesById = await fetchProfilesByIds([data.author_id])
+    const [profilesById, extras] = await Promise.all([
+      fetchProfilesByIds([data.author_id]),
+      fetchPostExtras([data.id]),
+    ])
 
     const [{ data: likedRow }, { data: savedRow }, { data: repostedRow }] = await Promise.all([
       contentDb.from('likes').select('post_id').eq('user_id', userId).eq('post_id', id).maybeSingle(),
@@ -120,7 +150,7 @@ export function usePosts() {
       contentDb.from('reposts').select('post_id').eq('user_id', userId).eq('post_id', id).maybeSingle(),
     ])
     setPosts(prev => [{
-      ...data,
+      ...withExtras(data, extras),
       users: profilesById.get(data.author_id) || null,
       _type: 'post', liked: !!likedRow, saved: !!savedRow, reposted: !!repostedRow,
     }, ...prev])
@@ -317,6 +347,15 @@ export function usePosts() {
     }
   }
 
+  // Poll votes are final; the RPC returns the poll with its new counts,
+  // which replaces the poll on every card showing that post (incl. reposts).
+  async function votePoll(postId, optionId) {
+    const { data, error } = await supabase.rpc('poll_vote', { p_post_id: postId, p_option_id: optionId })
+    const poll = data?.[0] || null
+    if (poll) setPosts(prev => prev.map(p => (p.id === postId ? { ...p, poll } : p)))
+    return { data: poll, error }
+  }
+
   async function voteReply(replyId, vote) {
     const { data: existing } = await socialDb
       .from('reply_votes')
@@ -414,6 +453,6 @@ export function usePosts() {
     posts, loading, createPost, likePost,
     savePost, repost, createReply, fetchReplies,
     fetchSavedPosts, fetchUserReposts, searchUsers,
-    voteReply
+    voteReply, votePoll
   }
 }
