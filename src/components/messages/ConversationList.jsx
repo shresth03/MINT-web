@@ -3,6 +3,7 @@ import { Search, X } from 'lucide-react'
 import Avatar from './Avatar'
 import UserName from './UserName'
 import TimeStamp from '../TimeStamp'
+import { conversationName } from '../../hooks/social/useMessages'
 
 function UnreadBadge({ count }) {
   return (
@@ -35,6 +36,7 @@ const ARRIVED_CSS = `
 
 function ConversationRow({ conv, isActive, currentUserId, listOpenedAt, onOpen }) {
   const other = conv.otherUser
+  const name = conversationName(conv, currentUserId)
   // The open chat is being read, so never badge it
   const unread = isActive ? 0 : conv.unreadCount || 0
   const badge = unread > 0 && <UnreadBadge count={unread} />
@@ -58,10 +60,12 @@ function ConversationRow({ conv, isActive, currentUserId, listOpenedAt, onOpen }
       onMouseOut={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
     >
       {justArrived && <span key={conv.last_message_at} className="conv-arrived" aria-hidden="true" />}
-      <Avatar username={other?.username} />
+      <Avatar username={name} group={conv.isGroup} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-          <UserName user={other} fontWeight={unread ? 700 : 600} />
+          {conv.isGroup
+            ? <UserName user={{ username: name }} fontWeight={unread ? 700 : 600} />
+            : <UserName user={other} fontWeight={unread ? 700 : 600} />}
           <div style={{
             fontFamily: 'var(--mono)', fontSize: 9, whiteSpace: 'nowrap',
             color: unread ? 'var(--accent)' : 'var(--muted)', fontWeight: unread ? 700 : 400,
@@ -88,10 +92,10 @@ function ConversationRow({ conv, isActive, currentUserId, listOpenedAt, onOpen }
   )
 }
 
-function matches(conv, query) {
+function matches(conv, query, currentUserId) {
   const q = query.trim().toLowerCase()
   if (!q) return true
-  return (conv.otherUser?.username || '').toLowerCase().includes(q)
+  return conversationName(conv, currentUserId).toLowerCase().includes(q)
     || (conv.last_message || '').toLowerCase().includes(q)
 }
 
@@ -146,7 +150,7 @@ export default function ConversationList({ conversations, loading, activeConvId,
   // Total shown in the header; the open chat counts as read
   const listUnread = conversations.reduce(
     (sum, c) => sum + (c.id === activeConvId ? 0 : c.unreadCount || 0), 0)
-  const shown = conversations.filter(c => matches(c, query))
+  const shown = conversations.filter(c => matches(c, query, currentUserId))
 
   return (
     <div style={{

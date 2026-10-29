@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react'
-import { ArrowUp } from 'lucide-react'
+import { ArrowUp, Lock } from 'lucide-react'
 
-// Rounded message box that grows with its text, plus the round send button
-export default function Composer({ value, onChange, onSend, sending, isMobile, conversationId }) {
+// Rounded message box that grows with its text, plus the round send button.
+// `lockedReason` replaces it with a notice (an encrypted chat the web can't
+// reply in yet).
+export default function Composer({ value, onChange, onSend, sending, isMobile, conversationId, lockedReason, error }) {
   const inputRef = useRef(null)
   const canSend = !!value.trim() && !sending
 
@@ -13,6 +15,21 @@ export default function Composer({ value, onChange, onSend, sending, isMobile, c
     el.style.height = 'auto'
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`
   }, [value, conversationId])
+
+  if (lockedReason) {
+    return (
+      <div role="status" style={{
+        padding: '14px 20px', borderTop: '1px solid var(--border)',
+        background: 'var(--surface)', flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: 10,
+        fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: 0.5,
+        color: 'var(--muted)', lineHeight: 1.6,
+      }}>
+        <Lock size={13} style={{ flexShrink: 0 }} aria-hidden="true" />
+        {lockedReason}
+      </div>
+    )
+  }
 
   return (
     <div style={{
@@ -60,6 +77,14 @@ export default function Composer({ value, onChange, onSend, sending, isMobile, c
           <ArrowUp size={15} strokeWidth={2.4} />
         </button>
       </div>
+      {error && (
+        <div role="alert" style={{
+          fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--accent)',
+          marginTop: 6, paddingLeft: 16,
+        }}>
+          {error}
+        </div>
+      )}
       {!isMobile && (
         <div style={{
           fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)',
