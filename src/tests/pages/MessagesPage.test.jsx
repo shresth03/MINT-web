@@ -39,10 +39,15 @@ const hook = {
   loading: false,
   getOrCreateConversation: vi.fn(),
   fetchMessages: vi.fn(),
+  // The page loads through fetchThread; tests set the messages on fetchMessages
+  fetchThread: vi.fn(async id => ({ conversation: hook.conversationDetails, messages: await hook.fetchMessages(id) })),
+  conversationDetails: null,
   sendMessage: vi.fn(),
   markConversationRead: vi.fn(),
+  watchConversation: vi.fn(() => () => {}),
 }
-vi.mock('../../hooks/social/useMessages', () => ({
+vi.mock('../../hooks/social/useMessages', async importOriginal => ({
+  ...(await importOriginal()),
   useMessages: () => hook,
 }))
 
@@ -59,6 +64,7 @@ describe('MessagesPage', () => {
     vi.clearAllMocks()
     hook.conversations = CONVERSATIONS
     hook.loading = false
+    hook.conversationDetails = null
     hook.fetchMessages.mockResolvedValue(THREAD)
     hook.sendMessage.mockResolvedValue({ error: null })
     Element.prototype.scrollIntoView = vi.fn()
@@ -218,5 +224,49 @@ describe('MessagesPage', () => {
     const glow = document.querySelectorAll('.conv-arrived')
     expect(glow).toHaveLength(1)
     expect(glow[0].closest('div').textContent).toContain('signal_desk')
+  })
+  // ── Shared with the app: groups and encryption ──────────────────────────
+
+  it('names a group, marks it with the group icon and labels who said what', async () => {
+    hook.conversations = [{
+      id: 'g1', isGroup: true, title: 'Mumbai Flood', otherUser: null,
+      last_message: 'Attachment', last_message_at: minutesAgo(5), lastSenderId: 'u1', unreadCount: 0,
+    }]
+    hook.conversationDetails = {
+      id: 'g1', isGroup: true, title: 'Mumbai Flood', isEncrypted: false,
+      participants: [{ user_id: 'me' }, { user_id: 'u1' }, { user_id: 'u2' }],
+    }
+    hook.fetchMessages.mockResolvedValue([
+      { id: 1, conversation_id: 'g1', sender_id: 'u1', sender: { username: 'geo_watch' }, body: 'Water is rising', read: true, created_at: minutesAgo(5) },
+    ])
+    renderPage()
+    fireEvent.click(screen.getByText('Mumbai Flood'))
+    expect(await screen.findByText('Water is rising')).toBeInTheDocument()
+    expect(screen.getByText('geo_watch')).toBeInTheDocument()
+    expect(screen.getByText('3 MEMBERS')).toBeInTheDocument()
+    expect(screen.queryByText(/VIEW PROFILE/)).not.toBeInTheDocument()
+  })
+
+  it('shows encrypted messages as locked and does not offer a reply box', async () => {
+    hook.conversations = [{ ...CONVERSATIONS[0], isEncrypted: true, last_message: '🔒 Encrypted message' }]
+    hook.conversationDetails = { id: 'c1', isGroup: false, isEncrypted: true, participants: [] }
+    hook.fetchMessages.mockResolvedValue([
+      { id: 5, conversation_id: 'c1', sender_id: 'u1', kind: 'e2ee', encrypted: true, body: '', read: false, created_at: minutesAgo(2) },
+    ])
+    renderPage()
+    fireEvent.click(screen.getByText('geo_watch'))
+    expect(await screen.findByText(/open MINT on your phone to read it/)).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('end-to-end encrypted')
+    expect(screen.queryByLabelText('Message')).not.toBeInTheDocument()
+  })
+
+  it('shows why a message was not sent', async () => {
+    hook.sendMessage.mockResolvedValue({ error: { message: 'You can no longer message this person.' } })
+    await openGeoWatch()
+    const box = screen.getByLabelText('Message')
+    fireEvent.change(box, { target: { value: 'Hello?' } })
+    fireEvent.click(screen.getByRole('button', { name: /send message/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('You can no longer message this person.')
+    expect(box).toHaveValue('Hello?')
   })
 })
