@@ -152,11 +152,11 @@ export default function NotificationPanel({ notifications, unreadCount, onMarkAl
                 style={{
                   display: 'flex', gap: 12, padding: '12px 16px',
                   borderBottom: '1px solid var(--border)',
-                  background: n.read ? 'transparent' : 'rgba(0,212,255,0.04)',
+                  background: n.read ? 'transparent' : 'var(--active-bg)',
                   cursor: 'pointer', transition: 'background 0.15s'
                 }}
                 onMouseOver={e => e.currentTarget.style.background = 'var(--surface2)'}
-                onMouseOut={e => e.currentTarget.style.background = n.read ? 'transparent' : 'rgba(0,212,255,0.04)'}
+                onMouseOut={e => e.currentTarget.style.background = n.read ? 'transparent' : 'var(--active-bg)'}
               >
                 {/* Icon */}
                 <div style={{

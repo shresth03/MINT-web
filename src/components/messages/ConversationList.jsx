@@ -11,7 +11,7 @@ function UnreadBadge({ count }) {
       aria-label={`${count} unread`}
       style={{
         flexShrink: 0, minWidth: 18, height: 18, padding: '0 6px', borderRadius: 9,
-        background: 'var(--accent)', color: 'var(--bg)',
+        background: 'var(--accent)', color: 'var(--on-accent)',
         fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       }}

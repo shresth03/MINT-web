@@ -82,7 +82,7 @@ export default function SearchPage() {
     background: 'var(--accent)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: size === 28 ? 11 : 16, fontWeight: 700,
-    color: 'var(--bg)', flexShrink: 0, fontFamily: 'var(--mono)',
+    color: 'var(--on-accent)', flexShrink: 0, fontFamily: 'var(--mono)',
   })
 
   const resultCard = {
@@ -157,7 +157,7 @@ export default function SearchPage() {
                 fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
                 cursor: 'pointer', transition: 'all 0.15s',
                 border: `1px solid ${tagFilter === tag ? 'var(--accent)' : 'var(--border)'}`,
-                background: tagFilter === tag ? 'rgba(0,212,255,0.1)' : 'transparent',
+                background: tagFilter === tag ? 'var(--topbar-hover)' : 'transparent',
                 color: tagFilter === tag ? 'var(--accent)' : 'var(--muted)',
               }}
             >
@@ -177,7 +177,7 @@ export default function SearchPage() {
                 fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
                 cursor: 'pointer', transition: 'all 0.15s',
                 border: `1px solid ${dateFilter === opt.id ? 'var(--accent)' : 'var(--border)'}`,
-                background: dateFilter === opt.id ? 'rgba(0,212,255,0.1)' : 'transparent',
+                background: dateFilter === opt.id ? 'var(--topbar-hover)' : 'transparent',
                 color: dateFilter === opt.id ? 'var(--accent)' : 'var(--muted)',
               }}
             >

@@ -57,7 +57,7 @@ export default class ErrorBoundary extends Component {
             <button
               type="button"
               onClick={() => window.location.reload()}
-              style={{ ...button, background: 'var(--accent)', color: 'var(--bg)' }}
+              style={{ ...button, background: 'var(--accent)', color: 'var(--on-accent)' }}
             >
               <RotateCw size={13} aria-hidden="true" /> TRY AGAIN
             </button>

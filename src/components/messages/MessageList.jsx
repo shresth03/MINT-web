@@ -99,7 +99,7 @@ function Attachments({ items, isSent }) {
           key={a.url} href={a.url} target="_blank" rel="noreferrer"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
-            color: isSent ? 'var(--bg)' : 'var(--accent)', fontSize: 12,
+            color: isSent ? 'var(--on-accent)' : 'var(--accent)', fontSize: 12,
           }}
         >
           <Paperclip size={12} aria-hidden="true" /> {a.name || (a.type === 'video' ? 'Video' : 'Attachment')}
@@ -150,7 +150,7 @@ function MessageBubble({ msg, isSent, groupStart, groupEnd, marginTop, status, s
         fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
         wordBreak: 'break-word', fontFamily: 'var(--sans)',
         ...(isSent ? {
-          background: 'var(--accent)', color: 'var(--bg)',
+          background: 'var(--accent)', color: 'var(--on-accent)',
           borderRadius: `${R}px ${groupStart ? R : TIGHT}px ${groupEnd ? R : TIGHT}px ${R}px`,
         } : {
           background: 'var(--surface2)', color: 'var(--text)',

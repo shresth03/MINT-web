@@ -189,7 +189,7 @@ const handleSubmit = async () => {
       <>
         <div style={{
           width: 48, height: 48, borderRadius: '50%',
-          background: 'rgba(77,200,232,0.1)', border: '1px solid var(--accent)',
+          background: 'var(--topbar-hover)', border: '1px solid var(--accent)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 20px',
         }}>
@@ -242,7 +242,7 @@ const handleSubmit = async () => {
           style={{
             width: '100%', padding: 11,
             background: loading ? 'var(--border)' : 'var(--accent)',
-            color: loading ? 'var(--muted)' : 'var(--bg)',
+            color: loading ? 'var(--muted)' : 'var(--on-accent)',
             fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700,
             letterSpacing: 1, border: 'none', borderRadius: 4,
             cursor: loading ? 'not-allowed' : 'pointer',

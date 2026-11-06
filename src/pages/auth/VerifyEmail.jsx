@@ -68,7 +68,7 @@ export default function VerifyEmail() {
         {/* Icon */}
         <div style={{
           width: 56, height: 56, borderRadius: '50%',
-          background: 'rgba(77,200,232,0.1)', border: '1px solid var(--accent)',
+          background: 'var(--topbar-hover)', border: '1px solid var(--accent)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 20px',
         }}>
@@ -125,7 +125,7 @@ export default function VerifyEmail() {
           style={{
             width: '100%', padding: '11px 0',
             background: resendLoading || cooldown > 0 ? 'transparent' : 'var(--accent)',
-            color: resendLoading || cooldown > 0 ? 'var(--muted)' : 'var(--bg)',
+            color: resendLoading || cooldown > 0 ? 'var(--muted)' : 'var(--on-accent)',
             border: resendLoading || cooldown > 0 ? '1px solid var(--border)' : 'none',
             fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700,
             letterSpacing: 1, borderRadius: 4,

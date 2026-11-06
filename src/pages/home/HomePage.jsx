@@ -50,7 +50,7 @@ export default function HomePage() {
   const btnAccent = {
     ...btnBase,
     background: 'var(--accent)',
-    color: 'var(--bg)',
+    color: 'var(--on-accent)',
     border: '1px solid var(--accent)',
   }
 
@@ -140,7 +140,7 @@ export default function HomePage() {
                   onClick={() => navigate('/login')}
                   style={btnOutline}
                   onMouseOver={e => {
-                    e.currentTarget.style.background = 'rgba(77,200,232,0.07)'
+                    e.currentTarget.style.background = 'var(--active-bg)'
                   }}
                   onMouseOut={e => {
                     e.currentTarget.style.background = 'transparent'

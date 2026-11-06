@@ -51,7 +51,7 @@ const styles = `
     position: fixed; inset: 0; z-index: 99999; pointer-events: none;
     background: repeating-linear-gradient(
       0deg, transparent, transparent 3px,
-      rgba(77,200,232,0.04) 3px, rgba(77,200,232,0.04) 4px
+      rgba(192,64,74,0.04) 3px, rgba(192,64,74,0.04) 4px
     );
     animation: radarSweep 0.7s cubic-bezier(0.4,0,0.2,1) forwards;
   }
@@ -220,7 +220,7 @@ const styles = `
   .switch-track.second .switch-thumb { transform:translateX(100%); }
   .switch-btn { position:relative; z-index:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:6px 12px; font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; font-family:var(--mono); border:none; background:none; color:var(--muted); cursor:pointer; transition:color 0.22s; white-space:nowrap; }
   .switch-btn:hover { color:var(--text); }
-  .switch-btn.active, .switch-btn.active:hover { color:var(--bg); }
+  .switch-btn.active, .switch-btn.active:hover { color:var(--on-accent); }
   .switch-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
   .nav-toggle { min-width:170px; }
   /* The feed slides in from the side of the tab you picked */
@@ -990,7 +990,7 @@ export default function App() {
                           style={{flex:1, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:4, padding:'12px', textAlign:'center', cursor:'pointer', transition:'border-color 0.15s', font:'inherit', color:'inherit'}}
                           onMouseOver={e => e.currentTarget.style.borderColor='var(--accent)'}
                           onMouseOut={e => e.currentTarget.style.borderColor='var(--border)'}>
-                          <div style={{width:36, height:36, borderRadius:'50%', background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'var(--bg)', margin:'0 auto 8px'}}>
+                          <div style={{width:36, height:36, borderRadius:'50%', background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'var(--on-accent)', margin:'0 auto 8px'}}>
                             {s.username?.[0]?.toUpperCase()}
                           </div>
                           <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--verified)', display:'flex', alignItems:'center', justifyContent:'center', gap:3, marginBottom:2}}>

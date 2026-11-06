@@ -47,7 +47,7 @@ function StatusBadge({ status }) {
     open:       { bg: 'rgba(255,159,67,0.15)',  color: '#ff9f43',         border: '#ff9f43' },
     verified:   { bg: 'rgba(48,216,128,0.15)',  color: 'var(--verified)', border: 'var(--verified)' },
     false:      { bg: 'rgba(255,71,87,0.15)',   color: '#ff4757',         border: '#ff4757' },
-    developing: { bg: 'rgba(77,200,232,0.15)',  color: 'var(--accent)',   border: 'var(--accent)' },
+    developing: { bg: 'var(--mf-active-bg)',  color: 'var(--accent)',   border: 'var(--accent)' },
     reversed:   { bg: 'rgba(232,160,32,0.15)',  color: 'var(--warn)',     border: 'var(--warn)' },
   }
   const s = colors[status] || colors.pending
@@ -253,7 +253,7 @@ export default function AdminDashboard() {
   const fieldValue = { fontSize: 12, color: 'var(--muted)', lineHeight: 1.5, fontFamily: 'var(--sans)' }
   const sectionTitle = { fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: 2, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }
   const emptyState = { textAlign: 'center', padding: 40, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)', letterSpacing: 1 }
-  const avatarStyle = { width: 38, height: 38, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'var(--bg)', flexShrink: 0, fontFamily: 'var(--mono)' }
+  const avatarStyle = { width: 38, height: 38, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'var(--on-accent)', flexShrink: 0, fontFamily: 'var(--mono)' }
 
   function actionBtn(variant) {
     const map = {
@@ -607,7 +607,7 @@ export default function AdminDashboard() {
                         letterSpacing: 1, transition: 'all 0.15s',
                         background: scoreInputs[u.id] ? 'var(--accent)' : 'transparent',
                         border: '1px solid var(--accent)',
-                        color: scoreInputs[u.id] ? 'var(--bg)' : 'var(--accent)',
+                        color: scoreInputs[u.id] ? 'var(--on-accent)' : 'var(--accent)',
                         cursor: scoreInputs[u.id] ? 'pointer' : 'not-allowed',
                         opacity: processing === `score-${u.id}` ? 0.5 : 1,
                       }}
@@ -649,7 +649,7 @@ export default function AdminDashboard() {
                   <div style={{ flex: 1 }}>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--text)' }}>{u.username}</span>
                   </div>
-                  <button onClick={() => assignRole(u.id, 'reporter')} disabled={processing === u.id} style={{ padding: '5px 12px', background: 'rgba(0,212,255,0.08)', border: '1px solid var(--accent)', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', cursor: 'pointer' }}>
+                  <button onClick={() => assignRole(u.id, 'reporter')} disabled={processing === u.id} style={{ padding: '5px 12px', background: 'var(--mf-active-bg)', border: '1px solid var(--accent)', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', cursor: 'pointer' }}>
                     MAKE REPORTER
                   </button>
                 </div>
@@ -738,7 +738,7 @@ export default function AdminDashboard() {
 
                   {/* Overall comment */}
                   {f.overall_comment && (
-                    <div style={{ padding: '10px 14px', background: 'rgba(0,212,255,0.04)', border: '1px solid rgba(0,212,255,0.12)', borderRadius: 6 }}>
+                    <div style={{ padding: '10px 14px', background: 'var(--active-bg)', border: '1px solid var(--border)', borderRadius: 6 }}>
                       <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--accent)', marginBottom: 6, letterSpacing: 1 }}>OVERALL COMMENTS</div>
                       <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, fontFamily: 'var(--sans)' }}>{f.overall_comment}</div>
                     </div>

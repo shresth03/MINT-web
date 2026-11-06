@@ -195,7 +195,7 @@ export default function SettingsPage() {
     padding: '3px 10px', borderRadius: 10,
     fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 600, letterSpacing: 1,
     background: profile?.role === 'osint' ? 'rgba(48,216,128,0.1)'
-      : profile?.role === 'admin' ? 'rgba(77,200,232,0.1)'
+      : profile?.role === 'admin' ? 'var(--topbar-hover)'
       : 'rgba(64,72,88,0.2)',
     color: profile?.role === 'osint' ? 'var(--verified)'
       : profile?.role === 'admin' ? 'var(--accent)'
@@ -220,7 +220,7 @@ export default function SettingsPage() {
               background: 'var(--accent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 700,
-              color: 'var(--bg)', flexShrink: 0,
+              color: 'var(--on-accent)', flexShrink: 0,
             }}>
               {profile?.username?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
             </div>
@@ -269,7 +269,7 @@ export default function SettingsPage() {
               style={{
                 padding: '9px 22px',
                 background: saving ? 'var(--border)' : 'var(--accent)',
-                color: saving ? 'var(--muted)' : 'var(--bg)',
+                color: saving ? 'var(--muted)' : 'var(--on-accent)',
                 border: 'none', borderRadius: 4,
                 fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,
                 letterSpacing: 1, cursor: saving ? 'not-allowed' : 'pointer',
@@ -326,7 +326,7 @@ export default function SettingsPage() {
                 letterSpacing: 1, cursor: resetLoading ? 'not-allowed' : 'pointer',
                 opacity: resetLoading ? 0.6 : 1, transition: 'all 0.15s',
               }}
-              onMouseOver={e => { if (!resetLoading) e.currentTarget.style.background = 'rgba(77,200,232,0.07)' }}
+              onMouseOver={e => { if (!resetLoading) e.currentTarget.style.background = 'var(--mf-active-bg)' }}
               onMouseOut={e => { e.currentTarget.style.background = 'transparent' }}
             >
               {resetLoading ? 'SENDING...' : 'SEND RESET LINK'}
@@ -411,7 +411,7 @@ export default function SettingsPage() {
                 style={{
                   padding: '9px 20px',
                   background: 'var(--accent)',
-                  color: 'var(--bg)',
+                  color: 'var(--on-accent)',
                   border: '1px solid var(--accent)',
                   borderRadius: 4,
                   fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,
@@ -463,7 +463,7 @@ export default function SettingsPage() {
                   style={{
                     padding: '8px 18px',
                     background: 'var(--accent)',
-                    color: 'var(--bg)',
+                    color: 'var(--on-accent)',
                     border: '1px solid var(--accent)',
                     borderRadius: 4,
                     fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,

@@ -73,7 +73,7 @@ function VideoReel({ video, isActive, onLike, onView }) {
             background: 'var(--accent)', border: '2px solid #fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontFamily: 'var(--mono)', fontSize: 15, fontWeight: 700,
-            color: 'var(--bg)', cursor: 'pointer',
+            color: 'var(--on-accent)', cursor: 'pointer',
           }}
         >
           {video.users?.username?.[0]?.toUpperCase() || '?'}
@@ -180,7 +180,7 @@ function UploadModal({ onClose, onUpload, uploading }) {
             border: `2px dashed ${file ? 'var(--accent)' : 'var(--border)'}`,
             borderRadius: 8, padding: '24px 0', textAlign: 'center',
             cursor: 'pointer', marginBottom: 16, transition: 'border-color 0.15s',
-            background: file ? 'rgba(0,212,255,0.04)' : 'transparent',
+            background: file ? 'var(--active-bg)' : 'transparent',
           }}
         >
           {preview ? (
@@ -218,7 +218,7 @@ function UploadModal({ onClose, onUpload, uploading }) {
             fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', cursor: 'pointer',
           }}>CANCEL</button>
           <button onClick={handleUpload} disabled={!file || uploading} style={{
-            flex: 2, padding: '9px 0', background: 'var(--accent)', color: 'var(--bg)',
+            flex: 2, padding: '9px 0', background: 'var(--accent)', color: 'var(--on-accent)',
             border: 'none', borderRadius: 4, fontFamily: 'var(--mono)',
             fontSize: 10, fontWeight: 700, cursor: !file ? 'not-allowed' : 'pointer',
             opacity: !file ? 0.5 : 1,
@@ -274,7 +274,7 @@ export default function ReelsPage() {
           <button
             onClick={() => setShowUpload(true)}
             style={{
-              padding: '7px 16px', background: 'var(--accent)', color: 'var(--bg)',
+              padding: '7px 16px', background: 'var(--accent)', color: 'var(--on-accent)',
               border: 'none', borderRadius: 4, fontFamily: 'var(--mono)',
               fontSize: 10, fontWeight: 700, letterSpacing: 1, cursor: 'pointer',
             }}
@@ -294,7 +294,7 @@ export default function ReelsPage() {
             <div style={{ fontSize: 36 }}>▶</div>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)' }}>No reels yet</div>
             <button onClick={() => setShowUpload(true)} style={{
-              padding: '9px 20px', background: 'var(--accent)', color: 'var(--bg)',
+              padding: '9px 20px', background: 'var(--accent)', color: 'var(--on-accent)',
               border: 'none', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, cursor: 'pointer',
             }}>
               UPLOAD FIRST REEL
