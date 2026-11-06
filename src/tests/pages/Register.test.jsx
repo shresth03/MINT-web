@@ -135,9 +135,9 @@ describe('Register page', () => {
     expect(screen.getByRole('img', { name: 'MINT' })).toBeInTheDocument()
   })
 
-  it('dark theme → logo src is logo-dark.png', () => {
+  it('logo src is the MINT logo SVG', () => {
     renderRegister()
-    expect(screen.getByRole('img', { name: 'MINT' }).getAttribute('src')).toContain('logo-dark.png')
+    expect(screen.getByRole('img', { name: 'MINT' }).getAttribute('src')).toContain('mint-logo.svg')
   })
 
   // ── Account type selector CSS var (#21) ─────────────────────────────────

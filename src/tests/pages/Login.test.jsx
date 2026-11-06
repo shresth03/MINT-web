@@ -36,16 +36,10 @@ describe('Login page', () => {
     expect(screen.getByRole('img', { name: 'MINT' })).toBeInTheDocument()
   })
 
-  it('dark theme → logo src is logo-dark.png', () => {
+  it('logo src is the MINT logo SVG', () => {
     renderLogin()
     const img = screen.getByRole('img', { name: 'MINT' })
-    expect(img.getAttribute('src')).toContain('logo-dark.png')
-  })
-
-  it('light theme → logo src is logo-light.png', () => {
-    vi.doMock('../../hooks/core/useTheme', () => ({
-      useTheme: () => ({ theme: 'light', toggleTheme: vi.fn() }),
-    }))
+    expect(img.getAttribute('src')).toContain('mint-logo.svg')
   })
 
   // ── Layout ──────────────────────────────────────────────────────────────

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/core/useAuth'
-import { useTheme } from '../../hooks/core/useTheme'
 import { CircleDot, PenLine } from 'lucide-react'
 
 const ACCOUNT_TYPES = [
@@ -10,7 +9,6 @@ const ACCOUNT_TYPES = [
 ]
 
 export default function Register() {
-  const { theme } = useTheme()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
@@ -53,7 +51,7 @@ export default function Register() {
         {/* Logo */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
           <img
-            src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+            src="/mint-logo.svg"
             alt="MINT"
             style={{ height: 36, width: 'auto' }}
           />

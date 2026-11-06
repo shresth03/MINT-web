@@ -75,10 +75,10 @@ describe('Sidebar', () => {
     expect(screen.getByRole('img', { name: 'MINT' })).toBeInTheDocument()
   })
 
-  it('dark theme → logo src is /logo-dark.png', () => {
+  it('logo src is the MINT logo SVG', () => {
     renderSidebar()
     const img = screen.getByRole('img', { name: 'MINT' })
-    expect(img.getAttribute('src')).toContain('logo-dark.png')
+    expect(img.getAttribute('src')).toContain('mint-logo.svg')
   })
 
   it('does NOT render the old "MINT" text node next to a polygon', () => {

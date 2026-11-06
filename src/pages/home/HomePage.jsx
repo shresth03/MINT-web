@@ -1,7 +1,6 @@
 // FILE: src/pages/HomePage.jsx
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/core/useAuth'
-import { useTheme } from '../../hooks/core/useTheme'
 import { Cpu, Globe2, BadgeCheck, Radio, MessageSquareText, TrendingUp } from 'lucide-react'
 
 const FEATURES = [
@@ -33,7 +32,6 @@ const STEPS = [
 
 export default function HomePage() {
   const { user } = useAuth()
-  const { theme } = useTheme()
   const navigate = useNavigate()
 
   const btnBase = {
@@ -77,7 +75,7 @@ export default function HomePage() {
           {/* Logo */}
           <div onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
             <img
-              src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+              src="/mint-logo.svg"
               alt="MINT"
               style={{ height: 44, width: 'auto', display: 'block' }}
             />

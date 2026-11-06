@@ -102,7 +102,7 @@ export default function Sidebar({ setShowApply }) {
         onTouchEnd={cancelHold}
       >
         <img
-          src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+          src="/mint-logo.svg"
           alt="MINT"
           draggable={false}
           style={{ height: 28, width: 'auto', display: 'block', pointerEvents: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}
