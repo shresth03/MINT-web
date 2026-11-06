@@ -7,7 +7,8 @@ colors:
   terminal-surface: "#0a0a0a"
   elevated-surface: "#111111"
   void-border: "#1e1e1e"
-  radar-cyan: "#4dc8e8"
+  logo-red: "#c0404a"
+  on-accent: "#ffffff"
   alert-red: "#e84848"
   signal-green: "#30d880"
   amber-alert: "#e8a020"
@@ -65,19 +66,19 @@ spacing:
   xl: "28px"
 components:
   button-primary:
-    backgroundColor: "{colors.radar-cyan}"
-    textColor: "{colors.void-black}"
+    backgroundColor: "{colors.logo-red}"
+    textColor: "{colors.on-accent}"
     rounded: "{rounded.md}"
     padding: "6px 14px"
     typography: "{typography.mono}"
   button-primary-hover:
-    backgroundColor: "{colors.radar-cyan}"
-    textColor: "{colors.void-black}"
+    backgroundColor: "{colors.logo-red}"
+    textColor: "{colors.on-accent}"
     rounded: "{rounded.md}"
     padding: "6px 14px"
   button-ghost:
     backgroundColor: "transparent"
-    textColor: "{colors.radar-cyan}"
+    textColor: "{colors.logo-red}"
     rounded: "{rounded.md}"
     padding: "6px 14px"
   source-chip:
@@ -102,7 +103,7 @@ components:
 
 MINT's visual language treats the interface as a live ops display — sparse, monochrome-first, chrome stripped to near-zero. Information does not perform; it reports. The design borrows its aesthetic from terminal tooling and signals analysis: high information density, monospaced type for structural data, a sans-serif for prose, and an accent palette that functions as a signal rather than decoration.
 
-Two themes share the same skeleton. **Void** (dark, canonical) is a command center at 02:00 — pure black field, electric cyan accent, surfaces barely elevated from the background. **Ghost** (light) is the cold morning briefing — warm linen ground, crisis red for urgency, the same precision without the darkness. Both modes refuse visual softness; there are no gradients, no box shadows, no decorative roundness. The interface disappears; what remains is evidence and verdict.
+Two themes share the same skeleton. **Void** (dark, canonical) is a command center at 02:00 — pure black field, the logo red as accent, surfaces barely elevated from the background. **Ghost** (light) is the cold morning briefing — warm linen ground, crisis red for urgency, the same precision without the darkness. Both modes refuse visual softness; there are no gradients, no box shadows, no decorative roundness. The interface disappears; what remains is evidence and verdict.
 
 Motion exists only to carry meaning. The theme-switch is a radar sweep — a horizontal scan line that wipes the screen and rebuilds it. Headlines decrypt on transition: opacity, letter-spacing, and blur resolve in sequence. Live states blink. Story cards gain a 3px accent stripe on hover. Nothing animates without an intelligence reason.
 
@@ -118,8 +119,8 @@ Motion exists only to carry meaning. The theme-switch is a radar sweep — a hor
 Two parallel palettes sharing semantic token names (`var(--accent)`, `var(--bg)`, etc.), switched via `[data-theme]` attribute. Void values are canonical; Ghost equivalents documented per role.
 
 ### Primary
-- **Radar Cyan** (`#4dc8e8`, Void `--accent`): Primary action accent in dark mode — active nav rail, CTA buttons, selected story stripe, confidence bar fill. Electric without warmth.
-- **Crisis Red** (`#c0404a`, Ghost `--accent`): Primary accent in light mode. Same structural roles as Radar Cyan. Muted crimson — closer to a threat classification color than a brand red.
+- **Logo Red** (`#c0404a`, `--accent` in both Void and Ghost): Primary action accent — active nav rail, CTA buttons, selected story stripe, confidence bar fill. Matches the logo and the mobile app. Muted crimson — closer to a threat classification color than a brand red.
+- **On Accent** (`#ffffff`, `--on-accent`): Text and icons on a red fill, in both themes.
 
 ### Secondary
 - **Alert Red** (`#e84848`, Void `--accent2`) / **Signal Purple** (`#8a3a8a`, Ghost `--accent2`): The live-and-breaking color. Runs all urgency states — live dot, breaking tag, live indicator, nav badge. In Ghost, Signal Purple carries the same role.

@@ -185,7 +185,7 @@ export default function StoryComposer({ onClose, onPublished }) {
     letterSpacing: 2, color: 'var(--accent)', marginBottom: 6, display: 'block'
   }
   const btnPrimary = {
-    padding: '10px 24px', background: 'var(--accent)', color: 'var(--bg)',
+    padding: '10px 24px', background: 'var(--accent)', color: 'var(--on-accent)',
     border: 'none', borderRadius: 6, fontFamily: 'var(--mono)',
     fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: 1
   }
@@ -229,7 +229,7 @@ export default function StoryComposer({ onClose, onPublished }) {
               flex: 1, padding: '10px', textAlign: 'center',
               fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
               color: step === s ? 'var(--accent)' : step > s ? 'var(--verified)' : 'var(--muted)',
-              borderBottom: step === s ? '2px solid #00d4ff' : '2px solid transparent',
+              borderBottom: step === s ? '2px solid var(--accent)' : '2px solid transparent',
               cursor: step > s ? 'pointer' : 'default'
             }}>
               {step > s ? <Check size={11} style={{ display:'inline', verticalAlign:'middle', marginRight:3 }} /> : `${s}. `}
@@ -350,7 +350,7 @@ export default function StoryComposer({ onClose, onPublished }) {
               {threadObj && (
                 <div style={{
                   padding: '12px 16px', borderRadius: 8,
-                  border: '1px solid #00d4ff', background: 'var(--active-bg)',
+                  border: '1px solid var(--accent)', background: 'var(--active-bg)',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                 }}>
                   <div>
@@ -386,7 +386,7 @@ export default function StoryComposer({ onClose, onPublished }) {
                 ].map(t => (
                   <button key={t.id} onClick={() => { setThreadTab(t.id); if (t.id === 'recent') getRecentThreads().then(setAvailableThreads) }} style={{
                     padding: '8px 16px', background: 'none', border: 'none',
-                    borderBottom: threadTab === t.id ? '2px solid #00d4ff' : '2px solid transparent',
+                    borderBottom: threadTab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
                     fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 1,
                     color: threadTab === t.id ? 'var(--accent)' : 'var(--muted)',
                     cursor: 'pointer', transition: 'all 0.15s'
@@ -429,7 +429,7 @@ export default function StoryComposer({ onClose, onPublished }) {
                         border: `2px solid ${selected ? 'var(--accent)' : 'var(--muted)'}`,
                         background: selected ? 'var(--accent)' : 'transparent',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 9, color: 'var(--bg)', fontWeight: 700
+                        fontSize: 9, color: 'var(--on-accent)', fontWeight: 700
                       }}>
                         {selected ? <Check size={9} /> : ''}
                       </div>

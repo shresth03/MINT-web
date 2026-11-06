@@ -63,7 +63,7 @@ export default function ChannelPage() {
               width: 72, height: 72, borderRadius: '50%',
               background: 'var(--accent)', display: 'flex',
               alignItems: 'center', justifyContent: 'center',
-              fontSize: 28, fontWeight: 700, color: 'var(--bg)',
+              fontSize: 28, fontWeight: 700, color: 'var(--on-accent)',
               border: '2px solid var(--border)', flexShrink: 0,
               fontFamily: 'var(--mono)'
             }}>
@@ -84,7 +84,7 @@ export default function ChannelPage() {
                 padding: '3px 10px', borderRadius: 10,
                 fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 600, letterSpacing: 1,
                 background: channel.role === 'osint' ? 'rgba(48,216,128,0.1)'
-                  : channel.role === 'admin' ? 'rgba(77,200,232,0.1)'
+                  : channel.role === 'admin' ? 'var(--topbar-hover)'
                   : 'rgba(64,72,88,0.2)',
                 color: channel.role === 'osint' ? 'var(--verified)'
                   : channel.role === 'admin' ? 'var(--accent)'
@@ -114,7 +114,7 @@ export default function ChannelPage() {
                   letterSpacing: 1, cursor: 'pointer', transition: 'all 0.15s',
                   border: '1px solid var(--accent)',
                   background: following ? 'var(--accent)' : 'transparent',
-                  color: following ? 'var(--bg)' : 'var(--accent)',
+                  color: following ? 'var(--on-accent)' : 'var(--accent)',
                 }}
               >
                 {following

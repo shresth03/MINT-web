@@ -7,7 +7,7 @@ export default function Avatar({ username, group = false, size = 38, fontSize = 
       width: size, height: size, borderRadius: '50%',
       background: 'var(--accent)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize, fontWeight: 700, color: 'var(--bg)',
+      fontSize, fontWeight: 700, color: 'var(--on-accent)',
       flexShrink: 0, fontFamily: 'var(--mono)',
     }}>
       {group

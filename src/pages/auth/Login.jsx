@@ -111,7 +111,7 @@ export default function Login() {
               style={{
                 width: '100%', padding: 11, marginTop: 4,
                 background: loading ? 'var(--border)' : 'var(--accent)',
-                color: loading ? 'var(--muted)' : 'var(--bg)',
+                color: loading ? 'var(--muted)' : 'var(--on-accent)',
                 fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700,
                 letterSpacing: 1, border: 'none', borderRadius: 4,
                 cursor: loading ? 'not-allowed' : 'pointer',
@@ -180,7 +180,7 @@ export default function Login() {
                   style={{
                     width: '100%', padding: 11,
                     background: resetLoading ? 'var(--border)' : 'var(--accent)',
-                    color: resetLoading ? 'var(--muted)' : 'var(--bg)',
+                    color: resetLoading ? 'var(--muted)' : 'var(--on-accent)',
                     fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700,
                     letterSpacing: 1, border: 'none', borderRadius: 4,
                     cursor: resetLoading ? 'not-allowed' : 'pointer',

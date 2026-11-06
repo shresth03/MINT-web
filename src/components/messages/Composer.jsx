@@ -67,7 +67,7 @@ export default function Composer({ value, onChange, onSend, sending, isMobile, c
           aria-label="Send message"
           style={{
             width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-            background: 'var(--accent)', color: 'var(--bg)', border: 'none',
+            background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: canSend ? 'pointer' : 'not-allowed',
             opacity: canSend ? 1 : 0.35,

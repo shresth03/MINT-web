@@ -91,7 +91,7 @@ export default function ProfilePage() {
               width: 64, height: 64, borderRadius: '50%',
               background: 'var(--accent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 24, fontWeight: 700, color: 'var(--bg)',
+              fontSize: 24, fontWeight: 700, color: 'var(--on-accent)',
               border: '2px solid var(--border)', flexShrink: 0,
               fontFamily: 'var(--mono)',
             }}>
@@ -109,7 +109,7 @@ export default function ProfilePage() {
                 padding: '3px 10px', borderRadius: 10,
                 fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 600, letterSpacing: 1,
                 background: profile?.role === 'osint' ? 'rgba(48,216,128,0.1)'
-                  : profile?.role === 'admin' ? 'rgba(77,200,232,0.1)'
+                  : profile?.role === 'admin' ? 'var(--topbar-hover)'
                   : 'rgba(64,72,88,0.2)',
                 color: profile?.role === 'osint' ? 'var(--verified)'
                   : profile?.role === 'admin' ? 'var(--accent)'
@@ -251,7 +251,7 @@ export default function ProfilePage() {
               disabled={saving}
               style={{
                 padding: '9px 22px', background: 'var(--accent)',
-                color: 'var(--bg)', border: 'none', borderRadius: 4,
+                color: 'var(--on-accent)', border: 'none', borderRadius: 4,
                 fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,
                 cursor: saving ? 'not-allowed' : 'pointer',
                 opacity: saving ? 0.5 : 1, letterSpacing: 1,

@@ -144,7 +144,7 @@ function MentionTextarea({ value, onChange, placeholder, rows = 2, onKeyDown, au
                 width: 24, height: 24, borderRadius: '50%',
                 background: 'var(--accent)', display: 'flex',
                 alignItems: 'center', justifyContent: 'center',
-                fontSize: 10, fontWeight: 700, color: 'var(--bg)',
+                fontSize: 10, fontWeight: 700, color: 'var(--on-accent)',
                 fontFamily: 'var(--mono)', flexShrink: 0,
               }}>
                 {u.username[0].toUpperCase()}
@@ -222,7 +222,7 @@ function ReplyNode({ node, depth = 0, postId, createReply, createNotification, p
           width: 28, height: 28, borderRadius: '50%',
           background: 'var(--accent)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 11, fontWeight: 700, color: 'var(--bg)',
+          fontSize: 11, fontWeight: 700, color: 'var(--on-accent)',
           flexShrink: 0, fontFamily: 'var(--mono)', marginBottom: 4,
         }}>
           {node.users?.username?.[0]?.toUpperCase() || 'U'}
@@ -389,7 +389,7 @@ function ReplyNode({ node, depth = 0, postId, createReply, createNotification, p
                       onClick={handleSend}
                       disabled={!body.trim() || sending}
                       style={{
-                        padding: '5px 14px', background: 'var(--accent)', color: 'var(--bg)',
+                        padding: '5px 14px', background: 'var(--accent)', color: 'var(--on-accent)',
                         border: 'none', borderRadius: 20, fontFamily: 'var(--mono)',
                         fontSize: 10, fontWeight: 700,
                         cursor: !body.trim() || sending ? 'not-allowed' : 'pointer',
@@ -516,7 +516,7 @@ function ReplyThread({ postId, authorId, createReply, fetchReplies, createNotifi
         <div style={{
           width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 11, fontWeight: 700, color: 'var(--bg)', flexShrink: 0,
+          fontSize: 11, fontWeight: 700, color: 'var(--on-accent)', flexShrink: 0,
           fontFamily: 'var(--mono)',
         }}>
           {user?.email?.[0]?.toUpperCase() || 'U'}
@@ -541,7 +541,7 @@ function ReplyThread({ postId, authorId, createReply, fetchReplies, createNotifi
               onClick={handleSend}
               disabled={!body.trim() || sending}
               style={{
-                padding: '5px 16px', background: 'var(--accent)', color: 'var(--bg)',
+                padding: '5px 16px', background: 'var(--accent)', color: 'var(--on-accent)',
                 border: 'none', borderRadius: 20, fontFamily: 'var(--mono)',
                 fontSize: 10, fontWeight: 700,
                 cursor: !body.trim() || sending ? 'not-allowed' : 'pointer',
@@ -588,7 +588,7 @@ function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaP
       <div style={{
         width: 36, height: 36, borderRadius: '50%', background: 'var(--accent)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 13, fontWeight: 700, color: 'var(--bg)', flexShrink: 0, fontFamily: 'var(--mono)',
+        fontSize: 13, fontWeight: 700, color: 'var(--on-accent)', flexShrink: 0, fontFamily: 'var(--mono)',
       }}>
         {user?.email?.[0]?.toUpperCase() || 'U'}
       </div>
@@ -643,7 +643,7 @@ function ComposerInner({ user, body, setBody, error, setError, mediaFile, mediaP
               onClick={handlePost}
               disabled={!body.trim() || posting}
               style={{
-                padding: '7px 18px', background: 'var(--accent)', color: 'var(--bg)',
+                padding: '7px 18px', background: 'var(--accent)', color: 'var(--on-accent)',
                 border: 'none', borderRadius: 4, fontFamily: 'var(--mono)',
                 fontSize: 10, fontWeight: 700, letterSpacing: 1,
                 cursor: !body.trim() || posting ? 'not-allowed' : 'pointer',
@@ -1032,7 +1032,7 @@ export default function GeneralFeed() {
           style={{
             position: 'fixed', bottom: 72, right: 20, zIndex: 500,
             width: 52, height: 52, borderRadius: '50%',
-            background: 'var(--accent)', color: 'var(--bg)',
+            background: 'var(--accent)', color: 'var(--on-accent)',
             border: 'none', fontSize: 28, fontWeight: 300,
             cursor: 'pointer', display: 'flex',
             alignItems: 'center', justifyContent: 'center',
@@ -1083,7 +1083,7 @@ export default function GeneralFeed() {
               onClick={requestPost}
               disabled={!body.trim() || posting}
               style={{
-                padding: '7px 18px', background: 'var(--accent)', color: 'var(--bg)',
+                padding: '7px 18px', background: 'var(--accent)', color: 'var(--on-accent)',
                 border: 'none', borderRadius: 4, fontFamily: 'var(--mono)',
                 fontSize: 11, fontWeight: 700, letterSpacing: 1,
                 cursor: !body.trim() || posting ? 'not-allowed' : 'pointer',
@@ -1100,7 +1100,7 @@ export default function GeneralFeed() {
               <div style={{
                 width: 36, height: 36, borderRadius: '50%', background: 'var(--accent)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 13, fontWeight: 700, color: 'var(--bg)', flexShrink: 0,
+                fontSize: 13, fontWeight: 700, color: 'var(--on-accent)', flexShrink: 0,
                 fontFamily: 'var(--mono)',
               }}>
                 {user?.email?.[0]?.toUpperCase() || 'U'}
@@ -1288,7 +1288,7 @@ export default function GeneralFeed() {
                     width: 36, height: 36, borderRadius: '50%',
                     background: 'var(--accent)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 13, fontWeight: 700, color: 'var(--bg)', flexShrink: 0,
+                    fontSize: 13, fontWeight: 700, color: 'var(--on-accent)', flexShrink: 0,
                     fontFamily: 'var(--mono)',
                   }}>
                     {post.users?.username?.[0]?.toUpperCase() || 'U'}

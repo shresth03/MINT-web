@@ -404,7 +404,7 @@ function ArticleComposer({ onClose, onPublished }) {
             CANCEL
           </button>
           <button onClick={handlePublish} disabled={publishing || !headline.trim() || !summary.trim()} style={{
-            flex: 2, padding: '9px 0', background: 'var(--accent)', color: 'var(--bg)',
+            flex: 2, padding: '9px 0', background: 'var(--accent)', color: 'var(--on-accent)',
             border: 'none', borderRadius: 4, fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, cursor: 'pointer',
             opacity: (!headline.trim() || !summary.trim()) ? 0.5 : 1,
           }}>
@@ -453,7 +453,7 @@ export default function ArticlesPage() {
               onClick={() => setShowComposer(true)}
               style={{
                 marginLeft: 'auto', padding: '9px 18px',
-                background: 'var(--accent)', color: 'var(--bg)',
+                background: 'var(--accent)', color: 'var(--on-accent)',
                 border: 'none', borderRadius: 4,
                 fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700,
                 letterSpacing: 1, cursor: 'pointer',

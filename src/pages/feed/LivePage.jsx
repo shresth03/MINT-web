@@ -195,7 +195,7 @@ function CreateStreamModal({ onClose, onCreate }) {
             fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', cursor: 'pointer',
           }}>CANCEL</button>
           <button onClick={handleCreate} disabled={!title.trim() || creating} style={{
-            flex: 2, padding: '9px 0', background: 'var(--accent)', color: 'var(--bg)',
+            flex: 2, padding: '9px 0', background: 'var(--accent)', color: 'var(--on-accent)',
             border: 'none', borderRadius: 4, fontFamily: 'var(--mono)',
             fontSize: 10, fontWeight: 700, cursor: !title.trim() ? 'not-allowed' : 'pointer',
             opacity: !title.trim() ? 0.5 : 1,
@@ -345,7 +345,7 @@ export default function LivePage() {
                 {canBroadcast && (
                   <button onClick={() => setShowCreate(true)} style={{
                     marginTop: 12, padding: '9px 20px', background: 'var(--accent)',
-                    color: 'var(--bg)', border: 'none', borderRadius: 4,
+                    color: 'var(--on-accent)', border: 'none', borderRadius: 4,
                     fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, cursor: 'pointer',
                   }}>
                     START THE FIRST BROADCAST
