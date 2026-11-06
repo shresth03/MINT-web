@@ -10,5 +10,8 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  // Branches other than staging build as Previews (npx wrangler preview),
+  // which requires this block; it can stay empty.
+  "previews": {}
 }
