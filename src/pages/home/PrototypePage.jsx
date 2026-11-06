@@ -598,7 +598,7 @@ export default function App() {
             onTouchEnd={cancelHold}
           >
             <img
-              src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+              src="/mint-logo.svg"
               alt="MINT"
               draggable={false}
               className="logo-img"

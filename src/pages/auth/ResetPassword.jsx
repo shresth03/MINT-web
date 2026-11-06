@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/core/useAuth'
-import { useTheme } from '../../hooks/core/useTheme'
 import { CheckCircle, Lock } from 'lucide-react'
 import { supabase } from '../../api/supabase'
 
 export default function ResetPassword() {
-  const { theme } = useTheme()
   const { updatePassword } = useAuth()
   const navigate = useNavigate()
 
@@ -275,7 +273,7 @@ const handleSubmit = async () => {
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
           <img
-            src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+            src="/mint-logo.svg"
             alt="MINT"
             style={{ height: 36, width: 'auto' }}
           />
