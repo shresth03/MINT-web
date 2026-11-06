@@ -5,8 +5,9 @@ import React from 'react'
 // vi.mock is hoisted — use vi.hoisted so the fns are available inside the factory
 const {
   mockAuthSignUp, mockAuthSignIn, mockAuthSignOut,
-  mockAuthGetSession, mockAuthOnChange, mockAuthResetPw, mockAuthResend,
+  mockAuthGetSession, mockAuthOnChange, mockAuthResetPw, mockAuthResend, mockRpc,
 } = vi.hoisted(() => ({
+  mockRpc: vi.fn().mockResolvedValue({ data: true, error: null }),
   mockAuthSignUp: vi.fn(),
   mockAuthSignIn: vi.fn(),
   mockAuthSignOut: vi.fn(),
@@ -22,6 +23,7 @@ const {
 
 vi.mock('../../api/supabase', () => ({
   supabase: {
+    rpc: mockRpc,
     auth: {
       getSession: mockAuthGetSession,
       onAuthStateChange: mockAuthOnChange,
@@ -49,6 +51,9 @@ async function setup() {
 describe('useAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
+    sessionStorage.clear()
+    mockRpc.mockResolvedValue({ data: true, error: null })
     mockAuthGetSession.mockResolvedValue({ data: { session: null } })
     mockAuthOnChange.mockImplementation((cb) => {
       cb('INITIAL_SESSION', null)
@@ -119,6 +124,125 @@ describe('useAuth', () => {
         }),
       })
     )
+  })
+
+  // ── username check ───────────────────────────────────────────────────────
+
+  it('checks the trimmed username before creating the account', async () => {
+    mockAuthSignUp.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+
+    const { result } = await setup()
+    await act(async () => {
+      await result.current.signUp('a@b.com', 'pass1234', '  alice  ')
+    })
+
+    expect(mockRpc).toHaveBeenCalledWith('auth_username_available', { p_username: 'alice' })
+    expect(mockAuthSignUp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          data: expect.objectContaining({ username: 'alice' }),
+        }),
+      })
+    )
+  })
+
+  it('stops with a clear message when the username is taken', async () => {
+    mockRpc.mockResolvedValue({ data: false, error: null })
+
+    const { result } = await setup()
+    let response
+    await act(async () => {
+      response = await result.current.signUp('a@b.com', 'pass1234', 'Alice')
+    })
+
+    expect(response.error.message).toBe('That username is already taken.')
+    expect(mockAuthSignUp).not.toHaveBeenCalled()
+  })
+
+  it('does not create the account when the check itself fails', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: { message: 'network' } })
+
+    const { result } = await setup()
+    let response
+    await act(async () => {
+      response = await result.current.signUp('a@b.com', 'pass1234', 'alice')
+    })
+
+    expect(response.error.message).toMatch(/Unable to check username/)
+    expect(mockAuthSignUp).not.toHaveBeenCalled()
+  })
+
+  // ── sign out and session timeout ─────────────────────────────────────────
+
+  it('signOut ends the session in this browser only', async () => {
+    const { result } = await setup()
+    await act(async () => { await result.current.signOut() })
+    expect(mockAuthSignOut).toHaveBeenCalledWith({ scope: 'local' })
+  })
+
+  it('signs out on load when the last activity is older than the limit', async () => {
+    localStorage.setItem('mint_last_activity', String(Date.now() - 11 * 60 * 1000))
+    mockAuthOnChange.mockImplementation((cb) => {
+      cb('INITIAL_SESSION', { user: { id: 'u1' } })
+      return { data: { subscription: { unsubscribe: vi.fn() } } }
+    })
+
+    await setup()
+
+    expect(mockAuthSignOut).toHaveBeenCalledWith({ scope: 'local' })
+    expect(sessionStorage.getItem('mint_session_expired')).toBe('1')
+  })
+
+  it('keeps a recently active session signed in', async () => {
+    localStorage.setItem('mint_last_activity', String(Date.now() - 60 * 1000))
+    mockAuthOnChange.mockImplementation((cb) => {
+      cb('INITIAL_SESSION', { user: { id: 'u1' } })
+      return { data: { subscription: { unsubscribe: vi.fn() } } }
+    })
+
+    const { result } = await setup()
+
+    expect(mockAuthSignOut).not.toHaveBeenCalled()
+    expect(result.current.user).toEqual({ id: 'u1' })
+  })
+
+  it('times out after 10 idle minutes', async () => {
+    vi.useFakeTimers()
+    try {
+      mockAuthOnChange.mockImplementation((cb) => {
+        cb('INITIAL_SESSION', { user: { id: 'u1' } })
+        return { data: { subscription: { unsubscribe: vi.fn() } } }
+      })
+      await setup()
+      expect(mockAuthSignOut).not.toHaveBeenCalled()
+
+      await act(async () => { vi.advanceTimersByTime(9 * 60 * 1000) })
+      expect(mockAuthSignOut).not.toHaveBeenCalled()
+
+      await act(async () => { vi.advanceTimersByTime(90 * 1000) })
+      expect(mockAuthSignOut).toHaveBeenCalledWith({ scope: 'local' })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('activity in the window resets the clock', async () => {
+    vi.useFakeTimers()
+    try {
+      mockAuthOnChange.mockImplementation((cb) => {
+        cb('INITIAL_SESSION', { user: { id: 'u1' } })
+        return { data: { subscription: { unsubscribe: vi.fn() } } }
+      })
+      await setup()
+
+      await act(async () => { vi.advanceTimersByTime(8 * 60 * 1000) })
+      await act(async () => { window.dispatchEvent(new Event('keydown')) })
+      await act(async () => { vi.advanceTimersByTime(8 * 60 * 1000) })
+
+      expect(mockAuthSignOut).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   // ── resetPassword ────────────────────────────────────────────────────────
