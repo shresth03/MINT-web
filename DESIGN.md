@@ -21,6 +21,7 @@ colors:
   stone-border: "#e0dbd4"
   crisis-red: "#c0404a"
   signal-purple: "#8a3a8a"
+  signal-purple-void: "#b45cb4"
   forest-green: "#2a7a4a"
   caution-amber: "#b06020"
   dark-ink: "#1a1614"
@@ -123,7 +124,7 @@ Two parallel palettes sharing semantic token names (`var(--accent)`, `var(--bg)`
 - **On Accent** (`#ffffff`, `--on-accent`): Text and icons on a red fill, in both themes.
 
 ### Secondary
-- **Alert Red** (`#e84848`, Void `--accent2`) / **Signal Purple** (`#8a3a8a`, Ghost `--accent2`): The live-and-breaking color. Runs all urgency states — live dot, breaking tag, live indicator, nav badge. In Ghost, Signal Purple carries the same role.
+- **Signal Purple** (`#8a3a8a` Ghost / `#b45cb4` Void, `--accent2`): The live-and-breaking color. Runs all urgency states — live dot, breaking tag, live indicator, nav badge — plus the first-report chip and the start of the confidence gradient. Void uses a lighter purple of the same hue so it reads on black.
 - **Signal Green** (`#30d880`, Void `--verified`) / **Forest Green** (`#2a7a4a`, Ghost `--verified`): Verification state exclusively. Applied to verified badges, the vdot in source chips, and confirmed-source indicators. Never decorative.
 - **Amber Alert** (`#e8a020`, Void `--warn`) / **Caution Amber** (`#b06020`, Ghost `--warn`): Single-source data quality warning. The only warm-hue exception in the system.
 
