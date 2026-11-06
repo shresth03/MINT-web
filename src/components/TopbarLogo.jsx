@@ -45,7 +45,7 @@ export default function TopbarLogo() {
         onTouchEnd={cancelHold}
       >
         <img
-          src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'}
+          src="/mint-logo.svg"
           alt="MINT"
           draggable={false}
           style={{ height: 34, width: 'auto', display: 'block', pointerEvents: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}

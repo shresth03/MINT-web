@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="617" height="309" viewBox="0 0 617 309" role="img" aria-label="MINT">
+  <title>MINT</title>
+  <g fill="#C0404A">
+    <path d="M1 309 L1 134 L51 134 L99.5 254 L148 134 L198 134 L198 309 L156 309 L156 218 L120 309 L79 309 L42 218 L42 309 Z"/>
+    <rect x="230" y="134" width="42" height="175"/>
+    <path d="M303 309 L303 134 L346 134 L417 243 L417 134 L459 134 L459 309 L417 309 L345 200 L345 309 Z"/>
+    <path d="M482 134 L617 134 L617 176 L570 176 L570 309 L528 309 L528 176 L482 176 Z"/>
+    <path fill-rule="evenodd" d="M203 50 a48 48 0 1 0 96 0 a48 48 0 1 0 -96 0 Z M227 50 a24 24 0 1 0 48 0 a24 24 0 1 0 -48 0 Z M237.5 50 a13.5 13.5 0 1 0 27 0 a13.5 13.5 0 1 0 -27 0 Z"/>
+  </g>
+  <g fill="none" stroke="#C0404A" stroke-width="9" stroke-linecap="round">
+    <path d="M192.19 80.96 A66 66 0 0 1 192.19 21.04 M309.81 21.04 A66 66 0 0 1 309.81 80.96"/>
+    <path stroke-opacity="0.46" d="M173.66 92.99 A88 88 0 0 1 173.66 9.01 M328.34 9.01 A88 88 0 0 1 328.34 92.99"/>
+  </g>
+</svg>

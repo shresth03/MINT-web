@@ -40,9 +40,9 @@ describe('PageShell', () => {
     expect(screen.getByRole('img', { name: 'MINT' })).toBeInTheDocument()
   })
 
-  it('uses dark logo when theme is dark', () => {
+  it('uses the MINT logo SVG', () => {
     renderShell()
-    expect(screen.getByRole('img', { name: 'MINT' }).getAttribute('src')).toContain('logo-dark.png')
+    expect(screen.getByRole('img', { name: 'MINT' }).getAttribute('src')).toContain('mint-logo.svg')
   })
 
   it('renders page title when provided', () => {
