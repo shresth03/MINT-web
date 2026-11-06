@@ -2,12 +2,15 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/core/useAuth'
 import { useTheme } from '../../hooks/core/useTheme'
+import { takeExpiredNotice } from '../../lib/auth/sessionTimeout'
 
 export default function Login() {
   const { theme } = useTheme()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  // Read once: set when the session timed out for inactivity.
+  const [timedOut] = useState(takeExpiredNotice)
   const [loading, setLoading] = useState(false)
   const [showReset, setShowReset] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
@@ -62,6 +65,16 @@ export default function Login() {
             style={{ height: 36, width: 'auto' }}
           />
         </div>
+
+        {timedOut && !error && (
+          <div role="status" style={{
+            background: 'var(--surface2)', border: '1px solid var(--border)',
+            borderRadius: 4, padding: '10px 14px', color: 'var(--text)',
+            fontSize: 12, marginBottom: 14, fontFamily: 'var(--sans)',
+          }}>
+            You were signed out after 10 minutes of inactivity. Sign in to continue.
+          </div>
+        )}
 
         {/* Error */}
         {error && (
