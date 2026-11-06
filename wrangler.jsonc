@@ -1,0 +1,14 @@
+// Cloudflare Workers config for the test site (Vercel hosts production and
+// ignores this file). Static assets only: the Vite build in ./dist, with every
+// unknown path served index.html so React Router handles /feed, /login, etc.
+{
+  "name": "mint-web",
+  "compatibility_date": "2026-11-04",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
